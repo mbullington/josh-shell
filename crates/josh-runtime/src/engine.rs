@@ -122,7 +122,6 @@ pub struct Engine {
     frames: Vec<Frame>,
     execution_cancellation: CancellationToken,
     prototypes: crate::natives::Prototypes,
-    suspended: Option<crate::host::SuspendedJob>,
 }
 
 impl Engine {
@@ -169,7 +168,6 @@ impl Engine {
             frames: vec![root],
             execution_cancellation,
             prototypes,
-            suspended: None,
         }
     }
 
@@ -205,14 +203,6 @@ impl Engine {
         self.context.environment_variable(OsStr::new(name))
     }
 
-    /// Terminate and reap a parked foreground pipeline, if any. Idempotent;
-    /// call paths: `exit`, REPL shutdown, and Ctrl+D.
-    pub fn finalize_suspended(&mut self) {
-        if let Some(job) = self.suspended.take() {
-            self.host.teardown_suspended(&job);
-        }
-    }
-
     pub fn run_source(&mut self, source: impl Into<Arc<str>>) -> Result<RunResult, EngineError> {
         let source = source.into();
         let parsed = parse(source);
@@ -225,10 +215,7 @@ impl Engine {
     pub fn run_program(&mut self, program: &Program) -> Result<RunResult, EngineError> {
         match self.eval_program(program) {
             Ok(value) => Ok(RunResult::Value(value)),
-            Err(Unwind::Exit(code)) => {
-                self.finalize_suspended();
-                Ok(RunResult::Exit(code))
-            }
+            Err(Unwind::Exit(code)) => Ok(RunResult::Exit(code)),
             Err(Unwind::Throw(value)) => Err(EngineError::Uncaught(value)),
             Err(Unwind::Return(_)) => Err(EngineError::InvalidControl("return")),
             Err(Unwind::Break) => Err(EngineError::InvalidControl("break")),
@@ -580,7 +567,7 @@ impl Engine {
             self.execution_cancellation.clone(),
             self.context.clone(),
         );
-        self.complete_execution(result)
+        Self::complete_execution(result)
     }
 
     fn structural_stream_shape(&self, index: usize, stage: &ExternalCommand) -> StreamShape {
@@ -860,26 +847,6 @@ impl Engine {
                 .unwrap_or(0);
             return Err(Unwind::Exit(code));
         }
-        if name.as_slice() == b"fg" {
-            if !redirections.is_empty() {
-                return Err(EngineError::Unsupported("redirections on builtins".into()).into());
-            }
-            if capture {
-                return Err(EngineError::Unsupported("builtins inside captures".into()).into());
-            }
-            if argv.len() > 1 {
-                return Err(type_error("fg expects no arguments"));
-            }
-            let Some(job) = self.suspended.take() else {
-                return Err(type_error("fg: no suspended job"));
-            };
-            let result = self.host.resume_suspended(
-                &job,
-                self.execution_cancellation.clone(),
-                self.context.clone(),
-            );
-            return self.complete_execution(result);
-        }
         if name.as_slice() == b"cd" {
             if !redirections.is_empty() {
                 return Err(EngineError::Unsupported("redirections on builtins".into()).into());
@@ -939,31 +906,14 @@ impl Engine {
             self.execution_cancellation.clone(),
             self.context.clone(),
         );
-        self.complete_execution(result)
+        Self::complete_execution(result)
     }
 
     fn complete_execution(
-        &mut self,
         result: Result<ExecutionResult, ExecutionError>,
     ) -> EvalResult<Completion> {
         match result {
             Ok(result) => Ok(completion_from_result(result)),
-            Err(ExecutionError::Stopped(job)) => {
-                if let Some(existing) = &self.suspended {
-                    // Deterministic policy: refuse a second parked group
-                    // instead of silently replacing (and leaking) the first.
-                    self.host.teardown_suspended(&job);
-                    return Err(type_error(format!(
-                        "foreground slot occupied by `{}`; run fg to finish it before suspending another pipeline",
-                        existing.description
-                    )));
-                }
-                self.suspended = Some(job.clone());
-                Ok(Completion::success(Value::String(Arc::from(format!(
-                    "[1] suspended: {}",
-                    job.description
-                )))))
-            }
             Err(
                 error @ (ExecutionError::CommandFailed { .. }
                 | ExecutionError::PipelineFailed { .. }),

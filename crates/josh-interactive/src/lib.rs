@@ -66,8 +66,7 @@ impl CompletionSnapshot {
         environment: impl IntoIterator<Item = impl AsRef<std::ffi::OsStr>>,
         cwd: PathBuf,
     ) -> Self {
-        let mut commands =
-            BTreeSet::from(["cd".into(), "exit".into(), "fg".into(), "status".into()]);
+        let mut commands = BTreeSet::from(["cd".into(), "exit".into(), "status".into()]);
         for directory in directories {
             if let Ok(entries) = fs::read_dir(directory) {
                 for entry in entries.flatten() {
@@ -318,9 +317,12 @@ pub fn run_repl(engine: &mut Engine) -> Result<i32, Box<dyn std::error::Error>> 
         match editor.read_line(&prompt)? {
             Signal::Success(line) => {
                 interrupted.store(false, Ordering::Release);
+                // Persist the accepted line now so a crash or kill does not
+                // lose the session's history (FileBackedHistory only syncs
+                // to disk on Drop).
+                let _ = editor.sync_history();
                 match engine.run_source(Arc::<str>::from(line)) {
                     Ok(RunResult::Exit(code)) => {
-                        engine.finalize_suspended();
                         return Ok(code);
                     }
                     Ok(RunResult::Value(value)) => {
@@ -340,7 +342,6 @@ pub fn run_repl(engine: &mut Engine) -> Result<i32, Box<dyn std::error::Error>> 
                 continue;
             }
             Signal::CtrlD => {
-                engine.finalize_suspended();
                 return Ok(0);
             }
             Signal::HostCommand(_) | Signal::ExternalBreak(_) => continue,

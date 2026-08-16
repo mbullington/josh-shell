@@ -16,7 +16,7 @@ use std::{
 use josh_runtime::{
     CancellationToken, Captured, CommandSpec, Engine, ExecutionError, ExecutionHost,
     ExecutionResult, MAX_MATERIALIZED_BYTES, RedirectionSpec, ShellContext, ShellSnapshot,
-    StageOutcome, StreamStage, SuspendedJob, read_bounded,
+    StageOutcome, StreamStage, read_bounded,
 };
 use josh_streams::{PlannedExternal, PlannedRedirection, PlannedStage, configure_external_stdio};
 use nix::poll::{PollFd, PollFlags, poll};
@@ -79,44 +79,6 @@ impl ExecutionHost for ProcessHost {
             #[cfg(unix)]
             self.terminal.as_ref(),
         )
-    }
-
-    #[cfg(unix)]
-    fn resume_suspended(
-        &mut self,
-        job: &SuspendedJob,
-        cancellation: CancellationToken,
-        context: ShellContext,
-    ) -> Result<ExecutionResult, ExecutionError> {
-        resume_foreground_group(job, cancellation, &context, self.terminal.as_ref())
-    }
-
-    #[cfg(unix)]
-    fn teardown_suspended(&mut self, job: &SuspendedJob) {
-        use nix::sys::{
-            signal::{Signal, killpg},
-            wait::{WaitPidFlag, waitpid},
-        };
-        use nix::unistd::Pid;
-
-        let pgid = Pid::from_raw(job.pgid);
-        let _ = killpg(pgid, Signal::SIGHUP);
-        let _ = killpg(pgid, Signal::SIGCONT);
-        std::thread::sleep(std::time::Duration::from_millis(50));
-        let _ = killpg(pgid, Signal::SIGKILL);
-        let drained = std::time::Instant::now() + std::time::Duration::from_secs(1);
-        loop {
-            match waitpid(Pid::from_raw(-pgid.as_raw()), Some(WaitPidFlag::WNOHANG)) {
-                Ok(nix::sys::wait::WaitStatus::StillAlive) => {
-                    if std::time::Instant::now() >= drained {
-                        break; // SIGKILL is a guarantee; this is only a belt-and-braces cap.
-                    }
-                    std::thread::sleep(std::time::Duration::from_millis(2));
-                }
-                Ok(_) | Err(nix::errno::Errno::EINTR) => {}
-                Err(_) => break, // ECHILD: the group is fully reaped
-            }
-        }
     }
 
     fn execute_stream(
@@ -811,16 +773,7 @@ fn run_graph_unix(
             Ok(WaitStatus::Stopped(_, signal)) => {
                 if stop_signal.is_none() {
                     stop_signal = Some(signal as i32);
-                    if capture {
-                        // Captured pipelines drain through a collector that
-                        // expects EOF, so a stop would wedge it forever; keep
-                        // the historical kill-and-diagnose behavior there.
-                        let _ = killpg(pgid, Signal::SIGKILL);
-                    } else {
-                        // Parked: leave the group stopped; the shell offers
-                        // the slot through `fg` / ExecutionError::Stopped.
-                        break;
-                    }
+                    let _ = killpg(pgid, Signal::SIGKILL);
                 }
             }
             Ok(WaitStatus::Continued(_) | WaitStatus::StillAlive) => {
@@ -863,19 +816,7 @@ fn run_graph_unix(
     }
     let bytes = capture_result?;
     if let Some(signal) = stop_signal {
-        if capture {
-            return Err(ExecutionError::ForegroundStopped { signal });
-        }
-        let description = children
-            .iter()
-            .map(|(rendered, _)| rendered.clone())
-            .collect::<Vec<_>>()
-            .join(" | ");
-        return Err(ExecutionError::Stopped(josh_runtime::SuspendedJob {
-            pgid: pgid.as_raw(),
-            description,
-            signal,
-        }));
+        return Err(ExecutionError::ForegroundStopped { signal });
     }
     if was_cancelled {
         return Err(ExecutionError::Cancelled);
@@ -1221,108 +1162,4 @@ mod tests {
             .is_ok_and(|status| status.success());
         assert!(!alive, "overflowing producer {pid} was not reaped");
     }
-}
-
-/// SIGCONT + wait for a parked foreground process group. Another terminal
-/// stop reparks the job; cancellation tears the group down.
-#[cfg(unix)]
-fn resume_foreground_group(
-    job: &SuspendedJob,
-    cancellation: CancellationToken,
-    _context: &ShellContext,
-    terminal: Option<&TerminalController>,
-) -> Result<ExecutionResult, ExecutionError> {
-    use nix::errno::Errno;
-    use nix::sys::signal::{Signal, killpg};
-    use nix::sys::wait::{WaitPidFlag, WaitStatus, waitpid};
-    use nix::unistd::Pid;
-
-    let pgid = Pid::from_raw(job.pgid);
-    let mut foreground = match terminal {
-        Some(controller) => match controller.handoff(pgid) {
-            Ok(guard) => Some(guard),
-            Err(error) => {
-                let _ = killpg(pgid, Signal::SIGKILL);
-                while waitpid(pgid, Some(WaitPidFlag::WNOHANG)).is_ok() {}
-                return Err(ExecutionError::Terminal(io::Error::other(error)));
-            }
-        },
-        None => None,
-    };
-    let _ = killpg(pgid, Signal::SIGCONT);
-
-    let mut outcomes: Vec<StageOutcome> = Vec::new();
-    let mut stage_index = 0_usize;
-    let mut was_cancelled = false;
-    let mut stopped_again = None;
-    let mut wait_error = None;
-    loop {
-        if let Some(controller) = terminal {
-            controller.forward_pending(pgid);
-        }
-        if cancellation.is_cancelled() && !was_cancelled {
-            was_cancelled = true;
-            let _ = killpg(pgid, Signal::SIGKILL);
-        }
-        match waitpid(
-            Pid::from_raw(-pgid.as_raw()),
-            Some(WaitPidFlag::WNOHANG | WaitPidFlag::WUNTRACED),
-        ) {
-            Ok(WaitStatus::Exited(_, code)) => {
-                outcomes.push(StageOutcome {
-                    stage: stage_index,
-                    rendered: job.description.clone(),
-                    code: Some(code),
-                    signal: None,
-                    success: code == 0,
-                });
-                stage_index += 1;
-            }
-            Ok(WaitStatus::Signaled(_, signal, _)) => {
-                outcomes.push(StageOutcome {
-                    stage: stage_index,
-                    rendered: job.description.clone(),
-                    code: None,
-                    signal: Some(signal as i32),
-                    success: false,
-                });
-                stage_index += 1;
-            }
-            Ok(WaitStatus::Stopped(_, signal)) => {
-                stopped_again = Some(signal as i32);
-                break;
-            }
-            Ok(_) => thread::sleep(std::time::Duration::from_millis(2)),
-            Err(Errno::ECHILD) => break,
-            Err(Errno::EINTR) => {}
-            Err(error) => {
-                wait_error = Some(io::Error::other(error));
-                let _ = killpg(pgid, Signal::SIGKILL);
-                break;
-            }
-        }
-    }
-
-    let restore_error = foreground.as_mut().and_then(|guard| guard.restore().err());
-    drop(foreground);
-    if let Some(error) = restore_error {
-        return Err(ExecutionError::Terminal(error));
-    }
-    if let Some(error) = wait_error {
-        return Err(ExecutionError::Collect(error));
-    }
-    if let Some(signal) = stopped_again {
-        return Err(ExecutionError::Stopped(SuspendedJob {
-            pgid: job.pgid,
-            description: job.description.clone(),
-            signal,
-        }));
-    }
-    if was_cancelled {
-        return Err(ExecutionError::Cancelled);
-    }
-    Ok(ExecutionResult {
-        outcomes,
-        captured: None,
-    })
 }

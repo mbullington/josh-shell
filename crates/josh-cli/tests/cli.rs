@@ -225,6 +225,7 @@ fn excluded_jobs_and_module_surfaces_remain_unavailable() {
     for source in [
         "sleep 0 &",
         "jobs",
+        "fg",
         "bg",
         "source file.josh",
         "import package",
