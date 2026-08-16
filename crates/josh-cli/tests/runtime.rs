@@ -312,6 +312,176 @@ fn value_pipelines_stream_expressions_through_closure_stages() {
 }
 
 #[test]
+fn prototype_namespaces_methods_and_statics_are_first_class() {
+    // Regression contract: capitalized namespaces are first-class values whose
+    // `.prototype` tables drive method dispatch with the receiver first, plain
+    // objects link prototypes through Object.setPrototype, missing members are
+    // null, and Object statics operate without receivers.
+    let mut engine = Engine::new(ProcessHost::default());
+    let value = evaluated(
+        &mut engine,
+        "p = { greet: (this) => \"hi \" + this.name }; \
+         u = { name: \"Ada\" }; Object.setPrototype(u, p); \
+         u2 = { name: \"Bob\" }; Object.setPrototype(u2, u); \
+         [String(42), Number(\"12\") + 1, Boolean(0), typeof Object.keys({b: 1, a: 2}), \
+          u.greet(), u2.greet(), String.prototype.toUpperCase(\"oy\"), \"ab\".missing, \
+          Object.isSealed(u), Number.MAX_INT > 0]",
+    );
+    assert_eq!(
+        value,
+        Value::Array(Arc::new(vec![
+            string("42"),
+            Value::Int(13),
+            Value::Bool(false),
+            string("array"),
+            string("hi Ada"),
+            string("hi Bob"),
+            string("OY"),
+            Value::Null,
+            Value::Bool(false),
+            Value::Bool(true),
+        ]))
+    );
+
+    // Own fields shadow prototypes and are called without a receiver.
+    let shadow = evaluated(
+        &mut engine,
+        "o = { double: (x) => x * 2 }; Object.setPrototype(o, { double: (this, x) => x + 1 }); \
+         (o.double(21))",
+    );
+    assert_eq!(shadow, Value::Int(42));
+
+    // Statics and conversions keep their documented shapes.
+    let statics = evaluated(
+        &mut engine,
+        "e = Object.entries({b: 2, a: 1}); f = Object.fromEntries([[\"k\", 9]]); \
+         [(e.at(1)).at(0), f.k, Object.keys(Object.create(null)), Array(7).join(\"<\")]",
+    );
+    assert_eq!(
+        statics,
+        Value::Array(Arc::new(vec![
+            string("a"),
+            Value::Int(9),
+            Value::Array(Arc::new(Vec::new())),
+            string("7"),
+        ]))
+    );
+    // `Object.create(null)` yields no own keys; assert that explicitly.
+    let created = evaluated(&mut engine, "(Object.keys(Object.create(null)).length)");
+    assert_eq!(created, Value::Int(0));
+
+    // Prototype cycles are rejected.
+    let cycle = engine
+        .run_source("a = {}; b = {}; Object.setPrototype(a, b); Object.setPrototype(b, a)")
+        .unwrap_err();
+    assert!(cycle.to_string().contains("cycle"), "{cycle}");
+
+    // `Function()` is not a constructor, and sealed objects reject new members
+    // once member assignment lands (M4b); seal state is still observable now.
+    let function_call = engine.run_source("Function(x => x)").unwrap_err();
+    assert!(
+        function_call.to_string().contains("not supported"),
+        "{function_call}"
+    );
+}
+
+#[test]
+fn member_assignment_updates_objects_in_place() {
+    // Regression contract: statement-level `expr.name = value` and
+    // `expr[key] = value` mutate the shared object, sealed objects reject new
+    // members, and non-object receivers are type errors.
+    let mut engine = Engine::new(ProcessHost::default());
+    let value = evaluated(
+        &mut engine,
+        "o = { a: 1 }; o.b = 2; o.a = 42; o[\"c\"] = 3; \
+         alias = o; alias.d = 4; \
+         [o.a, o.b, o[\"c\"], o.d, Object.keys(o).join(\",\")]",
+    );
+    assert_eq!(
+        value,
+        Value::Array(Arc::new(vec![
+            Value::Int(42),
+            Value::Int(2),
+            Value::Int(3),
+            Value::Int(4),
+            string("a,b,c,d"),
+        ]))
+    );
+
+    let sealed = engine
+        .run_source("s = Object.seal({ a: 1 })\ns.a = 5\ns.new = 9")
+        .unwrap_err();
+    assert!(sealed.to_string().contains("sealed"), "{sealed}");
+
+    let array_target = engine.run_source("a = [1, 2]\na[0] = 9").unwrap_err();
+    assert!(
+        array_target.to_string().contains("cannot assign member"),
+        "{array_target}"
+    );
+
+    // Prototype mutation is visible through every value sharing the table.
+    let proto = evaluated(
+        &mut engine,
+        "String.prototype.shout = (this) => this.toUpperCase(); (\"ok\".shout())",
+    );
+    assert_eq!(proto, string("OK"));
+}
+
+#[test]
+fn file_date_and_math_namespaces_cover_the_flattened_surface() {
+    let mut engine = Engine::new(ProcessHost::default());
+    let value = evaluated(
+        &mut engine,
+        "[Math.floor(2.7), Math.abs(-3), Math.trunc(2.7), Math.pow(2, 8), \
+          Math.max(1, 2.5), Math.min(2, 8), File.exists(\"Cargo.toml\"), \
+          typeof File.stat(\"Cargo.toml\"), Date.now() > 0, \
+          typeof Date.toLocaleString(0), Math.PI > 3.14]",
+    );
+    assert_eq!(
+        value,
+        Value::Array(Arc::new(vec![
+            Value::Float(2.0),
+            Value::Int(3),
+            Value::Float(2.0),
+            Value::Float(256.0),
+            Value::Float(2.5),
+            Value::Int(2),
+            Value::Bool(true),
+            string("object"),
+            Value::Bool(true),
+            string("string"),
+            Value::Bool(true),
+        ]))
+    );
+}
+
+#[test]
+fn evaluator_polling_unwinds_on_cancellation() {
+    // Regression contract for the REPL Ctrl+C path: pure-evaluation spins
+    // (loop {}, while without side effects) bail with the shared cancellation
+    // error instead of hard-hanging (repl investigation, B1).
+    use std::sync::atomic::{AtomicBool, Ordering};
+    let flag = Arc::new(AtomicBool::new(false));
+    let mut engine = Engine::with_execution_cancellation(ProcessHost::default(), Arc::clone(&flag));
+    flag.store(true, Ordering::Relaxed);
+    let error = engine.run_source("x = 1").unwrap_err();
+    assert!(error.to_string().contains("cancelled"), "{error}");
+
+    for source in [
+        "loop { }",
+        "x = 0
+while x < 1000000000000 { x = x + 1 }",
+    ] {
+        let flag = Arc::new(AtomicBool::new(false));
+        let mut engine =
+            Engine::with_execution_cancellation(ProcessHost::default(), Arc::clone(&flag));
+        flag.store(true, Ordering::Relaxed);
+        let error = engine.run_source(source).unwrap_err();
+        assert!(error.to_string().contains("cancelled"), "{source}: {error}");
+    }
+}
+
+#[test]
 fn value_pipeline_parse_and_eval_errors_are_focused() {
     let mut engine = Engine::new(ProcessHost::default());
     let error = engine.run_source("(x => x) | x => x").unwrap_err();
@@ -860,6 +1030,87 @@ fn structured_graph_validation_precedes_spawn_and_byte_functions_have_a_transfor
         Err(EngineError::Type(_))
     ));
     assert!(!marker.exists());
+}
+
+#[test]
+#[test]
+fn member_assignment_updates_objects_and_respects_sealed_objects() {
+    let mut engine = Engine::new(ProcessHost::default());
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            "o = {a: 1}; o.a = 9; o.b = 2; o[\"c\"] = 3; k = \"d\"; o[k] = 4; [o.a, o.b, o.c, o.d]",
+        ),
+        Value::Array(Arc::new(vec![
+            Value::Int(9),
+            Value::Int(2),
+            Value::Int(3),
+            Value::Int(4),
+        ]))
+    );
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            "o = {a: 1}; Object.seal(o); o.a = 2; [o.a, Object.isSealed(o)]",
+        ),
+        Value::Array(Arc::new(vec![Value::Int(2), Value::Bool(true)]))
+    );
+    let error = engine
+        .run_source("o = {a: 1}; Object.seal(o); o.b = 2")
+        .unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("object is sealed; cannot add member `b`"),
+        "{error}"
+    );
+    let error = engine.run_source("x = 5; x.y = 2").unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("cannot assign member `y` on int"),
+        "{error}"
+    );
+}
+
+#[test]
+fn file_date_and_math_namespaces_expose_deterministic_utilities() {
+    let mut engine = Engine::new(ProcessHost::default());
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            "[Math.floor(2.7), Math.abs(0 - 4), Math.min(3, 1, 2), Math.max(3, 1, 2), Math.trunc(2.5)]",
+        ),
+        Value::Array(Arc::new(vec![
+            Value::Float(2.0),
+            Value::Int(4),
+            Value::Int(1),
+            Value::Int(3),
+            Value::Float(2.0),
+        ]))
+    );
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            "[File.exists(\"nope.josh\"), File.exists(\"Cargo.toml\")]"
+        ),
+        Value::Array(Arc::new(vec![Value::Bool(false), Value::Bool(true)]))
+    );
+    assert_eq!(
+        evaluated(&mut engine, "File.stat(\"Cargo.toml\").kind"),
+        string("file")
+    );
+    assert_eq!(
+        evaluated(&mut engine, "File.stat(\".\").kind"),
+        string("directory")
+    );
+    let error = engine.run_source("File.stat(\"nope.josh\")").unwrap_err();
+    assert!(error.to_string().contains("No such file"), "{error}");
+    assert_eq!(evaluated(&mut engine, "typeof (Date.now())"), string("int"));
+    let error = engine
+        .run_source("Date.toLocaleString(\"now\")")
+        .unwrap_err();
+    assert!(error.to_string().contains("expected int"), "{error}");
 }
 
 #[test]

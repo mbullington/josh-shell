@@ -6,6 +6,7 @@ license.workspace = true
 description = "Values and evaluation for Josh"
 
 [dependencies]
+jiff.workspace = true
 josh-syntax.workspace = true
 thiserror.workspace = true
 

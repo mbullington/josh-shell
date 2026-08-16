@@ -213,6 +213,11 @@ pub enum Statement {
         value: Expr,
         span: Span,
     },
+    MemberAssignment {
+        target: Expr,
+        value: Expr,
+        span: Span,
+    },
     EnvironmentAssignment {
         target: EnvironmentTarget,
         value: Expr,
@@ -269,6 +274,7 @@ impl Statement {
             Self::CommandChain { span, .. }
             | Self::Status { span, .. }
             | Self::Assignment { span, .. }
+            | Self::MemberAssignment { span, .. }
             | Self::EnvironmentAssignment { span, .. }
             | Self::Let { span, .. }
             | Self::Function { span, .. }
@@ -728,6 +734,9 @@ impl Parser {
         if self.is_environment_assignment_head() {
             return self.parse_environment_assignment();
         }
+        if let Some(statement) = self.parse_member_assignment_probe() {
+            return statement;
+        }
         if matches!(
             self.peek_tag(),
             Some(TokenTag::LeftParen | TokenTag::LeftBracket)
@@ -741,6 +750,32 @@ impl Parser {
             return Statement::Expr(self.parse_expr(0));
         }
         self.parse_command_chain()
+    }
+
+    /// `obj.x = v` / `obj[key] = v` at statement level: an expression that
+    /// turns out to be a member target followed by `=`. Returns `None`
+    /// (restoring completely) when the expression does not form a member
+    /// assignment.
+    fn parse_member_assignment_probe(&mut self) -> Option<Statement> {
+        let checkpoint = self.pos;
+        let diagnostics = self.diagnostics.len();
+        let target = self.parse_expr(0);
+        self.skip_trivia_mode(LexMode::Expression);
+        if !self.at(TokenTag::Assign) || !matches!(target, Expr::Member { .. } | Expr::Index { .. })
+        {
+            self.pos = checkpoint;
+            self.diagnostics.truncate(diagnostics);
+            return None;
+        }
+        let start = target.span().start;
+        self.bump_mode(LexMode::Expression);
+        self.skip_trivia_mode(LexMode::Expression);
+        let value = self.parse_expr(0);
+        Some(Statement::MemberAssignment {
+            span: Span::new(start, value.span().end),
+            target,
+            value,
+        })
     }
 
     /// `[1, 2, 3] | x => x * 2` and `([1, 2, 3]) | take 1` at statement level:
@@ -919,6 +954,25 @@ impl Parser {
                             next_tag,
                             TokenTag::LeftParen | TokenTag::Dot | TokenTag::LeftBracket
                         ))
+            }
+            TokenTag::Word => {
+                // A quoted literal headed straight into a member access or
+                // call (`"x".length`, `'x'.trim()`) is an expression
+                // statement; a bare quoted word stays a command word.
+                if !matches!(
+                    self.tokens[first].kind,
+                    TokenKind::SingleQuoted | TokenKind::DoubleQuoted
+                ) {
+                    return false;
+                }
+                let Some(next) = self.peek_significant_index(1) else {
+                    return false;
+                };
+                self.tokens[first].span.end == self.tokens[next].span.start
+                    && matches!(
+                        tag(&self.tokens[next].kind),
+                        TokenTag::LeftParen | TokenTag::Dot | TokenTag::LeftBracket
+                    )
             }
             TokenTag::Number
             | TokenTag::String
@@ -3244,6 +3298,15 @@ fn offset_program(program: &mut Program, offset: usize) {
             }
             Statement::Assignment { value, span, .. } => {
                 offset_span(span, offset);
+                offset_expr(value, offset);
+            }
+            Statement::MemberAssignment {
+                target,
+                value,
+                span,
+            } => {
+                offset_span(span, offset);
+                offset_expr(target, offset);
                 offset_expr(value, offset);
             }
             Statement::EnvironmentAssignment {

@@ -239,6 +239,9 @@ pub(crate) fn install(frame: &mut Frame) -> Prototypes {
     frame.insert("Function".into(), function_namespace);
     frame.insert("error".into(), native("error", error_construct));
     frame.insert("glob".into(), native("glob", glob_expand));
+    frame.insert("File".into(), file_namespace());
+    frame.insert("Date".into(), date_namespace());
+    frame.insert("Math".into(), math_namespace());
 
     Prototypes {
         root,
@@ -319,10 +322,9 @@ fn object_convert(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
     ))
 }
 
-fn function_convert(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
-    expect_arity("Function", &args, 0, 0)?;
+fn function_convert(_engine: &mut Engine, _args: Vec<Value>) -> EvalResult<Value> {
     Err(type_error(
-        "Function is not callable; build functions with `=>`",
+        "Function is not supported; build functions with `=>`",
     ))
 }
 
@@ -780,4 +782,307 @@ fn object_seal(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
 fn object_is_sealed(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
     let object = object_arg("Object.isSealed", &args, 1, 1)?;
     Ok(Value::Bool(object.sealed()))
+}
+
+// --- File/Date/Math ----------------------------------------------------------
+
+use std::path::{Path, PathBuf};
+
+fn resolve_path(engine: &Engine, path: &str) -> PathBuf {
+    let path = Path::new(path);
+    if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        engine.shell_context_shared().snapshot().cwd().join(path)
+    }
+}
+
+fn path_arg<'a>(name: &'static str, args: &'a [Value]) -> EvalResult<&'a str> {
+    expect_arity(name, args, 1, 1)?;
+    expect_string(&args[0])
+}
+
+fn file_namespace() -> Value {
+    Value::Object(object([
+        (Arc::from("exists"), native("File.exists", file_exists)),
+        (Arc::from("stat"), native("File.stat", file_stat)),
+    ]))
+}
+
+fn file_exists(engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    let path = path_arg("File.exists", &args)?;
+    Ok(Value::Bool(resolve_path(engine, path).exists()))
+}
+
+fn file_stat(engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    let path = path_arg("File.stat", &args)?;
+    let resolved = resolve_path(engine, path);
+    let metadata = std::fs::symlink_metadata(&resolved)
+        .map_err(|error| type_error(format!("File.stat: {}: {error}", resolved.display())))?;
+    let kind = metadata.file_type();
+    let kind = if kind.is_file() {
+        "file"
+    } else if kind.is_dir() {
+        "directory"
+    } else if kind.is_symlink() {
+        "symlink"
+    } else {
+        "other"
+    };
+    let modified = metadata
+        .modified()
+        .ok()
+        .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+        .map_or(0, |duration| {
+            i64::try_from(duration.as_millis()).unwrap_or(i64::MAX)
+        });
+    let stat = object([
+        (
+            Arc::from("size"),
+            Value::Int(i64::try_from(metadata.len()).unwrap_or(i64::MAX)),
+        ),
+        (Arc::from("kind"), Value::String(Arc::from(kind))),
+        (
+            Arc::from("readonly"),
+            Value::Bool(metadata.permissions().readonly()),
+        ),
+        (Arc::from("modified"), Value::Int(modified)),
+    ]);
+    stat.set_prototype(Some(engine.type_prototypes().root.clone()));
+    Ok(Value::Object(stat))
+}
+
+fn date_namespace() -> Value {
+    Value::Object(object([
+        (Arc::from("now"), native("Date.now", date_now)),
+        (
+            Arc::from("toLocaleString"),
+            native("Date.toLocaleString", date_to_locale_string),
+        ),
+    ]))
+}
+
+fn date_now(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    expect_arity("Date.now", &args, 0, 0)?;
+    Ok(Value::Int(jiff::Timestamp::now().as_millisecond()))
+}
+
+fn date_to_locale_string(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    expect_arity("Date.toLocaleString", &args, 1, 1)?;
+    let milliseconds = expect_int(&args[0])?;
+    let timestamp = jiff::Timestamp::from_millisecond(milliseconds)
+        .map_err(|error| type_error(format!("Date.toLocaleString: {error}")))?;
+    let zoned = timestamp.to_zoned(jiff::tz::TimeZone::system());
+    Ok(Value::String(Arc::from(
+        zoned.strftime("%-m/%-d/%Y, %I:%M:%S %p").to_string(),
+    )))
+}
+
+fn math_namespace() -> Value {
+    Value::Object(object([
+        (Arc::from("PI"), Value::Float(std::f64::consts::PI)),
+        (Arc::from("E"), Value::Float(std::f64::consts::E)),
+        (Arc::from("TAU"), Value::Float(std::f64::consts::TAU)),
+        (Arc::from("abs"), native("Math.abs", math_abs)),
+        (Arc::from("sign"), native("Math.sign", math_sign)),
+        (Arc::from("trunc"), native("Math.trunc", math_trunc)),
+        (Arc::from("floor"), native("Math.floor", math_floor)),
+        (Arc::from("ceil"), native("Math.ceil", math_ceil)),
+        (Arc::from("round"), native("Math.round", math_round)),
+        (Arc::from("sqrt"), native("Math.sqrt", math_sqrt)),
+        (Arc::from("cbrt"), native("Math.cbrt", math_cbrt)),
+        (Arc::from("exp"), native("Math.exp", math_exp)),
+        (Arc::from("log"), native("Math.log", math_log)),
+        (Arc::from("log2"), native("Math.log2", math_log2)),
+        (Arc::from("log10"), native("Math.log10", math_log10)),
+        (Arc::from("pow"), native("Math.pow", math_pow)),
+        (Arc::from("min"), native("Math.min", math_min)),
+        (Arc::from("max"), native("Math.max", math_max)),
+        (Arc::from("random"), native("Math.random", math_random)),
+    ]))
+}
+
+fn number_arg(
+    name: &'static str,
+    args: &[Value],
+    position: usize,
+    arity: usize,
+) -> EvalResult<Value> {
+    expect_arity(name, args, arity, arity)?;
+    match &args[position] {
+        Value::Int(_) | Value::Float(_) => Ok(args[position].clone()),
+        value => Err(type_error(format!(
+            "{name} expects a number, got {}",
+            value.type_name()
+        ))),
+    }
+}
+
+fn math_abs(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    Ok(match number_arg("Math.abs", &args, 0, 1)? {
+        Value::Int(value) => value
+            .checked_abs()
+            .map(Value::Int)
+            .ok_or_else(|| type_error("Math.abs integer overflow"))?,
+        Value::Float(value) => Value::Float(value.abs()),
+        _ => unreachable!(),
+    })
+}
+
+fn math_sign(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    Ok(match number_arg("Math.sign", &args, 0, 1)? {
+        Value::Int(value) => Value::Int(value.signum()),
+        Value::Float(value) if value.is_nan() => Value::Float(f64::NAN),
+        Value::Float(value) => Value::Float(value.signum()),
+        _ => unreachable!(),
+    })
+}
+
+fn math_trunc(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    Ok(match number_arg("Math.trunc", &args, 0, 1)? {
+        Value::Int(value) => Value::Int(value),
+        Value::Float(value) => Value::Float(value.trunc()),
+        _ => unreachable!(),
+    })
+}
+
+fn math_floor(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    Ok(match number_arg("Math.floor", &args, 0, 1)? {
+        Value::Int(value) => Value::Int(value),
+        Value::Float(value) => Value::Float(value.floor()),
+        _ => unreachable!(),
+    })
+}
+
+fn math_ceil(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    Ok(match number_arg("Math.ceil", &args, 0, 1)? {
+        Value::Int(value) => Value::Int(value),
+        Value::Float(value) => Value::Float(value.ceil()),
+        _ => unreachable!(),
+    })
+}
+
+fn math_round(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    Ok(match number_arg("Math.round", &args, 0, 1)? {
+        Value::Int(value) => Value::Int(value),
+        Value::Float(value) => Value::Float(value.round()),
+        _ => unreachable!(),
+    })
+}
+
+fn float_arg(name: &'static str, args: &[Value], position: usize, arity: usize) -> EvalResult<f64> {
+    match number_arg(name, args, position, arity)? {
+        Value::Int(value) => Ok(value as f64),
+        Value::Float(value) => Ok(value),
+        _ => unreachable!(),
+    }
+}
+
+fn math_sqrt(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    Ok(Value::Float(float_arg("Math.sqrt", &args, 0, 1)?.sqrt()))
+}
+
+fn math_cbrt(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    Ok(Value::Float(float_arg("Math.cbrt", &args, 0, 1)?.cbrt()))
+}
+
+fn math_exp(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    Ok(Value::Float(float_arg("Math.exp", &args, 0, 1)?.exp()))
+}
+
+fn math_log(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    Ok(Value::Float(float_arg("Math.log", &args, 0, 1)?.ln()))
+}
+
+fn math_log2(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    Ok(Value::Float(float_arg("Math.log2", &args, 0, 1)?.log2()))
+}
+
+fn math_log10(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    Ok(Value::Float(float_arg("Math.log10", &args, 0, 1)?.log10()))
+}
+
+fn math_pow(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    let base = float_arg("Math.pow", &args, 0, 2)?;
+    let exponent = float_arg("Math.pow", &args, 1, 2)?;
+    Ok(Value::Float(base.powf(exponent)))
+}
+
+fn math_min_max(
+    name: &'static str,
+    args: Vec<Value>,
+    better: impl Fn(f64, f64) -> bool,
+) -> EvalResult<Value> {
+    if args.is_empty() {
+        return Err(type_error(format!("{name} expects at least one argument")));
+    }
+    let mut all_int = true;
+    let mut best: Option<Value> = None;
+    for arg in &args {
+        let candidate = match arg {
+            Value::Int(_) | Value::Float(_) => arg.clone(),
+            value => {
+                return Err(type_error(format!(
+                    "{name} expects numbers, got {}",
+                    value.type_name()
+                )));
+            }
+        };
+        all_int &= matches!(candidate, Value::Int(_));
+        let is_better = match (&best, &candidate) {
+            (None, _) => true,
+            (Some(best), candidate) => {
+                let best_f = match best {
+                    Value::Int(value) => *value as f64,
+                    Value::Float(value) => *value,
+                    _ => unreachable!(),
+                };
+                let candidate_f = match candidate {
+                    Value::Int(value) => *value as f64,
+                    Value::Float(value) => *value,
+                    _ => unreachable!(),
+                };
+                better(candidate_f, best_f)
+            }
+        };
+        if is_better {
+            best = Some(candidate);
+        }
+    }
+    let best = best.expect("arity checked");
+    if all_int {
+        Ok(best)
+    } else {
+        let value = match best {
+            Value::Int(value) => value as f64,
+            Value::Float(value) => value,
+            _ => unreachable!(),
+        };
+        Ok(Value::Float(value))
+    }
+}
+
+fn math_min(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    math_min_max("Math.min", args, |candidate, best| candidate < best)
+}
+
+fn math_max(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    math_min_max("Math.max", args, |candidate, best| candidate > best)
+}
+
+fn math_random(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    expect_arity("Math.random", &args, 0, 0)?;
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::time::{SystemTime, UNIX_EPOCH};
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |duration| duration.as_nanos() as u64);
+    let counter = COUNTER.fetch_add(1, Ordering::Relaxed);
+    let mut mixed = nanos ^ counter.wrapping_mul(0x9E37_79B9_7F4A_7C15);
+    mixed ^= mixed >> 33;
+    mixed = mixed.wrapping_mul(0xFF51_AFD7_ED55_8CCD);
+    mixed ^= mixed >> 33;
+    let value = (mixed >> 11) as f64 / ((1_u64 << 53) as f64);
+    Ok(Value::Float(value))
 }

@@ -299,8 +299,21 @@ impl Engine {
         Ok(last)
     }
 
+    /// Bail with the shared pipeline-cancellation error as soon as the REPL
+    /// or a host reports SIGINT; polled at statement and loop boundaries so
+    /// pure-evaluation spins such as `loop {}` stay interruptible.
+    fn poll_cancellation(&self) -> EvalResult<()> {
+        if self.execution_cancellation.is_cancelled() {
+            return Err(Unwind::Error(EngineError::Process(
+                ExecutionError::Cancelled,
+            )));
+        }
+        Ok(())
+    }
+
     #[allow(clippy::too_many_lines)]
     fn eval_statement(&mut self, statement: &Statement) -> EvalResult<Value> {
+        self.poll_cancellation()?;
         match statement {
             Statement::Command(pipeline) => {
                 let completion = self.run_pipeline(pipeline, false)?;
@@ -348,6 +361,43 @@ impl Engine {
                 self.assign(name, value.clone());
                 Ok(value)
             }
+            Statement::MemberAssignment { target, value, .. } => {
+                let key = match target {
+                    Expr::Member { name, .. } => name.clone(),
+                    Expr::Index { index, .. } => {
+                        let key = self.eval_expr(index)?;
+                        match key {
+                            Value::String(name) => name.to_string(),
+                            Value::Int(number) => number.to_string(),
+                            key => {
+                                return Err(type_error(format!(
+                                    "member assignment key must be a string or int, got {}",
+                                    key.type_name()
+                                )));
+                            }
+                        }
+                    }
+                    _ => unreachable!("member assignment target validated by the parser"),
+                };
+                let receiver = match target {
+                    Expr::Member { object, .. } | Expr::Index { object, .. } => {
+                        self.eval_expr(object)?
+                    }
+                    _ => unreachable!(),
+                };
+                let Value::Object(object) = &receiver else {
+                    return Err(type_error(format!(
+                        "cannot assign member `{}` on {}",
+                        key,
+                        receiver.type_name()
+                    )));
+                };
+                let rhs = self.eval_expr(value)?;
+                object
+                    .assign_member(Arc::from(key.as_str()), rhs.clone())
+                    .map_err(type_error)?;
+                Ok(rhs)
+            }
             Statement::EnvironmentAssignment { target, value, .. } => {
                 let name = match target {
                     EnvironmentTarget::Member { name, .. } => name.clone(),
@@ -394,6 +444,7 @@ impl Engine {
             } => {
                 let mut last = Value::Null;
                 while self.eval_condition(condition)? {
+                    self.poll_cancellation()?;
                     match self.eval_block(body) {
                         Ok(value) => last = value,
                         Err(Unwind::Continue) => {}
@@ -406,6 +457,7 @@ impl Engine {
             Statement::Loop { body, .. } => {
                 let mut last = Value::Null;
                 loop {
+                    self.poll_cancellation()?;
                     match self.eval_block(body) {
                         Ok(value) => last = value,
                         Err(Unwind::Continue) => {}
