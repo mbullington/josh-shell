@@ -36,10 +36,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-04af2f04.js";
+            window.path_to_searchindex_js = "../searchindex-8264fe8d.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-18901016.js"></script>
+        <script src="../toc-39e943a2.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -183,7 +183,7 @@
 <p><a id="J-REPL-005"></a></p>
 <h2 id="clean-interruption-implemented"><a class="header" href="#clean-interruption-implemented">Clean interruption <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
 <p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: Ctrl-C PTY probes for partial input and a foreground child.</p>
-<p>Ctrl-C while editing discards the current input and redraws a fresh prompt. Ctrl-D on an empty buffer exits. While a command or structured graph runs, Josh’s caught SIGINT marks that active execution as cancelled. Josh stops and joins in-shell workers, terminates and reaps external child process groups—including commands called by stream functions—and then returns to the prompt.</p>
+<p>Ctrl-C while editing discards the current input and redraws a fresh prompt. Ctrl-D on an empty buffer exits. While a command or structured graph runs, Josh’s caught SIGINT marks that active execution as cancelled. Josh stops and joins in-shell workers, terminates and reaps external child process groups—including commands called by stream functions—and then returns to the prompt. The evaluator itself polls the same cancellation state at statement and loop boundaries, so Ctrl-C also unwinds pure-Josh computation (<code>loop {}</code>, long <code>while</code> runs) promptly instead of waiting for a subprocess to appear. Ctrl-Z on a foreground pipeline kills it and prints a ‘suspended jobs are not supported’ diagnostic; job control remains deliberately out of scope (J-JOBS-001).</p>
 <p>This is not full job control. Josh does not transfer terminal ownership among process groups, manage background jobs, or expose job tables.</p>
 <h2 id="troubleshooting-checklist"><a class="header" href="#troubleshooting-checklist">Troubleshooting checklist</a></h2>
 <ul>

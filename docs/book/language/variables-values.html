@@ -36,10 +36,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-04af2f04.js";
+            window.path_to_searchindex_js = "../searchindex-8264fe8d.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-18901016.js"></script>
+        <script src="../toc-39e943a2.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,7 +177,7 @@
                     <main>
                         <h1 id="variables-environment-and-values"><a class="header" href="#variables-environment-and-values">Variables, environment, and values</a></h1>
 <div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-RUN-005">J-RUN-005</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-ENV-001">J-ENV-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-ENV-002">J-ENV-002</a> — <strong>Specified</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
+<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-RUN-005">J-RUN-005</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-ENV-001">J-ENV-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-ENV-002">J-ENV-002</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
 </div>
 
 <p><a id="J-RUN-005"></a></p>
@@ -194,11 +194,13 @@ let [first, ...tail] = [1, 2, 3]
 <h2 id="environment-fallback-implemented"><a class="header" href="#environment-fallback-implemented">Environment fallback <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
 <p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: interpolation resolves lexical bindings before inherited environment variables.</p>
 <p><a id="environment-boundary"></a>
-In <code>$NAME</code> command/string interpolation, Josh checks lexical bindings, then the inherited process environment. Plain assignment does not export.</p>
+In <code>$NAME</code> command/string interpolation, Josh checks lexical bindings, then the session environment (the inherited process environment plus any <code>env</code> mutations). Plain assignment does not export.</p>
 <p><a id="J-ENV-002"></a></p>
-<h2 id="the-env-namespace-specified"><a class="header" href="#the-env-namespace-specified">The <code>env</code> namespace <span class="status status--specified" aria-label="Status: Specified">Specified</span></a></h2>
-<p><strong>Availability:</strong> Accepted contract; not available in the current build. <code>env.FOO</code> will read or write process environment while plain assignment remains local.</p>
-<p class="example-label example-label--specified"><strong>Specified syntax · Not implemented</strong></p>
+<h2 id="the-env-namespace-implemented"><a class="header" href="#the-env-namespace-implemented">The <code>env</code> namespace <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
+<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: <code>environment_namespace_is_dynamic_exported_and_scalar_canonical</code>, <code>environment_bytes_path_views_and_validation_preserve_os_values</code>, and <code>startup_environment_mutation_persists_for_path_lookup_and_children</code>.</p>
+<p><code>env.NAME</code> reads and writes the session environment; writes stay scoped to the shell’s snapshot (no process-global <code>setenv</code>), and child pipeline processes inherit the member state at spawn. Values are text-centric: reads decode lossy, invalid UTF-8 preserved through the bytes view. Closures read <code>env</code> dynamically, so a later write is visible inside previously created functions. <code>env</code> cannot be shadowed by lexical bindings of the same name.</p>
+<p>PATH is first-class: <code>env.PATH</code> reads the PATH string; <code>env.PATH</code> exposes an array view of one entry per path segment when assigned an array (and PATH lookups, completion, and <code>cd</code> all follow it). Startup <code>env.josh</code> mutations (for example <code>env.PATH = env.PATH + [someDir]</code>, <code>env.EDITOR = ...</code>) persist for both command resolution and child processes. Plain <code>let</code>/assignment never exports.</p>
+<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
 
 <pre><code class="language-josh">env.FOO = "visible to children"
 </code></pre>

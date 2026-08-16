@@ -36,10 +36,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-04af2f04.js";
+            window.path_to_searchindex_js = "../searchindex-8264fe8d.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-18901016.js"></script>
+        <script src="../toc-39e943a2.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,7 +177,7 @@
                     <main>
                         <h1 id="control-flow-and-jobs"><a class="header" href="#control-flow-and-jobs">Control flow and jobs</a></h1>
 <div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-RUN-006">J-RUN-006</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-CF-001">J-CF-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-JOBS-001">J-JOBS-001</a> — <strong>Planned</strong>; <a href="../status/matrix.html#J-BG-001">J-BG-001</a> — <strong>Unresolved</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
+<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-RUN-006">J-RUN-006</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-EXPR-003">J-EXPR-003</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-CF-001">J-CF-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-JOBS-001">J-JOBS-001</a> — <strong>Planned</strong>; <a href="../status/matrix.html#J-BG-001">J-BG-001</a> — <strong>Unresolved</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
 </div>
 
 <p><a id="J-RUN-006"></a></p>
@@ -188,6 +188,15 @@
 
 <pre><code class="language-josh">if (3 &gt; 2) { printf 'yes\n' } else { printf 'no\n' }
 if grep -q needle file.txt { printf 'found\n' }
+</code></pre>
+<p><a id="J-EXPR-003"></a></p>
+<h2 id="if-and-try-as-expressions-implemented"><a class="header" href="#if-and-try-as-expressions-implemented">If and try as expressions <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
+<p><strong>Availability:</strong> Available in the current development snapshot. Evidence: parser tests for expression-position <code>if</code>/<code>try</code> and runtime tests for produced values.</p>
+<p><code>if</code> and <code>try</code> produce values wherever an expression is legal: assignment right-hand sides, call arguments, captures, and pipeline sources. The <code>else</code> branch is required in expression position, and <code>try</code> still requires its <code>catch</code> block. As statements they behave exactly as before.</p>
+<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+
+<pre><code class="language-josh">size_label = if ($total &gt; 1000) { "large" } else { "small" }
+recovered = try { read_config() } catch (e) { defaults }
 </code></pre>
 <p><a id="J-CF-001"></a></p>
 <h2 id="non-job-control-flow-implemented"><a class="header" href="#non-job-control-flow-implemented">Non-job control flow <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>

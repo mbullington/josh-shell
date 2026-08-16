@@ -36,10 +36,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-04af2f04.js";
+            window.path_to_searchindex_js = "../searchindex-8264fe8d.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-18901016.js"></script>
+        <script src="../toc-39e943a2.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,12 +177,12 @@
                     <main>
                         <h1 id="operators-and-values"><a class="header" href="#operators-and-values">Operators and values</a></h1>
 <div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-EXPR-001">J-EXPR-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-UNICODE-001">J-UNICODE-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
+<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-EXPR-001">J-EXPR-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-NAMES-001">J-NAMES-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-UNICODE-001">J-UNICODE-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
 </div>
 
 <p><a id="J-EXPR-001"></a></p>
 <h2 id="implemented-expression-values-implemented"><a class="header" href="#implemented-expression-values-implemented">Implemented expression values <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: parser/evaluator tests for values, operators, access, spread, destructuring, and conversions.</p>
+<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: parser/evaluator tests for values, operators, access, spread, destructuring, <code>if</code>/<code>try</code> expressions, member assignment, and namespace converters.</p>
 <p>Values are Null, Bool, Int, Float, String, Bytes, Array, insertion-ordered Object, Function, Error, and Status. Arrays/objects are Arc-backed. Object overwrite retains the original key position. Data, errors, and statuses compare structurally; user functions compare by identity.</p>
 <p>False, Null, numeric zero, empty String/Bytes/Array/Object, and failed Status are falsey. True, nonempty data, Function, Error, and successful Status are truthy. <code>typeof</code> returns <code>null</code>, <code>bool</code>, <code>int</code>, <code>float</code>, <code>string</code>, <code>bytes</code>, <code>array</code>, <code>object</code>, <code>function</code>, <code>error</code>, or <code>status</code>.</p>
 <div class="table-wrapper">
@@ -201,7 +201,16 @@
 </tbody>
 </table>
 </div>
-<p>Arrays/objects support literals and spread. <code>let</code> and parameters support nested array/object destructuring with trailing rest; missing values bind Null. Arrays, Bytes, and strings accept signed Int indexes; Objects accept String keys or Int keys converted to decimal text. Missing and out-of-range indexes return Null.</p>
+<p>Arrays/objects support literals and spread. <code>let</code> and parameters support nested array/object destructuring with trailing rest; missing values bind Null. Arrays, Bytes, and strings accept signed Int indexes; Objects accept String keys or Int keys converted to decimal text. Missing and out-of-range indexes fall back to the type’s prototype table before returning Null.</p>
+<p><code>if</code> and <code>try</code> are value-producing in expression position: <code>let x = if 40 &lt; 42 { "yes" } else { "no" }</code> binds <code>"yes"</code>, and <code>try { ... }</code> produces the body’s value or the thrown error object (the status <code>e</code> variable still binds inside <code>catch</code>).</p>
+<p><code>object.key = value</code> and <code>object[index] = value</code> assign existing or new fields on object values in place and evaluate to the assigned value; they are errors on other kinds.</p>
+<p><a id="J-NAMES-001"></a></p>
+<h2 id="builtin-namespaces-and-prototypes-implemented"><a class="header" href="#builtin-namespaces-and-prototypes-implemented">Builtin namespaces and prototypes <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
+<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: <code>prototype_namespaces_methods_and_statics_are_first_class</code>, <code>file_date_and_math_namespaces_cover_the_flattened_surface</code>, and the namespace runtime tests.</p>
+<p>Scalar converters live as namespace callables: <code>String(1)</code>, <code>Number("42")</code>, <code>Boolean([])</code>, <code>Array(...)</code>, <code>error(...)</code>, and <code>glob("pattern")</code>. Calling <code>Object(...)</code> is a type error; objects come from literals. <code>Number(value)</code> keeps Josh’s conversion rules (<code>int</code>/<code>float</code> arguments; strings choose Int when the text is integral, otherwise Float, then error) and rejects bool, null, object, function, error, and status inputs.</p>
+<p>Methods sit on prototype tables: <code>String.prototype</code>, <code>Number.prototype</code>, <code>Array.prototype</code>, <code>Boolean.prototype</code>, and <code>Function.prototype</code> cover case/trim/split/join/slices/parse/push/pop/reverse/sort/length/iterate/each/map/filter/reduce/toString and the other runtime helpers. Method lookup is own fields first, then the type’s prototype, then Null. Prototype entries receive the receiver as the first argument (creators use <code>(this, ...)</code>-style parameters); <code>+</code> does not dispatch through tables. Object literals chain off <code>Object.prototype</code> so objects that have not shadowed them get <code>keys</code>/<code>values</code>/<code>iterate</code>/<code>map</code>/<code>each</code>/<code>toString</code>.</p>
+<p><code>Object.keys(o)</code>, <code>Object.values(o)</code>, <code>Object.entries(o)</code>, <code>Object.freeze(o)</code>, and <code>Object.isFrozen(o)</code> cover statics; <code>Object.freeze</code> seals an object against member assignment, and <code>Object.isFrozen</code> reports it. <code>Object.prototype</code> itself is immutable, so anonymous objects cannot mutate the shared tables.</p>
+<p><code>Date.now()</code> returns epoch-milliseconds Int, <code>Date.fromTimestamp(value)</code> parses epoch numbers or RFC3339 timestamps into <code>{timestamp millis, epochSeconds, timezone, text, datetimeComponents}</code>, and <code>Date.toTimestamp(value)</code> formats them back to ISO-8601 UTC (Int/Float/text input). <code>File.exists(path)</code> / <code>File.stat(path)</code> report basic cwd-relative file metadata as <code>{exists, file, directory, byteSize}</code>; null/empty paths stay false. <code>Math</code> exposes <code>PI</code>, <code>E</code>, <code>TAU</code>, abs/sign/truncate/floor/ceil/round (Int-preserving), sqrt/cbrt/exp/log/log2/log10/pow (Float), min/max variadic, and <code>random()</code> (Float [0,1)).</p>
 <p><a id="J-UNICODE-001"></a></p>
 <h2 id="string-indexing-unit-implemented"><a class="header" href="#string-indexing-unit-implemented">String indexing unit <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
 <p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: Unicode string <code>length</code>, <code>at</code>, and signed-index tests.</p>

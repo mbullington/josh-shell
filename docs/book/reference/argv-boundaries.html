@@ -36,10 +36,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-04af2f04.js";
+            window.path_to_searchindex_js = "../searchindex-8264fe8d.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-18901016.js"></script>
+        <script src="../toc-39e943a2.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -182,7 +182,7 @@
 
 <p><a id="J-ARGV-001"></a></p>
 <h2 id="command-word-conversion-implemented"><a class="header" href="#command-word-conversion-implemented">Command-word conversion <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: argv, glob, structured-stream, and invalid-UTF-8 tests.</p>
+<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: argv, glob, tilde, structured-stream, and invalid-UTF-8 tests.</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -197,10 +197,11 @@
 <tr><td>Bytes on Unix</td><td>Original bytes</td></tr>
 <tr><td>Object</td><td>Type error outside a structured value stream</td></tr>
 <tr><td>Unquoted glob</td><td>One sorted argv entry per match; no match is an error</td></tr>
+<tr><td>Unquoted <code>~</code> or <code>~/...</code> at a word boundary</td><td>Expands to the session HOME before globbing</td></tr>
 </tbody>
 </table>
 </div>
-<p>There is no shell word splitting. Quotes suppress glob expansion.</p>
+<p>There is no shell word splitting. Quotes suppress glob and tilde expansion. Only bare <code>~</code> and <code>~/</code> prefixes expand (<code>~/x</code> is one string when HOME is one string); <code>~user</code> forms are not expanded.</p>
 <h2 id="pipeline-boundary-table"><a class="header" href="#pipeline-boundary-table">Pipeline boundary table</a></h2>
 <div class="table-wrapper">
 <table>

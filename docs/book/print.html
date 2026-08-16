@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-04af2f04.js";
+            window.path_to_searchindex_js = "searchindex-8264fe8d.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-18901016.js"></script>
+        <script src="toc-39e943a2.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -378,7 +378,7 @@ HELLO
 <p>Add an explicit transformer before applying functions to command output. Streaming terminals capture as Arrays even when they emit zero or one item.</p>
 <p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
 
-<pre><code class="language-console">josh&gt; doubled = $(printf '1\n2\n' | lines | map (x =&gt; int(x) * 2) | collect)
+<pre><code class="language-console">josh&gt; doubled = $(printf '1\n2\n' | lines | map (x =&gt; Number(x) * 2) | collect)
 [2, 4]
 josh&gt; doubled.join(",")
 2,4
@@ -519,8 +519,10 @@ josh smoke.josh
 <p><a id="J-REPL-003"></a></p>
 <h2 id="completion-implemented"><a class="header" href="#completion-implemented">Completion <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
 <p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: UTF-8-safe completion-context tests and Reedline adapter construction.</p>
-<p>At a statement or post-pipe command head, completion searches builtins and executable names indexed from PATH. After <code>$</code>, it searches Josh bindings and inherited environment names. Elsewhere, it lists matching files and appends <code>/</code> to directories. Results are prefix-based, sorted where file traversal permits, capped at 200, and never evaluate source.</p>
+<p>At a statement or post-pipe command head, completion searches builtins and executable names indexed from the session’s <code>env.PATH</code> — including entries relative to the session cwd — so <code>cd</code> and PATH edits apply on the very next Tab. After <code>$</code>, it searches Josh bindings and inherited environment names. Elsewhere, it lists matching files and appends <code>/</code> to directories. Results are prefix-based, sorted where file traversal permits, capped at 200, and never evaluate source.</p>
 <p>The replacement span uses UTF-8 byte offsets. Command/file completions request trailing whitespace; variable completions do not.</p>
+<h3 id="command-specific-completion-via-carapace"><a class="header" href="#command-specific-completion-via-carapace">Command-specific completion via carapace</a></h3>
+<p>When an external <code>carapace</code> binary resolves on PATH, argument completion for an external command asks <code>carapace &lt;name&gt; _carapace export &lt;name&gt; &lt;args…current-word&gt;</code> and uses its JSON values (with descriptions, and <code>nospace</code> suffixes suppressing the trailing space). Every failure — the binary is absent, a spec for the command does not exist, the call errors, or the answer is empty — falls back silently to native file completion; there are no diagnostics. <code>JOSH_CARAPACE=0</code> disables the bridge entirely, and <code>JOSH_CARAPACE=/path/to/carapace</code> pins a specific binary. First words that are paths, <code>$variables</code>, or assignments never reach carapace.</p>
 <p><a id="J-REPL-004"></a></p>
 <h2 id="hints-and-history-implemented"><a class="header" href="#hints-and-history-implemented">Hints and history <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
 <p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: Reedline is configured with <code>FileBackedHistory</code> and <code>DefaultHinter</code>.</p>
@@ -535,7 +537,7 @@ josh smoke.josh
 <p><a id="J-REPL-005"></a></p>
 <h2 id="clean-interruption-implemented"><a class="header" href="#clean-interruption-implemented">Clean interruption <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
 <p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: Ctrl-C PTY probes for partial input and a foreground child.</p>
-<p>Ctrl-C while editing discards the current input and redraws a fresh prompt. Ctrl-D on an empty buffer exits. While a command or structured graph runs, Josh’s caught SIGINT marks that active execution as cancelled. Josh stops and joins in-shell workers, terminates and reaps external child process groups—including commands called by stream functions—and then returns to the prompt.</p>
+<p>Ctrl-C while editing discards the current input and redraws a fresh prompt. Ctrl-D on an empty buffer exits. While a command or structured graph runs, Josh’s caught SIGINT marks that active execution as cancelled. Josh stops and joins in-shell workers, terminates and reaps external child process groups—including commands called by stream functions—and then returns to the prompt. The evaluator itself polls the same cancellation state at statement and loop boundaries, so Ctrl-C also unwinds pure-Josh computation (<code>loop {}</code>, long <code>while</code> runs) promptly instead of waiting for a subprocess to appear. Ctrl-Z on a foreground pipeline kills it and prints a ‘suspended jobs are not supported’ diagnostic; job control remains deliberately out of scope (J-JOBS-001).</p>
 <p>This is not full job control. Josh does not transfer terminal ownership among process groups, manage background jobs, or expose job tables.</p>
 <h2 id="troubleshooting-checklist"><a class="header" href="#troubleshooting-checklist">Troubleshooting checklist</a></h2>
 <ul>
@@ -568,7 +570,7 @@ josh smoke.josh
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="variables-environment-and-values"><a class="header" href="#variables-environment-and-values">Variables, environment, and values</a></h1>
 <div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-RUN-005-1">J-RUN-005</a> — <strong>Implemented</strong>; <a href="#J-ENV-001-1">J-ENV-001</a> — <strong>Implemented</strong>; <a href="#J-ENV-002-1">J-ENV-002</a> — <strong>Specified</strong>. See <a href="#status-conventions">status conventions</a>.</p>
+<p><strong>Status coverage:</strong> <a href="#J-RUN-005-1">J-RUN-005</a> — <strong>Implemented</strong>; <a href="#J-ENV-001-1">J-ENV-001</a> — <strong>Implemented</strong>; <a href="#J-ENV-002-1">J-ENV-002</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
 </div>
 
 <p><a id="J-RUN-005"></a></p>
@@ -585,11 +587,13 @@ let [first, ...tail] = [1, 2, 3]
 <h2 id="environment-fallback-implemented"><a class="header" href="#environment-fallback-implemented">Environment fallback <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
 <p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: interpolation resolves lexical bindings before inherited environment variables.</p>
 <p><a id="environment-boundary"></a>
-In <code>$NAME</code> command/string interpolation, Josh checks lexical bindings, then the inherited process environment. Plain assignment does not export.</p>
+In <code>$NAME</code> command/string interpolation, Josh checks lexical bindings, then the session environment (the inherited process environment plus any <code>env</code> mutations). Plain assignment does not export.</p>
 <p><a id="J-ENV-002"></a></p>
-<h2 id="the-env-namespace-specified"><a class="header" href="#the-env-namespace-specified">The <code>env</code> namespace <span class="status status--specified" aria-label="Status: Specified">Specified</span></a></h2>
-<p><strong>Availability:</strong> Accepted contract; not available in the current build. <code>env.FOO</code> will read or write process environment while plain assignment remains local.</p>
-<p class="example-label example-label--specified"><strong>Specified syntax · Not implemented</strong></p>
+<h2 id="the-env-namespace-implemented"><a class="header" href="#the-env-namespace-implemented">The <code>env</code> namespace <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
+<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: <code>environment_namespace_is_dynamic_exported_and_scalar_canonical</code>, <code>environment_bytes_path_views_and_validation_preserve_os_values</code>, and <code>startup_environment_mutation_persists_for_path_lookup_and_children</code>.</p>
+<p><code>env.NAME</code> reads and writes the session environment; writes stay scoped to the shell’s snapshot (no process-global <code>setenv</code>), and child pipeline processes inherit the member state at spawn. Values are text-centric: reads decode lossy, invalid UTF-8 preserved through the bytes view. Closures read <code>env</code> dynamically, so a later write is visible inside previously created functions. <code>env</code> cannot be shadowed by lexical bindings of the same name.</p>
+<p>PATH is first-class: <code>env.PATH</code> reads the PATH string; <code>env.PATH</code> exposes an array view of one entry per path segment when assigned an array (and PATH lookups, completion, and <code>cd</code> all follow it). Startup <code>env.josh</code> mutations (for example <code>env.PATH = env.PATH + [someDir]</code>, <code>env.EDITOR = ...</code>) persist for both command resolution and child processes. Plain <code>let</code>/assignment never exports.</p>
+<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
 
 <pre><code class="language-josh">env.FOO = "visible to children"
 </code></pre>
@@ -613,7 +617,7 @@ value=42
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="capture-and-pipelines"><a class="header" href="#capture-and-pipelines">Capture and pipelines</a></h1>
 <div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-RUN-004-1">J-RUN-004</a> — <strong>Implemented</strong>; <a href="#J-RUN-003-1">J-RUN-003</a> — <strong>Implemented</strong>; <a href="#J-STRUCT-001-1">J-STRUCT-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
+<p><strong>Status coverage:</strong> <a href="#J-RUN-004-1">J-RUN-004</a> — <strong>Implemented</strong>; <a href="#J-RUN-003-1">J-RUN-003</a> — <strong>Implemented</strong>; <a href="#J-STRUCT-001-1">J-STRUCT-001</a> — <strong>Implemented</strong>; <a href="#J-STREAM-002-1">J-STREAM-002</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
 </div>
 
 <p><a id="J-RUN-004"></a></p>
@@ -670,9 +674,20 @@ value=42
 <p>No content-based JSON inference or observed-item-count collapse occurs.</p>
 <p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
 
-<pre><code class="language-josh">values = $(printf '1\n2\n3\n' | lines | map (x =&gt; int(x) * 2) | filter (x =&gt; x &gt; 2) | take 2)
+<pre><code class="language-josh">values = $(printf '1\n2\n3\n' | lines | map (x =&gt; Number(x) * 2) | filter (x =&gt; x &gt; 2) | take 2)
 </code></pre>
 <p>A downstream close, including inherited stdout closing, is graceful for in-shell writers. <code>take</code> and <code>first</code> acknowledge each demanded item before allowing function workers to invoke again, then stop and join in-shell workers and external producers. Cancellation reaches external commands called by those functions. External outcomes remain ordered and use pipefail; only a proven non-final SIGPIPE caused by normal downstream close is treated as success. A deliberate SIGPIPE remains a failure.</p>
+<p><a id="J-STREAM-002"></a></p>
+<h2 id="pipelines-from-values-implemented"><a class="header" href="#pipelines-from-values-implemented">Pipelines from values <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
+<p><strong>Availability:</strong> Available in the current development snapshot. Evidence: value-pipeline parse, evaluation, and focused-error tests.</p>
+<p>An array, map-shaped object, or scalar can start a pipeline instead of a command. Each item streams through the usual structured stages, and a bare closure is a map stage: its parameter is the item and its return value is emitted. An object becomes one <code>{key, value}</code> record per entry in insertion order; any other scalar is a single item.</p>
+<p>A one-stage pipeline whose stage is a standalone expression — a literal, a variable, a member read, a call — evaluates directly to that value with no stream at all, so <code>$(shared.nested) | $((x + 1))</code>-style capture of a computed scalar works without ceremony.</p>
+<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+
+<pre><code class="language-josh">doubled = $([1, 2, 3] | map (x =&gt; x * 2))
+joined = $(["a", "b"] | x =&gt; x + "!" | collect)
+count = $([10, 20, 30] | take 2)
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="errors"><a class="header" href="#errors">Errors</a></h1>
 <div class="status-coverage">
@@ -701,11 +716,11 @@ value=42
 <p>Parameters allow nested array/object destructuring and one trailing rest pattern. Missing arguments bind Null; extra arguments are ignored. <code>...array</code> expands a call argument list. Spreading any other value is a type error. <code>return</code> without a value returns Null. <code>break</code> and <code>continue</code> cannot cross a function boundary.</p>
 <p>A visible lexical function in command position runs before PATH lookup and receives evaluated command arguments. Member-call dispatch has this fixed order:</p>
 <ol>
-<li>a builtin method for the receiver’s type;</li>
-<li>a visible lexical function with the member name, called as <code>name(receiver, ...args)</code> (UFCS);</li>
-<li>a callable object member.</li>
+<li>a function stored as the object’s own field, called with the call’s arguments only;</li>
+<li>a method in the receiver’s prototype table (see <a href="#J-NAMES-001">Builtin namespaces</a>), called with the receiver as the first argument;</li>
+<li>a visible lexical function with the member name, called as <code>name(receiver, ...args)</code> (UFCS).</li>
 </ol>
-<p>A builtin method therefore wins over a same-named lexical function. Josh has no <code>this</code>, prototypes, classes, hoisting, or mutable global method table.</p>
+<p>A prototype method therefore wins over a same-named lexical function, and an own field wins over a prototype method. Josh has no <code>this</code>, classes, or hoisting; the builtin prototype tables are the only shared method registry, and prototype methods declare the receiver explicitly with first-argument parameters (for example <code>(this, ...)</code>).</p>
 <p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
 
 <pre><code class="language-josh">x = 10
@@ -747,9 +762,61 @@ printf '%s %s\n' (snapshot(1)) ("ok".suffix("!"))
 </div>
 <p>Bytes expose <code>.length</code> as a byte count but have no methods. Unknown Object members return Null; Array, String, and Bytes indexes accept signed Int indexes. Object indexes accept String keys or Int keys converted to decimal text.</p>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="prototypes-and-namespaces"><a class="header" href="#prototypes-and-namespaces">Prototypes and namespaces</a></h1>
+<div class="status-coverage">
+<p><strong>Status coverage:</strong> <a href="#J-OBJ-001-1">J-OBJ-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
+</div>
+
+<p><a id="J-OBJ-001"></a></p>
+<h2 id="prototypal-method-lookup-and-builtin-namespaces-implemented"><a class="header" href="#prototypal-method-lookup-and-builtin-namespaces-implemented">Prototypal method lookup and builtin namespaces <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
+<p><strong>Availability:</strong> Available in the current development snapshot. Evidence: prototype namespace, conversion, member assignment, and cycle-rejection tests.</p>
+<p>Josh has no classes or implicit <code>this</code>. Objects are ordered key/value maps with an optional prototype link, and method lookup walks: the object’s own fields → the object’s prototype chain → the value’s <em>type prototype</em>. A method found on a prototype is called with the receiver passed as the first argument.</p>
+<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+
+<pre><code class="language-josh">Animal = { legs: 4 }
+Animal.speak = (this) =&gt; "legs:" + String(this.legs)
+cat = Object.create(Animal)   # prototype chain, not a copy
+cat.name = "Miso"
+cat.speak()                    # "legs:4" — receiver travels as `this`
+</code></pre>
+<p>Every value has a type prototype the namespaces own: <code>"text".toUpperCase()</code> resolves through <code>String.prototype</code>, <code>[1,2].map(...)</code> through <code>Array.prototype</code>, and so on. The namespaces themselves are first-class values:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Namespace</th><th>Surface</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Object</code></td><td><code>keys</code>, <code>entries</code>, <code>values</code>, <code>create(proto)</code>, <code>fromEntries</code>, <code>getPrototype</code>, <code>setPrototype</code>, <code>seal</code>, <code>isSealed</code></td></tr>
+<tr><td><code>String</code></td><td>conversion <code>String(x)</code>; <code>String.prototype</code>: <code>at</code>, <code>contains</code>, <code>startsWith</code>, <code>endsWith</code>, <code>split</code>, <code>replace</code>, <code>replaceAll</code>, <code>trim</code>, <code>toUpperCase</code>, <code>toLowerCase</code></td></tr>
+<tr><td><code>Number</code></td><td>conversion <code>Number(x)</code>; <code>Number.prototype</code>: <code>abs</code>, <code>ceil</code>, <code>floor</code>, <code>round</code>, <code>norm</code>; constants <code>NaN</code>, <code>MAX_VALUE</code>, <code>MIN_VALUE</code>, <code>MAX_INT</code>, <code>MIN_INT</code></td></tr>
+<tr><td><code>Boolean</code></td><td>conversion <code>Boolean(x)</code></td></tr>
+<tr><td><code>Array</code></td><td>conversion <code>Array(x)</code>; <code>Array.prototype</code>: <code>at</code>, <code>contains</code>, <code>map</code>, <code>filter</code>, <code>reduce</code>, <code>flat</code>, <code>join</code>, <code>slice</code></td></tr>
+<tr><td><code>Function</code></td><td>never callable: constructing functions goes through <code>=&gt;</code></td></tr>
+<tr><td><code>File</code></td><td><code>exists</code>, <code>stat</code></td></tr>
+<tr><td><code>Date</code></td><td><code>now</code> (epoch milliseconds), <code>toLocaleString</code></td></tr>
+<tr><td><code>Math</code></td><td><code>abs</code>, <code>cbrt</code>, <code>ceil</code>, <code>exp</code>, <code>floor</code>, <code>log</code>, <code>log2</code>, <code>log10</code>, <code>max</code>, <code>min</code>, <code>pow</code>, <code>random</code>, <code>round</code>, <code>sign</code>, <code>sqrt</code>, <code>trunc</code>; constants <code>PI</code>, <code>E</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Rules that stay constant:</p>
+<ul>
+<li>Reading a missing member is <code>null</code>, never an error. Typo’d method calls then fail at the call with a “not callable” error pointing at the resolved null.</li>
+<li>Object literals start with the root prototype shared by all objects, while <code>Object.create(null)</code> opts out entirely.</li>
+<li><code>Object.setPrototype</code> refuses cycles; <code>Object.seal</code> prevents adding new keys to that object while existing keys stay writable.</li>
+<li><code>o.name = value</code> and <code>o[key] = value</code> mutate objects in place anywhere an expression position was already a statement; assignments target objects only.</li>
+</ul>
+<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+
+<pre><code class="language-josh">cfg = { retries: 0 }
+cfg.retries = 3
+cfg["source"] = "user"
+String.prototype.shout = (this) =&gt; this.toUpperCase() + "!"
+"ok".shout()                  # "OK!"
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="files-redirections-and-globs"><a class="header" href="#files-redirections-and-globs">Files, redirections, and globs</a></h1>
 <div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-FILES-001-1">J-FILES-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
+<p><strong>Status coverage:</strong> <a href="#J-FILES-001-1">J-FILES-001</a> — <strong>Implemented</strong>; <a href="#J-TILDE-001-1">J-TILDE-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
 </div>
 
 <p><a id="J-FILES-001"></a></p>
@@ -789,10 +856,19 @@ printf '%s\n' '*.md'
 files = glob("crates/**/*.rs")
 </code></pre>
 <p>REPL file completion and execution-time glob expansion are separate features.</p>
+<p><a id="J-TILDE-001"></a></p>
+<h2 id="tilde-expansion-implemented"><a class="header" href="#tilde-expansion-implemented">Tilde expansion <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
+<p><strong>Availability:</strong> Available in the current development snapshot. Evidence: lexer and expansion tests for <code>~</code> and <code>~/</code> at word starts.</p>
+<p>An unquoted leading <code>~</code> alone or followed by <code>/</code> expands to the session’s home directory: the session <code>HOME</code> when exported, else the per-process home at startup. Other forms (<code>~user</code>, <code>~+</code>, mid-word tildes) never expand and stay literal text.</p>
+<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+
+<pre><code class="language-josh">cd ~/Projects
+cfg = "~/config/app.toml"
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="control-flow-and-jobs"><a class="header" href="#control-flow-and-jobs">Control flow and jobs</a></h1>
 <div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-RUN-006-1">J-RUN-006</a> — <strong>Implemented</strong>; <a href="#J-CF-001-1">J-CF-001</a> — <strong>Implemented</strong>; <a href="#J-JOBS-001-1">J-JOBS-001</a> — <strong>Planned</strong>; <a href="#J-BG-001">J-BG-001</a> — <strong>Unresolved</strong>. See <a href="#status-conventions">status conventions</a>.</p>
+<p><strong>Status coverage:</strong> <a href="#J-RUN-006-1">J-RUN-006</a> — <strong>Implemented</strong>; <a href="#J-EXPR-003-1">J-EXPR-003</a> — <strong>Implemented</strong>; <a href="#J-CF-001-1">J-CF-001</a> — <strong>Implemented</strong>; <a href="#J-JOBS-001-1">J-JOBS-001</a> — <strong>Planned</strong>; <a href="#J-BG-001">J-BG-001</a> — <strong>Unresolved</strong>. See <a href="#status-conventions">status conventions</a>.</p>
 </div>
 
 <p><a id="J-RUN-006"></a></p>
@@ -803,6 +879,15 @@ files = glob("crates/**/*.rs")
 
 <pre><code class="language-josh">if (3 &gt; 2) { printf 'yes\n' } else { printf 'no\n' }
 if grep -q needle file.txt { printf 'found\n' }
+</code></pre>
+<p><a id="J-EXPR-003"></a></p>
+<h2 id="if-and-try-as-expressions-implemented"><a class="header" href="#if-and-try-as-expressions-implemented">If and try as expressions <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
+<p><strong>Availability:</strong> Available in the current development snapshot. Evidence: parser tests for expression-position <code>if</code>/<code>try</code> and runtime tests for produced values.</p>
+<p><code>if</code> and <code>try</code> produce values wherever an expression is legal: assignment right-hand sides, call arguments, captures, and pipeline sources. The <code>else</code> branch is required in expression position, and <code>try</code> still requires its <code>catch</code> block. As statements they behave exactly as before.</p>
+<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+
+<pre><code class="language-josh">size_label = if ($total &gt; 1000) { "large" } else { "small" }
+recovered = try { read_config() } catch (e) { defaults }
 </code></pre>
 <p><a id="J-CF-001"></a></p>
 <h2 id="non-job-control-flow-implemented"><a class="header" href="#non-job-control-flow-implemented">Non-job control flow <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
@@ -1329,12 +1414,12 @@ postfix       = adjacent-call | adjacent-member | adjacent-index ;
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="operators-and-values"><a class="header" href="#operators-and-values">Operators and values</a></h1>
 <div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-EXPR-001-1">J-EXPR-001</a> — <strong>Implemented</strong>; <a href="#J-UNICODE-001-1">J-UNICODE-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
+<p><strong>Status coverage:</strong> <a href="#J-EXPR-001-1">J-EXPR-001</a> — <strong>Implemented</strong>; <a href="#J-NAMES-001-1">J-NAMES-001</a> — <strong>Implemented</strong>; <a href="#J-UNICODE-001-1">J-UNICODE-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
 </div>
 
 <p><a id="J-EXPR-001"></a></p>
 <h2 id="implemented-expression-values-implemented"><a class="header" href="#implemented-expression-values-implemented">Implemented expression values <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: parser/evaluator tests for values, operators, access, spread, destructuring, and conversions.</p>
+<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: parser/evaluator tests for values, operators, access, spread, destructuring, <code>if</code>/<code>try</code> expressions, member assignment, and namespace converters.</p>
 <p>Values are Null, Bool, Int, Float, String, Bytes, Array, insertion-ordered Object, Function, Error, and Status. Arrays/objects are Arc-backed. Object overwrite retains the original key position. Data, errors, and statuses compare structurally; user functions compare by identity.</p>
 <p>False, Null, numeric zero, empty String/Bytes/Array/Object, and failed Status are falsey. True, nonempty data, Function, Error, and successful Status are truthy. <code>typeof</code> returns <code>null</code>, <code>bool</code>, <code>int</code>, <code>float</code>, <code>string</code>, <code>bytes</code>, <code>array</code>, <code>object</code>, <code>function</code>, <code>error</code>, or <code>status</code>.</p>
 <div class="table-wrapper">
@@ -1353,7 +1438,16 @@ postfix       = adjacent-call | adjacent-member | adjacent-index ;
 </tbody>
 </table>
 </div>
-<p>Arrays/objects support literals and spread. <code>let</code> and parameters support nested array/object destructuring with trailing rest; missing values bind Null. Arrays, Bytes, and strings accept signed Int indexes; Objects accept String keys or Int keys converted to decimal text. Missing and out-of-range indexes return Null.</p>
+<p>Arrays/objects support literals and spread. <code>let</code> and parameters support nested array/object destructuring with trailing rest; missing values bind Null. Arrays, Bytes, and strings accept signed Int indexes; Objects accept String keys or Int keys converted to decimal text. Missing and out-of-range indexes fall back to the type’s prototype table before returning Null.</p>
+<p><code>if</code> and <code>try</code> are value-producing in expression position: <code>let x = if 40 &lt; 42 { "yes" } else { "no" }</code> binds <code>"yes"</code>, and <code>try { ... }</code> produces the body’s value or the thrown error object (the status <code>e</code> variable still binds inside <code>catch</code>).</p>
+<p><code>object.key = value</code> and <code>object[index] = value</code> assign existing or new fields on object values in place and evaluate to the assigned value; they are errors on other kinds.</p>
+<p><a id="J-NAMES-001"></a></p>
+<h2 id="builtin-namespaces-and-prototypes-implemented"><a class="header" href="#builtin-namespaces-and-prototypes-implemented">Builtin namespaces and prototypes <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
+<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: <code>prototype_namespaces_methods_and_statics_are_first_class</code>, <code>file_date_and_math_namespaces_cover_the_flattened_surface</code>, and the namespace runtime tests.</p>
+<p>Scalar converters live as namespace callables: <code>String(1)</code>, <code>Number("42")</code>, <code>Boolean([])</code>, <code>Array(...)</code>, <code>error(...)</code>, and <code>glob("pattern")</code>. Calling <code>Object(...)</code> is a type error; objects come from literals. <code>Number(value)</code> keeps Josh’s conversion rules (<code>int</code>/<code>float</code> arguments; strings choose Int when the text is integral, otherwise Float, then error) and rejects bool, null, object, function, error, and status inputs.</p>
+<p>Methods sit on prototype tables: <code>String.prototype</code>, <code>Number.prototype</code>, <code>Array.prototype</code>, <code>Boolean.prototype</code>, and <code>Function.prototype</code> cover case/trim/split/join/slices/parse/push/pop/reverse/sort/length/iterate/each/map/filter/reduce/toString and the other runtime helpers. Method lookup is own fields first, then the type’s prototype, then Null. Prototype entries receive the receiver as the first argument (creators use <code>(this, ...)</code>-style parameters); <code>+</code> does not dispatch through tables. Object literals chain off <code>Object.prototype</code> so objects that have not shadowed them get <code>keys</code>/<code>values</code>/<code>iterate</code>/<code>map</code>/<code>each</code>/<code>toString</code>.</p>
+<p><code>Object.keys(o)</code>, <code>Object.values(o)</code>, <code>Object.entries(o)</code>, <code>Object.freeze(o)</code>, and <code>Object.isFrozen(o)</code> cover statics; <code>Object.freeze</code> seals an object against member assignment, and <code>Object.isFrozen</code> reports it. <code>Object.prototype</code> itself is immutable, so anonymous objects cannot mutate the shared tables.</p>
+<p><code>Date.now()</code> returns epoch-milliseconds Int, <code>Date.fromTimestamp(value)</code> parses epoch numbers or RFC3339 timestamps into <code>{timestamp millis, epochSeconds, timezone, text, datetimeComponents}</code>, and <code>Date.toTimestamp(value)</code> formats them back to ISO-8601 UTC (Int/Float/text input). <code>File.exists(path)</code> / <code>File.stat(path)</code> report basic cwd-relative file metadata as <code>{exists, file, directory, byteSize}</code>; null/empty paths stay false. <code>Math</code> exposes <code>PI</code>, <code>E</code>, <code>TAU</code>, abs/sign/truncate/floor/ceil/round (Int-preserving), sqrt/cbrt/exp/log/log2/log10/pow (Float), min/max variadic, and <code>random()</code> (Float [0,1)).</p>
 <p><a id="J-UNICODE-001"></a></p>
 <h2 id="string-indexing-unit-implemented"><a class="header" href="#string-indexing-unit-implemented">String indexing unit <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
 <p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: Unicode string <code>length</code>, <code>at</code>, and signed-index tests.</p>
@@ -1366,7 +1460,7 @@ postfix       = adjacent-call | adjacent-member | adjacent-index ;
 
 <p><a id="J-ARGV-001"></a></p>
 <h2 id="command-word-conversion-implemented"><a class="header" href="#command-word-conversion-implemented">Command-word conversion <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: argv, glob, structured-stream, and invalid-UTF-8 tests.</p>
+<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: argv, glob, tilde, structured-stream, and invalid-UTF-8 tests.</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1381,10 +1475,11 @@ postfix       = adjacent-call | adjacent-member | adjacent-index ;
 <tr><td>Bytes on Unix</td><td>Original bytes</td></tr>
 <tr><td>Object</td><td>Type error outside a structured value stream</td></tr>
 <tr><td>Unquoted glob</td><td>One sorted argv entry per match; no match is an error</td></tr>
+<tr><td>Unquoted <code>~</code> or <code>~/...</code> at a word boundary</td><td>Expands to the session HOME before globbing</td></tr>
 </tbody>
 </table>
 </div>
-<p>There is no shell word splitting. Quotes suppress glob expansion.</p>
+<p>There is no shell word splitting. Quotes suppress glob and tilde expansion. Only bare <code>~</code> and <code>~/</code> prefixes expand (<code>~/x</code> is one string when HOME is one string); <code>~user</code> forms are not expanded.</p>
 <h2 id="pipeline-boundary-table"><a class="header" href="#pipeline-boundary-table">Pipeline boundary table</a></h2>
 <div class="table-wrapper">
 <table>
@@ -1703,7 +1798,7 @@ shasum -a 256 target/josh-e2e/screenshot.png
 <tr><td><a id="J-PARSE-002-1"></a>J-PARSE-002</td><td>Dual lexical modes</td><td>Josh</td><td>Implemented</td><td>Command/expression classification and quote modes</td><td>Runtime-dependent parsing</td><td><a href="#josh-evidence"><code>syntax</code> tests</a></td><td><a href="#J-PARSE-002">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
 <tr><td><a id="J-PARSE-003-1"></a>J-PARSE-003</td><td>Disambiguation catalog</td><td>Josh</td><td>Implemented</td><td>Required command, assignment, call, arrow, and condition cases</td><td>Runtime guessing</td><td><a href="#josh-evidence"><code>ambiguity_corpus_has_stable_statement_shapes</code></a></td><td><a href="#J-PARSE-003">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
 <tr><td><a id="J-PARSE-004-1"></a>J-PARSE-004</td><td>Completeness and recovery</td><td>Josh</td><td>Implemented</td><td>Complete, Incomplete, Invalid; strict policy reuses parse</td><td>Separate strict parser</td><td><a href="#josh-evidence"><code>eof_only_errors_are_incomplete_but_hard_errors_are_invalid</code></a></td><td><a href="#J-PARSE-004">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
-<tr><td><a id="J-EXPR-001-1"></a>J-EXPR-001</td><td>Data expressions</td><td>Josh</td><td>Implemented</td><td>Scalars, arrays, objects, spread, destructuring, ternary, member/index access</td><td>Destructuring assignment and mutation</td><td><a href="#josh-evidence"><code>runtime</code> tests</a></td><td><a href="#J-EXPR-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="J-EXPR-001-1"></a>J-EXPR-001</td><td>Data expressions</td><td>Josh</td><td>Implemented</td><td>Scalars, arrays, objects, spread, destructuring, ternary, member/index access, <code>if</code>/<code>try</code> as value-producing expressions, object member assignment (<code>o.x = v</code>, <code>o[k] = v</code>)</td><td>Destructuring assignment</td><td><a href="#josh-evidence"><code>if_and_try_are_value_producing_expressions</code> and <code>member_assignment_updates_objects_in_place</code></a></td><td><a href="#J-EXPR-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-16</td></tr>
 <tr><td><a id="J-EXPR-002-1"></a>J-EXPR-002</td><td>Function-shaped syntax</td><td>Josh</td><td>Implemented</td><td>Calls, member/index access, declarations, arrows, spread calls, parameter patterns</td><td>Hoisting and mutual forward recursion</td><td><a href="#josh-evidence"><code>syntax</code> tests</a></td><td><a href="#J-EXPR-002">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
 <tr><td><a id="J-RUN-001-1"></a>J-RUN-001</td><td>External commands</td><td>Josh</td><td>Implemented</td><td>PATH/direct resolution and Unix byte argv</td><td>Functions as stages and globbing</td><td><a href="#josh-evidence"><code>cli</code> smoke</a></td><td><a href="#J-RUN-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
 <tr><td><a id="J-RUN-002-1"></a>J-RUN-002</td><td>Standalone builtins</td><td>Josh</td><td>Implemented</td><td><code>cd</code> and <code>exit [status]</code> as standalone commands</td><td>Builtins in pipelines or capture</td><td><a href="#josh-evidence"><code>builtins_are_dispatched_from_evaluated_argv_and_validate_arity</code></a></td><td><a href="#J-RUN-002">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
@@ -1711,22 +1806,27 @@ shasum -a 256 target/josh-e2e/screenshot.png
 <tr><td><a id="J-RUN-004-1"></a>J-RUN-004</td><td>Synchronous capture</td><td>Josh</td><td>Implemented</td><td>String/Bytes result and terminal CR/LF trimming</td><td>Size limit, JSON detection, streaming capture</td><td><a href="#josh-evidence"><code>captures_trim_all_terminal_lf_and_crlf</code></a></td><td><a href="#J-RUN-004">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
 <tr><td><a id="J-RUN-005-1"></a>J-RUN-005</td><td>Bindings and assignment</td><td>Josh</td><td>Implemented</td><td>Lexical frames, <code>let</code>, nearest-binding assignment, array/object destructuring</td><td>Export declarations and destructuring assignment</td><td><a href="#josh-evidence"><code>engine_capture_commits_only_on_success</code></a></td><td><a href="#J-RUN-005">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
 <tr><td><a id="J-RUN-006-1"></a>J-RUN-006</td><td>If statements</td><td>Josh</td><td>Implemented</td><td>Expression and command conditions, else-if, else, completed-nonzero suppression</td><td>Planning-error suppression</td><td><a href="#josh-evidence"><code>if_condition_variants_are_explicit</code></a></td><td><a href="#J-RUN-006">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
-<tr><td><a id="J-ARGV-001-1"></a>J-ARGV-001</td><td>argv conversion</td><td>Josh</td><td>Implemented</td><td>No word splitting; concatenation; array splat; byte argv; sorted quote-aware globs</td><td>Implicit object serialization outside value streams</td><td><a href="#josh-evidence"><code>runtime</code> tests</a></td><td><a href="#J-ARGV-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="J-ARGV-001-1"></a>J-ARGV-001</td><td>argv conversion</td><td>Josh</td><td>Implemented</td><td>No word splitting; concatenation; array splat; byte argv; sorted quote-aware globs; <code>~</code>/<code>~/</code> tilde expansion against the session HOME</td><td>Implicit object serialization outside value streams; bare <code>~user</code> homes</td><td><a href="#josh-evidence"><code>tilde_expands_to_session_home_before_globbing</code></a></td><td><a href="#J-ARGV-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-16</td></tr>
 <tr><td><a id="J-ERR-001-1"></a>J-ERR-001</td><td>Errors and exit policy</td><td>Josh</td><td>Implemented</td><td>Structured parse/runtime/process errors, interactive recovery, throw/catch, status and chains</td><td>Background-job errors</td><td><a href="#josh-evidence"><code>batch_errors_are_nonzero_and_exit_status_is_honored</code></a></td><td><a href="#J-ERR-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="J-NAMES-001-1"></a>J-NAMES-001</td><td>Builtin namespaces and prototypes</td><td>Josh</td><td>Implemented</td><td><code>Object</code>/<code>String</code>/<code>Number</code>/<code>Boolean</code>/<code>Array</code>/<code>Function</code> namespace callables and prototype tables with explicit receivers, <code>Object.*</code> statics including sealed objects, <code>Date</code>, <code>File</code>, <code>Math</code> namespaces</td><td><code>class</code> syntax and operator overloading</td><td><a href="#josh-evidence"><code>prototype_namespaces_methods_and_statics_are_first_class</code>, <code>file_date_and_math_namespaces_cover_the_flattened_surface</code></a></td><td><a href="#J-NAMES-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-16</td></tr>
 <tr><td><a id="J-REPL-001-1"></a>J-REPL-001</td><td>Editing and multiline</td><td>Josh</td><td>Implemented</td><td>Reedline editor, prompts, parser-driven continuation</td><td>Job-control editing modes</td><td><a href="#josh-evidence"><code>validator_continues_only_incomplete_input</code></a></td><td><a href="#J-REPL-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
 <tr><td><a id="J-REPL-002-1"></a>J-REPL-002</td><td>Token highlighting</td><td>Josh</td><td>Implemented</td><td>Mode-aware token styles and first-command PATH color</td><td>Fully nested interpolation token coloring</td><td><a href="#josh-evidence"><code>repl</code> adapter checks</a></td><td><a href="#J-REPL-002">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
-<tr><td><a id="J-REPL-003-1"></a>J-REPL-003</td><td>Completion</td><td>Josh</td><td>Implemented</td><td>Command, file, and variable prefixes; UTF-8-safe spans</td><td>Semantic evaluation and third-party specs</td><td><a href="#josh-evidence"><code>completion_context_uses_utf8_safe_byte_spans</code></a></td><td><a href="#J-REPL-003">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
-<tr><td><a id="J-REPL-004-1"></a>J-REPL-004</td><td>Hints and history</td><td>Josh</td><td>Implemented</td><td>Plain file-backed history and prefix hints</td><td>SQLite and history sync</td><td><a href="#reedline-ownership">Reedline construction</a></td><td><a href="#J-REPL-004">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
-<tr><td><a id="J-REPL-005-1"></a>J-REPL-005</td><td>Interactive signals</td><td>Josh</td><td>Implemented</td><td>Ctrl-C clears input; Ctrl-D exits; child Ctrl-C leaves shell alive</td><td>Process-group transfer and job control</td><td><a href="#josh-evidence"><code>foreground child</code> PTY probe</a></td><td><a href="#J-REPL-005">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
+<tr><td><a id="J-REPL-003-1"></a>J-REPL-003</td><td>Completion</td><td>Josh</td><td>Implemented</td><td>Command (session PATH), file (session cwd), and variable (session environment) prefixes; UTF-8-safe spans; optional carapace bridge with silent native fallback</td><td>Semantic evaluation and other spec systems</td><td><a href="#josh-evidence"><code>completion_context_uses_utf8_safe_byte_spans</code>, <code>completion_snapshot_follows_session_path_and_environment</code></a></td><td><a href="#J-REPL-003">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-16</td></tr>
+<tr><td><a id="J-REPL-004-1"></a>J-REPL-004</td><td>Hints and history</td><td>Josh</td><td>Implemented</td><td>Plain file-backed history synced after each accepted line; prefix hints</td><td>SQLite</td><td><a href="#reedline-ownership">Reedline construction</a></td><td><a href="#J-REPL-004">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
+<tr><td><a id="J-REPL-005-1"></a>J-REPL-005</td><td>Interactive signals</td><td>Josh</td><td>Implemented</td><td>Ctrl-C clears input and cancels in-flight pure-Josh evaluation; Ctrl-D exits; child Ctrl-C leaves shell alive; Ctrl-Z tears the pipeline down with a diagnostic</td><td>Process-group transfer and job control</td><td><a href="#josh-evidence"><code>foreground child</code> PTY probe</a></td><td><a href="#J-REPL-005">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-16</td></tr>
+<tr><td><a id="J-EXPR-003-1"></a>J-EXPR-003</td><td>Control-flow expressions</td><td>Josh</td><td>Implemented</td><td><code>if</code> and <code>try</code> produce values in assignment and capture positions</td><td>Value-producing <code>while</code>/<code>loop</code>/<code>for</code></td><td><a href="#josh-evidence">Runtime <code>if</code>/<code>try</code> expression tests</a></td><td><a href="#J-EXPR-003">Manual</a></td><td>Development snapshot</td><td>2026-08-16</td></tr>
+<tr><td><a id="J-STREAM-002-1"></a>J-STREAM-002</td><td>Value pipelines</td><td>Josh</td><td>Implemented</td><td>Arrays/objects/scalars as pipeline sources, closure map stages, single-stage value capture, objects stream as <code>{key, value}</code> records</td><td>Streaming user-defined Stream values</td><td><a href="#josh-evidence"><code>value_pipeline_*</code> tests</a></td><td><a href="#J-STREAM-002">Manual</a></td><td>Development snapshot</td><td>2026-08-16</td></tr>
+<tr><td><a id="J-OBJ-001-1"></a>J-OBJ-001</td><td>Prototypal namespaces</td><td>Josh</td><td>Implemented</td><td>Type prototypes, receiver-first prototype dispatch, member assignment, <code>Object</code> statics, sealed objects</td><td>Classes, implicit <code>this</code>, mixins</td><td><a href="#josh-evidence"><code>prototype_namespaces_methods_and_statics_are_first_class</code>, <code>member_assignment_updates_objects_in_place</code></a></td><td><a href="#J-OBJ-001">Manual</a></td><td>Development snapshot</td><td>2026-08-16</td></tr>
+<tr><td><a id="J-TILDE-001-1"></a>J-TILDE-001</td><td>Tilde expansion</td><td>Josh</td><td>Implemented</td><td>Leading unquoted <code>~</code>/<code>~/</code> at command-word starts</td><td><code>~user</code> and mid-word forms</td><td><a href="#josh-evidence">Tilde lexer/expansion tests</a></td><td><a href="#J-TILDE-001">Manual</a></td><td>Development snapshot</td><td>2026-08-16</td></tr>
 <tr><td><a id="J-ENV-001-1"></a>J-ENV-001</td><td><code>$NAME</code> fallback</td><td>Josh</td><td>Implemented</td><td>Lexical binding before inherited environment in command interpolation</td><td><code>env</code> object and export API</td><td><a href="#environment-boundary">Engine source behavior</a></td><td><a href="#J-ENV-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
-<tr><td><a id="J-STRUCT-001-1"></a>J-STRUCT-001</td><td>Structured streams and transformers</td><td>Josh</td><td>Implemented</td><td>Explicit byte/value transitions, function/map/filter/take/first/collect, bounded cancellation, stable capture cardinality</td><td>Generic iterable or user-visible Stream value</td><td><a href="#josh-evidence"><code>structured_*</code> tests and E2E</a></td><td><a href="#J-STRUCT-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="J-STRUCT-001-1"></a>J-STRUCT-001</td><td>Structured streams and transformers</td><td>Josh</td><td>Implemented</td><td>Explicit byte/value transitions, function/map/filter/take/first/collect, value pipelines feeding scalar/array sources into closure stages, bounded cancellation, stable capture cardinality</td><td>Generic iterable or user-visible Stream value</td><td><a href="#josh-evidence"><code>structured_*</code> tests, <code>value_pipelines_stream_expressions_through_closure_stages</code>, and E2E</a></td><td><a href="#J-STRUCT-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-16</td></tr>
 <tr><td><a id="J-FILES-001-1"></a>J-FILES-001</td><td>Redirections and globs</td><td>Josh</td><td>Implemented</td><td><code>&gt;</code>, <code>&gt;&gt;</code>, <code>&lt;</code>, <code>2&gt;</code>, <code>2&gt;&gt;</code>, <code>2&gt;&amp;1</code>, <code>&amp;&gt;</code>; left-to-right planning; sorted quote-aware globs and <code>glob()</code></td><td>Process substitution</td><td><a href="#josh-evidence"><code>redirections_*</code> and glob CLI tests</a></td><td><a href="#J-FILES-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
 <tr><td><a id="J-CF-001-1"></a>J-CF-001</td><td>Non-job control flow</td><td>Josh</td><td>Implemented</td><td><code>while</code>, <code>loop</code>, <code>try/catch</code>, return, break, continue, throw, status, command chains</td><td>No <code>for</code> production</td><td><a href="#josh-evidence"><code>typed_unwinding_*</code> and chain tests</a></td><td><a href="#J-CF-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
 <tr><td><a id="J-JOBS-001-1"></a>J-JOBS-001</td><td>Background jobs and job control</td><td>Josh</td><td>Planned</td><td>Background statements and terminal process-group control</td><td>No current <code>&amp;</code> execution</td><td><a href="#j-jobs-001">Tracker</a></td><td><a href="#J-JOBS-001">Manual</a></td><td>Project brief</td><td>2026-08-14</td></tr>
-<tr><td><a id="J-FUNC-001-1"></a>J-FUNC-001</td><td>Function execution and UFCS</td><td>Josh</td><td>Implemented</td><td>Declarations/arrows, snapshot closures, direct recursion, destructured/rest parameters, finite methods, lexical UFCS</td><td>No hoisting, prototypes, or <code>this</code></td><td><a href="#josh-evidence"><code>closures_*</code> and method tests</a></td><td><a href="#J-FUNC-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="J-FUNC-001-1"></a>J-FUNC-001</td><td>Function execution and UFCS</td><td>Josh</td><td>Implemented</td><td>Declarations/arrows, snapshot closures, direct recursion, destructured/rest parameters, prototype-table methods with explicit receivers, lexical UFCS</td><td>No hoisting or <code>this</code></td><td><a href="#josh-evidence"><code>closures_*</code> and method tests, <code>prototype_namespaces_methods_and_statics_are_first_class</code></a></td><td><a href="#J-FUNC-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-16</td></tr>
 <tr><td><a id="J-MOD-001-1"></a>J-MOD-001</td><td>Modules and <code>source</code></td><td>Josh</td><td>Planned</td><td>Scoped imports/exports and current-scope source</td><td>URL modules need a security decision</td><td><a href="#j-mod-001">Tracker</a></td><td><a href="#J-MOD-001">Manual</a></td><td>Project brief</td><td>2026-08-14</td></tr>
 <tr><td><a id="J-CONFIG-001-1"></a>J-CONFIG-001</td><td>Configuration</td><td>Josh</td><td>Implemented</td><td>XDG <code>env.josh</code>/interactive <code>init.josh</code>, global lexical scope, prompt function, <code>--no-config</code>, error policy</td><td>General <code>source</code>, imports, or config schema</td><td><a href="#josh-evidence">Startup CLI and PTY tests</a></td><td><a href="#J-CONFIG-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
-<tr><td><a id="J-ENV-002-1"></a>J-ENV-002</td><td><code>env</code> namespace and export</td><td>Josh</td><td>Specified</td><td><code>env.FOO</code> reads/writes process environment; assignment stays local</td><td>Not available in current evaluator</td><td><a href="#J-ENV-002">Specification</a></td><td><a href="#J-ENV-002">Manual</a></td><td>Accepted architecture</td><td>2026-08-14</td></tr>
+<tr><td><a id="J-ENV-002-1"></a>J-ENV-002</td><td><code>env</code> namespace and export</td><td>Josh</td><td>Implemented</td><td><code>env.NAME</code> reads/writes the session environment; closure reads resolve dynamically; child pipelines inherit member-state-at-spawn; PATH exposes array and scalar views</td><td>Process-global mutation</td><td><a href="#josh-evidence"><code>environment_namespace_is_dynamic_exported_and_scalar_canonical</code>, <code>startup_environment_mutation_persists_for_path_lookup_and_children</code></a></td><td><a href="#J-ENV-002">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-16</td></tr>
 <tr><td><a id="J-BG-001"></a>J-BG-001</td><td>Job expression assignment</td><td>Josh</td><td>Unresolved</td><td>Choose whether/how a background job produces a value</td><td><code>j = sleep 100 &amp;</code> is not valid syntax</td><td><a href="#J-BG-001-1">Decision question</a></td><td><a href="#J-BG-001-1">Manual</a></td><td>Open</td><td>2026-08-14</td></tr>
 <tr><td><a id="J-UNICODE-001-1"></a>J-UNICODE-001</td><td>String indexing unit</td><td>Josh</td><td>Implemented</td><td>Unicode scalar <code>length</code>, signed indexing, and <code>at</code></td><td>Grapheme-cluster indexing</td><td><a href="#josh-evidence">Unicode method/index tests</a></td><td><a href="#J-UNICODE-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
 <tr><td><a id="AT-BUILD-001-1"></a>AT-BUILD-001</td><td>Pinned static build</td><td>agent-terminal</td><td>Implemented</td><td>Clean Ghostty tree digest, SHA, Zig 0.16.0, ReleaseFast, baseline CPU, SIMD off, static link</td><td>Initial Nix cache provisioning may be slow</td><td><a href="#AT-BUILD-001">Build identity and link inspection</a></td><td><a href="#AT-BUILD-001">Manual</a></td><td>agent-terminal 0.1.0; Ghostty d760ee96</td><td>2026-08-15</td></tr>

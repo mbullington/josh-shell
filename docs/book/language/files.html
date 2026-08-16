@@ -36,10 +36,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-04af2f04.js";
+            window.path_to_searchindex_js = "../searchindex-8264fe8d.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-18901016.js"></script>
+        <script src="../toc-39e943a2.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,7 +177,7 @@
                     <main>
                         <h1 id="files-redirections-and-globs"><a class="header" href="#files-redirections-and-globs">Files, redirections, and globs</a></h1>
 <div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-FILES-001">J-FILES-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
+<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-FILES-001">J-FILES-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-TILDE-001">J-TILDE-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
 </div>
 
 <p><a id="J-FILES-001"></a></p>
@@ -217,12 +217,21 @@ printf '%s\n' '*.md'
 files = glob("crates/**/*.rs")
 </code></pre>
 <p>REPL file completion and execution-time glob expansion are separate features.</p>
+<p><a id="J-TILDE-001"></a></p>
+<h2 id="tilde-expansion-implemented"><a class="header" href="#tilde-expansion-implemented">Tilde expansion <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
+<p><strong>Availability:</strong> Available in the current development snapshot. Evidence: lexer and expansion tests for <code>~</code> and <code>~/</code> at word starts.</p>
+<p>An unquoted leading <code>~</code> alone or followed by <code>/</code> expands to the session’s home directory: the session <code>HOME</code> when exported, else the per-process home at startup. Other forms (<code>~user</code>, <code>~+</code>, mid-word tildes) never expand and stay literal text.</p>
+<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+
+<pre><code class="language-josh">cd ~/Projects
+cfg = "~/config/app.toml"
+</code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../language/functions.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../language/prototypes-namespaces.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -236,7 +245,7 @@ files = glob("crates/**/*.rs")
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../language/functions.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../language/prototypes-namespaces.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
