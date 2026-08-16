@@ -175,10 +175,6 @@ pub(crate) fn install(frame: &mut Frame) -> Prototypes {
                 Arc::from("sort"),
                 native("Array.prototype.sort", array_sort),
             ),
-            (
-                Arc::from("length"),
-                native("Array.prototype.length", array_length),
-            ),
         ],
     );
     let boolean_prototype = chained(&root, []);
@@ -327,8 +323,8 @@ fn array_convert(_engine: &mut Engine, mut args: Vec<Value>) -> EvalResult<Value
     let value = args.pop().expect("arity checked");
     Ok(match value {
         Value::Array(_) => value,
-        Value::Null => Value::Array(Arc::new(Vec::new())),
-        value => Value::Array(Arc::new(vec![value])),
+        Value::Null => Value::array(Vec::new()),
+        value => Value::array(vec![value]),
     })
 }
 
@@ -359,9 +355,9 @@ fn glob_expand(engine: &mut Engine, mut args: Vec<Value>) -> EvalResult<Value> {
         .host()
         .glob(pattern.as_bytes(), engine.shell_context_shared())
         .map_err(crate::EngineError::from)?;
-    Ok(Value::Array(Arc::new(
+    Ok(Value::array(
         matches.into_iter().map(bytes_to_value).collect(),
-    )))
+    ))
 }
 
 // --- String.prototype ------------------------------------------------------
@@ -405,12 +401,12 @@ fn string_split(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
     } else {
         receiver.split(separator).map(str::to_owned).collect()
     };
-    Ok(Value::Array(Arc::new(
+    Ok(Value::array(
         parts
             .into_iter()
             .map(|part| Value::String(Arc::from(part)))
             .collect(),
-    )))
+    ))
 }
 
 fn string_replace(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
@@ -515,12 +511,26 @@ fn number_norm(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
 
 // --- Array.prototype -------------------------------------------------------
 
-fn array_receiver<'a>(
+/// Read-path receivers snapshot the array's items: callbacks may mutate the
+/// array through push/pop-style natives while map/filter/reduce keep
+/// iterating a stable view, and quotations of the array keep their shape.
+fn array_receiver(
+    name: &'static str,
+    args: &[Value],
+    minimum: usize,
+    maximum: usize,
+) -> EvalResult<Vec<Value>> {
+    Ok(array_mut_receiver(name, args, minimum, maximum)?.snapshot())
+}
+
+/// Mutating receivers get the shared handle itself (JavaScript-style
+/// in-place edits visible through every alias).
+fn array_mut_receiver<'a>(
     name: &'static str,
     args: &'a [Value],
     minimum: usize,
     maximum: usize,
-) -> EvalResult<&'a [Value]> {
+) -> EvalResult<&'a std::sync::Arc<crate::value::ArrayValue>> {
     expect_arity(name, args, minimum + 1, maximum + 1)?;
     let Value::Array(value) = &args[0] else {
         return Err(type_error(format!(
@@ -533,7 +543,7 @@ fn array_receiver<'a>(
 
 fn array_at(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
     let receiver = array_receiver("Array.prototype.at", &args, 1, 1)?;
-    Ok(sequence_at(receiver, expect_int(&args[1])?)
+    Ok(sequence_at(&receiver, expect_int(&args[1])?)
         .cloned()
         .unwrap_or(Value::Null))
 }
@@ -546,7 +556,7 @@ fn array_contains(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
 fn array_map(engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
     let receiver = array_receiver("Array.prototype.map", &args, 1, 1)?.to_vec();
     let function = args[1].clone();
-    let whole = Value::Array(Arc::new(receiver.clone()));
+    let whole = Value::array(receiver.clone());
     let mut output = Vec::with_capacity(receiver.len());
     for (index, item) in receiver.iter().enumerate() {
         output.push(engine.call_value(
@@ -554,13 +564,13 @@ fn array_map(engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
             vec![item.clone(), usize_value(index)?, whole.clone()],
         )?);
     }
-    Ok(Value::Array(Arc::new(output)))
+    Ok(Value::array(output))
 }
 
 fn array_filter(engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
     let receiver = array_receiver("Array.prototype.filter", &args, 1, 1)?.to_vec();
     let function = args[1].clone();
-    let whole = Value::Array(Arc::new(receiver.clone()));
+    let whole = Value::array(receiver.clone());
     let mut output = Vec::new();
     for (index, item) in receiver.iter().enumerate() {
         let keep = engine.call_value(
@@ -571,7 +581,7 @@ fn array_filter(engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
             output.push(item.clone());
         }
     }
-    Ok(Value::Array(Arc::new(output)))
+    Ok(Value::array(output))
 }
 
 fn array_reduce(engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
@@ -587,7 +597,7 @@ fn array_reduce(engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
         };
         (first.clone(), 1)
     };
-    let whole = Value::Array(Arc::new(receiver.clone()));
+    let whole = Value::array(receiver.clone());
     for (index, item) in receiver.iter().enumerate().skip(start) {
         accumulator = engine.call_value(
             function.clone(),
@@ -609,8 +619,8 @@ fn array_flat(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
         return Err(type_error("flat depth must be nonnegative"));
     }
     let mut output = Vec::new();
-    flatten(receiver, depth, &mut output);
-    Ok(Value::Array(Arc::new(output)))
+    flatten(&receiver, depth, &mut output);
+    Ok(Value::array(output))
 }
 
 fn array_join(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
@@ -643,81 +653,75 @@ fn array_slice(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
         negative_end
     };
     if start >= end {
-        return Ok(Value::Array(Arc::new(Vec::new())));
+        return Ok(Value::array(Vec::new()));
     }
     let (start, end) = (usize::try_from(start), usize::try_from(end));
     let (Ok(start), Ok(end)) = (start, end) else {
         return Err(type_error("array is too large to index"));
     };
-    Ok(Value::Array(Arc::new(receiver[start..end].to_vec())))
+    Ok(Value::array(receiver[start..end].to_vec()))
 }
 
+/// Sort comparator key for the all-numbers arm (total order, NaN pinned).
+fn numeric_sort_key(value: &Value) -> f64 {
+    match value {
+        Value::Int(value) => *value as f64,
+        Value::Float(value) => *value,
+        _ => unreachable!("all-elements-checked sort"),
+    }
+}
+
+/// Mutators follow JavaScript semantics: `push` appends in place and returns
+/// the new length, `pop` removes and returns the last element (null when
+/// empty), and `reverse`/`sort` edit in place and return the array itself.
 fn array_push(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
     expect_arity("Array.prototype.push", &args, 1, usize::MAX)?;
-    let Value::Array(value) = &args[0] else {
+    let Value::Array(receiver) = &args[0] else {
         return Err(type_error(format!(
             "Array.prototype.push receiver must be an array, got {}",
             args[0].type_name()
         )));
     };
-    let mut output = value.to_vec();
-    output.extend(args.iter().skip(1).cloned());
-    Ok(Value::Array(Arc::new(output)))
+    usize_value(receiver.push_many(args.iter().skip(1).cloned()))
 }
 
 fn array_pop(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
-    let receiver = array_receiver("Array.prototype.pop", &args, 0, 0)?;
-    let mut output = receiver.to_vec();
-    output.pop();
-    Ok(Value::Array(Arc::new(output)))
+    let receiver = array_mut_receiver("Array.prototype.pop", &args, 0, 0)?;
+    Ok(receiver.pop().unwrap_or(Value::Null))
 }
 
 fn array_reverse(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
-    let receiver = array_receiver("Array.prototype.reverse", &args, 0, 0)?;
-    Ok(Value::Array(Arc::new(
-        receiver.iter().rev().cloned().collect::<Vec<_>>(),
-    )))
+    let receiver = array_mut_receiver("Array.prototype.reverse", &args, 0, 0)?;
+    receiver.with_mut(|items| items.reverse());
+    Ok(Value::Array(receiver.clone()))
 }
 
 fn array_sort(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
-    let receiver = array_receiver("Array.prototype.sort", &args, 0, 0)?;
-    let mut output = receiver.to_vec();
-    let all_numbers = output
-        .iter()
-        .all(|value| matches!(value, Value::Int(_) | Value::Float(_)));
-    let all_strings = output.iter().all(|value| matches!(value, Value::String(_)));
-    if all_numbers {
-        output.sort_by(|a, b| {
-            let left = match a {
-                Value::Int(value) => *value as f64,
-                Value::Float(value) => *value,
-                _ => unreachable!("all-elements-checked sort"),
-            };
-            let right = match b {
-                Value::Int(value) => *value as f64,
-                Value::Float(value) => *value,
-                _ => unreachable!("all-elements-checked sort"),
-            };
-            left.total_cmp(&right)
-        });
-    } else if all_strings {
-        output.sort_by(|a, b| {
-            let (Value::String(left), Value::String(right)) = (a, b) else {
-                unreachable!("all-elements-checked sort");
-            };
-            left.cmp(right)
-        });
-    } else {
-        return Err(type_error(
-            "Array.prototype.sort needs all numbers or all strings",
-        ));
-    }
-    Ok(Value::Array(Arc::new(output)))
-}
-
-fn array_length(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
-    let receiver = array_receiver("Array.prototype.length", &args, 0, 0)?;
-    usize_value(receiver.len())
+    let receiver = array_mut_receiver("Array.prototype.sort", &args, 0, 0)?;
+    let result: EvalResult<()> = receiver.with_mut(|items| {
+        let all_numbers = items
+            .iter()
+            .all(|value| matches!(value, Value::Int(_) | Value::Float(_)));
+        let all_strings = items.iter().all(|value| matches!(value, Value::String(_)));
+        if all_numbers {
+            items.sort_by(|left, right| numeric_sort_key(left).total_cmp(&numeric_sort_key(right)));
+            Ok(())
+        } else if all_strings {
+            items.sort_by(|left, right| {
+                let (Value::String(left), Value::String(right)) = (left, right) else {
+                    unreachable!("all-elements-checked sort");
+                };
+                left.cmp(right)
+            });
+            Ok(())
+        } else {
+            Err(type_error(
+                "Array.prototype.sort needs all numbers or all strings",
+            ))
+        }
+    });
+    result?;
+    Ok(Value::Array(receiver.clone()))
 }
 
 // --- Object statics --------------------------------------------------------
@@ -740,35 +744,35 @@ fn object_arg<'a>(
 
 fn object_keys(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
     let object = object_arg("Object.keys", &args, 1, 1)?;
-    Ok(Value::Array(Arc::new(
+    Ok(Value::array(
         object
             .snapshot()
             .into_iter()
             .map(|(key, _)| Value::String(key))
             .collect(),
-    )))
+    ))
 }
 
 fn object_values(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
     let object = object_arg("Object.values", &args, 1, 1)?;
-    Ok(Value::Array(Arc::new(
+    Ok(Value::array(
         object
             .snapshot()
             .into_iter()
             .map(|(_, value)| value)
             .collect(),
-    )))
+    ))
 }
 
 fn object_entries(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
     let object = object_arg("Object.entries", &args, 1, 1)?;
-    Ok(Value::Array(Arc::new(
+    Ok(Value::array(
         object
             .snapshot()
             .into_iter()
-            .map(|(key, value)| Value::Array(Arc::new(vec![Value::String(key), value])))
+            .map(|(key, value)| Value::array(vec![Value::String(key), value]))
             .collect(),
-    )))
+    ))
 }
 
 fn object_create(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
@@ -797,12 +801,13 @@ fn object_from_entries(engine: &mut Engine, args: Vec<Value>) -> EvalResult<Valu
         )));
     };
     let object = ObjectValue::new();
-    for entry in entries.iter() {
+    for entry in &entries.snapshot() {
         let Value::Array(pair) = entry else {
             return Err(type_error(
                 "Object.fromEntries entries must be [key, value] pairs",
             ));
         };
+        let pair = pair.snapshot();
         let [key, value, ..] = pair.as_slice() else {
             return Err(type_error(
                 "Object.fromEntries entries must be [key, value] pairs",

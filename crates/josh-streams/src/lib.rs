@@ -964,7 +964,7 @@ fn run_worker(
             }
             let _ = send_value(
                 &output,
-                Value::Array(Arc::new(values.into_values())),
+                Value::array(values.into_values()),
                 cancellation,
                 early,
             );
@@ -1187,7 +1187,7 @@ fn write_json_value(output: &mut BoundedBytes, value: &Value) -> Result<(), Work
         Value::String(value) => write_json_string(output, value)?,
         Value::Array(values) => {
             output.extend_from_slice(b"[")?;
-            for (index, value) in values.iter().enumerate() {
+            for (index, value) in values.snapshot().iter().enumerate() {
                 if index > 0 {
                     output.extend_from_slice(b",")?;
                 }
@@ -1291,7 +1291,7 @@ fn from_json(value: JsonValue) -> Result<Value, String> {
                 })?;
                 converted.push(from_json(value)?);
             }
-            Ok(Value::Array(Arc::new(converted)))
+            Ok(Value::array(converted))
         }
         JsonValue::Object(entries) => {
             let converted = ObjectValue::new();
@@ -1309,7 +1309,7 @@ fn from_json(value: JsonValue) -> Result<Value, String> {
 
 fn capture_values(values: Vec<Value>, cardinality: Cardinality) -> Result<Value, ExecutionError> {
     match cardinality {
-        Cardinality::Many => Ok(Value::Array(Arc::new(values))),
+        Cardinality::Many => Ok(Value::array(values)),
         Cardinality::One => match values.as_slice() {
             [] => Ok(Value::Null),
             [value] => Ok(value.clone()),
@@ -1563,9 +1563,9 @@ mod tests {
         .expect("exact JSONL item");
         assert_eq!(
             jsonl.captured,
-            Some(Captured::Value(Value::Array(Arc::new(vec![
-                Value::String(Arc::from("ab")),
-            ]))))
+            Some(Captured::Value(Value::array(vec![Value::String(
+                Arc::from("ab")
+            ),])))
         );
         let jsonl_error = run_limited(
             vec![external("printf '\"abc\"\\n'"), PlannedStage::JsonLines],
@@ -1594,15 +1594,11 @@ mod tests {
         ));
         let mut nested = ValueAccumulator::new("values", limits);
         nested
-            .push(Value::Array(Arc::new(vec![Value::Null, Value::Null])))
+            .push(Value::array(vec![Value::Null, Value::Null]))
             .unwrap();
         let mut nested_overflow = ValueAccumulator::new("values", limits);
         assert!(matches!(
-            nested_overflow.push(Value::Array(Arc::new(vec![
-                Value::Null,
-                Value::Null,
-                Value::Null,
-            ]))),
+            nested_overflow.push(Value::array(vec![Value::Null, Value::Null, Value::Null,])),
             Err(ExecutionError::MaterializationLimit {
                 boundary: "values",
                 limit: MaterializationLimit::Items(2)
@@ -1633,10 +1629,10 @@ mod tests {
         .expect("exact collect");
         assert_eq!(
             collected.captured,
-            Some(Captured::Value(Value::Array(Arc::new(vec![
+            Some(Captured::Value(Value::array(vec![
                 Value::String(Arc::from("a")),
                 Value::String(Arc::from("b")),
-            ]))))
+            ])))
         );
         let collect_error = run_limited(
             vec![
@@ -1670,7 +1666,7 @@ mod tests {
             }
         ));
 
-        let value = Value::Array(Arc::new(vec![Value::String(Arc::from("ab"))]));
+        let value = Value::array(vec![Value::String(Arc::from("ab"))]);
         assert_eq!(text_bytes(&value, 6).unwrap(), br#"["ab"]"#);
         assert!(matches!(
             text_bytes(&value, 5),

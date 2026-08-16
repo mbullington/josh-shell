@@ -112,7 +112,7 @@ pub fn value_materialized_items(value: &Value, limit: usize) -> Option<usize> {
         match value {
             Value::Array(values) => {
                 add(total, values.len(), limit)?;
-                for value in values.iter() {
+                for value in values.snapshot() {
                     measure_nested(&value, total, limit)?;
                 }
             }
@@ -151,7 +151,7 @@ pub fn value_materialized_bytes(value: &Value, limit: usize) -> Option<usize> {
             Value::String(value) => add(total, value.len(), limit),
             Value::Bytes(value) => add(total, value.len(), limit),
             Value::Array(values) => {
-                for value in values.iter() {
+                for value in values.snapshot() {
                     measure(&value, total, limit)?;
                 }
                 Some(())
@@ -217,10 +217,10 @@ mod tests {
 
     #[test]
     fn value_measurement_stops_at_the_same_exact_byte_boundary() {
-        let value = Value::Array(Arc::new(vec![
+        let value = Value::array(vec![
             Value::String(Arc::from("12")),
             Value::Bytes(Arc::from(&b"34"[..])),
-        ]));
+        ]);
         assert_eq!(value_materialized_bytes(&value, 4), Some(4));
         assert_eq!(value_materialized_bytes(&value, 3), None);
         assert_eq!(value_materialized_items(&value, 2), Some(2));

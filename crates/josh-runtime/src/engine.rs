@@ -743,10 +743,10 @@ impl Engine {
     fn source_stream_stage(&mut self, value: Value) -> EvalResult<StreamStage> {
         let scalar = !matches!(value, Value::Array(_) | Value::Object(_));
         let values: Vec<Value> = match value {
-            Value::Array(values) => values.as_ref().clone(),
+            Value::Array(values) => values.snapshot(),
             Value::Object(object) => object
                 .iter()
-                .map(|(key, value)| Value::Array(Arc::new(vec![Value::String(key), value.clone()])))
+                .map(|(key, value)| Value::array(vec![Value::String(key), value.clone()]))
                 .collect(),
             value => vec![value],
         };
@@ -985,8 +985,8 @@ impl Engine {
             if let [WordPart::Variable { name, .. }] = word.parts.as_slice()
                 && let Value::Array(values) = self.resolve_variable(name)?
             {
-                for value in values.iter() {
-                    argv.extend(self.expand_glob(value_to_bytes(value)?, true)?);
+                for value in values.snapshot() {
+                    argv.extend(self.expand_glob(value_to_bytes(&value)?, true)?);
                 }
                 continue;
             }
@@ -1083,7 +1083,7 @@ impl Engine {
                         QuotedPart::Variable(name) => {
                             let value = self.resolve_variable(name)?;
                             if let Value::Array(values) = value {
-                                for (index, value) in values.iter().enumerate() {
+                                for (index, value) in values.snapshot().iter().enumerate() {
                                     if index > 0 {
                                         output.push(b' ');
                                     }
@@ -1133,11 +1133,11 @@ impl Engine {
                             let Value::Array(spread) = self.eval_expr(expr)? else {
                                 return Err(type_error("array spread requires an array"));
                             };
-                            values.extend(spread.iter().cloned());
+                            values.extend(spread.snapshot());
                         }
                     }
                 }
-                Ok(Value::Array(Arc::new(values)))
+                Ok(Value::array(values))
             }
             Expr::Object(entries, _) => {
                 let object = ObjectValue::new();
@@ -1338,7 +1338,7 @@ impl Engine {
                     let Value::Array(spread) = self.eval_expr(expr)? else {
                         return Err(type_error("call spread requires an array"));
                     };
-                    values.extend(spread.iter().cloned());
+                    values.extend(spread.snapshot());
                 }
             }
         }
@@ -1446,7 +1446,8 @@ impl Engine {
     fn index_value(&self, value: &Value, index: &Value) -> EvalResult<Value> {
         match (value, index) {
             (Value::Array(values), Value::Int(index)) => {
-                Ok(sequence_at(values, *index).cloned().unwrap_or(Value::Null))
+                let items = values.snapshot();
+                Ok(sequence_at(&items, *index).cloned().unwrap_or(Value::Null))
             }
             (Value::String(value), Value::Int(index)) => Ok(string_at(value, *index)),
             (Value::Bytes(value), Value::Int(index)) => {
@@ -1604,11 +1605,11 @@ impl Engine {
             return Value::Null;
         };
         if name == "PATH" {
-            Value::Array(Arc::new(
+            Value::array(
                 env::split_paths(&value)
                     .map(|path| environment_scalar_value(path.into_os_string()))
                     .collect(),
-            ))
+            )
         } else {
             environment_scalar_value(value)
         }
@@ -1794,7 +1795,7 @@ fn status_from_completed_error(error: &ExecutionError) -> Option<StatusValue> {
 }
 
 fn status_outcomes_value(status: &StatusValue) -> Value {
-    Value::Array(Arc::new(
+    Value::array(
         status
             .outcomes()
             .iter()
@@ -1821,7 +1822,7 @@ fn status_outcomes_value(status: &StatusValue) -> Value {
                 ])))
             })
             .collect(),
-    ))
+    )
 }
 
 fn reject_reserved_name(name: &str) -> EvalResult<()> {
@@ -1864,6 +1865,7 @@ fn environment_assignment_value(name: &str, value: &Value) -> EvalResult<Option<
     if name == "PATH"
         && let Value::Array(components) = value
     {
+        let components = components.snapshot();
         let paths = components
             .iter()
             .map(|component| match component {
@@ -1954,6 +1956,7 @@ fn collect_bindings(
             let Value::Array(values) = value else {
                 return Err(type_error("array pattern requires an array"));
             };
+            let values = values.snapshot();
             for (index, pattern) in items.iter().enumerate() {
                 collect_bindings(
                     pattern,
@@ -1964,7 +1967,7 @@ fn collect_bindings(
             if let Some(pattern) = rest {
                 collect_bindings(
                     pattern,
-                    Value::Array(Arc::new(values[items.len().min(values.len())..].to_vec())),
+                    Value::array(values[items.len().min(values.len())..].to_vec()),
                     output,
                 )?;
             }
@@ -2129,7 +2132,7 @@ pub(crate) fn flatten(values: &[Value], depth: i64, output: &mut Vec<Value>) {
         if depth > 0
             && let Value::Array(nested) = value
         {
-            flatten(nested, depth - 1, output);
+            flatten(&nested.snapshot(), depth - 1, output);
         } else {
             output.push(value.clone());
         }

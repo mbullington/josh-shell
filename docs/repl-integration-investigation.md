@@ -148,14 +148,18 @@ phantom "torn frame" readings mid-investigation.
 
 ## Follow-up fixes (verification wave 4)
 
-- **Array.prototype completed** (`natives.rs`): `push`/`pop`/`reverse`/`sort`/`length` are now
-  registered prototype natives. All are non-mutating transforms that return new array values,
-  matching Josh's immutable value snapshot semantics (`a.push(x)` without assignment is a no-op;
-  `env.PATH = env.PATH.push("/new/dir")` is the documented PATH-extension idiom). `sort` orders
-  numbers numerically (Int/Float interleaved, NaN-total) and strings lexicographically, and
-  rejects mixed element kinds. `.length` additionally keeps its builtin member-read fast path.
-  Regression test: `array_prototype_transforms_push_pop_reverse_sort_length` in
-  `crates/josh-cli/tests/runtime.rs`.
+- **Array.prototype completed** (`natives.rs`): `push`/`pop`/`reverse`/`sort` are registered
+  prototype natives with **JavaScript semantics**: arrays are shared mutable values
+  (`Arc<ArrayValue>`, mirroring `ObjectValue`), edits happen in place and every alias observes
+  them, `push` returns the new length, `pop` the removed element (null when empty), and
+  `reverse`/`sort` return the array itself. `sort` orders numbers numerically (Int/Float
+  interleaved, total_cmp) and strings lexicographically, rejecting mixed element kinds.
+  Callback natives (`map`/`filter`/`reduce`) iterate a snapshot so callbacks can push/pop safely.
+  `length` is a builtin member read only, not a prototype function. PATH extension is
+  `paths = env.PATH; paths.push("/new/dir"); env.PATH = paths` because `env.PATH` reads
+  materialize a fresh array. Regression test: `array_prototype_mutators_follow_js_semantics` in
+  `crates/josh-cli/tests/runtime.rs`. (An earlier revision of this change made the transforms
+  non-mutating value returns; that was replaced by the JS semantics above.)
 - **Manual claims reconciled with implementation**: the reference sentence claiming
   case/trim/split/parse/push/pop/reverse/sort/length/iterate/each/map/filter/reduce/toString across
   type prototypes — and `keys`/`values`/`iterate`/`map`/`each`/`toString` on Object.prototype — was

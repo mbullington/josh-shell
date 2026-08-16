@@ -280,7 +280,7 @@ fn value_pipelines_stream_expressions_through_closure_stages() {
     let mut engine = Engine::new(ProcessHost::default());
     assert_eq!(
         evaluated(&mut engine, "v = [1, 2, 3] | x => x * 2\n(v)"),
-        Value::Array(Arc::new(vec![Value::Int(2), Value::Int(4), Value::Int(6)]))
+        Value::array(vec![Value::Int(2), Value::Int(4), Value::Int(6)])
     );
     assert_eq!(
         evaluated(&mut engine, "v = 5 | x => x * 2\n(v)"),
@@ -288,21 +288,21 @@ fn value_pipelines_stream_expressions_through_closure_stages() {
     );
     assert_eq!(
         evaluated(&mut engine, "v = $([1, 2, 3] | x => x + 1)\n(v)"),
-        Value::Array(Arc::new(vec![Value::Int(2), Value::Int(3), Value::Int(4)]))
+        Value::array(vec![Value::Int(2), Value::Int(3), Value::Int(4)])
     );
     assert_eq!(
         evaluated(&mut engine, "v = [10, 20] | x => x * 3 | take 1\n(v)"),
-        Value::Array(Arc::new(vec![Value::Int(30)]))
+        Value::array(vec![Value::Int(30)])
     );
     assert_eq!(
         evaluated(&mut engine, "v = [1, 4] | x => x * 2 | x => x + 1\n(v)"),
-        Value::Array(Arc::new(vec![Value::Int(3), Value::Int(9)]))
+        Value::array(vec![Value::Int(3), Value::Int(9)])
     );
     assert_eq!(evaluated(&mut engine, "v = $((5))\n(v)"), Value::Int(5));
     // A bare statement pipeline also leaves its value for the REPL to print.
     assert_eq!(
         evaluated(&mut engine, "[1, 2, 3] | x => x * 2"),
-        Value::Array(Arc::new(vec![Value::Int(2), Value::Int(4), Value::Int(6)]))
+        Value::array(vec![Value::Int(2), Value::Int(4), Value::Int(6)])
     );
     // Closure stream stages stay equivalent to `map`.
     assert_eq!(
@@ -329,7 +329,7 @@ fn prototype_namespaces_methods_and_statics_are_first_class() {
     );
     assert_eq!(
         value,
-        Value::Array(Arc::new(vec![
+        Value::array(vec![
             string("42"),
             Value::Int(13),
             Value::Bool(false),
@@ -340,7 +340,7 @@ fn prototype_namespaces_methods_and_statics_are_first_class() {
             Value::Null,
             Value::Bool(false),
             Value::Bool(true),
-        ]))
+        ])
     );
 
     // Own fields shadow prototypes and are called without a receiver.
@@ -359,12 +359,12 @@ fn prototype_namespaces_methods_and_statics_are_first_class() {
     );
     assert_eq!(
         statics,
-        Value::Array(Arc::new(vec![
+        Value::array(vec![
             string("a"),
             Value::Int(9),
-            Value::Array(Arc::new(Vec::new())),
+            Value::array(Vec::new()),
             string("7"),
-        ]))
+        ])
     );
     // `Object.create(null)` yields no own keys; assert that explicitly.
     let created = evaluated(&mut engine, "(Object.keys(Object.create(null)).length)");
@@ -386,49 +386,57 @@ fn prototype_namespaces_methods_and_statics_are_first_class() {
 }
 
 #[test]
-fn array_prototype_transforms_push_pop_reverse_sort_length() {
-    // Regression contract: push/pop/reverse/sort return new arrays and leave
-    // the receiver untouched (array values are immutable snapshots); sort
-    // orders numbers numerically and strings lexicographically, rejecting
-    // mixed element kinds; `length` answers via the builtin member read and
-    // through the prototype table. This is the documented PATH-extension idiom:
-    // `env.PATH = env.PATH.push("/new/dir")`.
+fn array_prototype_mutators_follow_js_semantics() {
+    // Regression contract: push/pop/reverse/sort edit the array in place and
+    // every alias observes the edit (JavaScript semantics) — push returns the
+    // new length, pop returns the removed element (null when empty), and
+    // reverse/sort return the array itself. `length` is a builtin member read
+    // only, not a prototype function. PATH extension is therefore:
+    // `paths = env.PATH; paths.push("/new"); env.PATH = paths`.
     let mut engine = Engine::new(ProcessHost::default());
     let value = evaluated(
         &mut engine,
-        "base = [1, 2]; pushed = base.push(3, 4); \
-         [pushed, pushed.pop(), base, [3, 1].sort(), [\"b\", \"a\"].sort().join(\"\"), \
-          [1.5, -2].sort().at(0), pushed.reverse().at(0), pushed.length, \
-          Array.prototype.length([9, 8, 7])]",
+        "base = [1, 2]; alias = base; pushed = base.push(3, 4); popped = alias.pop(); \
+         reversed = base.reverse(); sorted = base.sort(); \
+         [pushed, popped, base.length, alias.at(0), reversed.at(1), sorted.at(2), \
+          base === alias, base === reversed, base === sorted, \
+          [\"b\", \"a\"].sort().join(\"\"), [1.5, -2].sort().at(0), \
+          typeof Array.prototype.length, [9, 8, 7].length]",
     );
     assert_eq!(
         value,
-        Value::Array(Arc::new(vec![
-            Value::Array(Arc::new(vec![
-                Value::Int(1),
-                Value::Int(2),
-                Value::Int(3),
-                Value::Int(4),
-            ])),
-            Value::Array(Arc::new(vec![Value::Int(1), Value::Int(2), Value::Int(3)])),
-            Value::Array(Arc::new(vec![Value::Int(1), Value::Int(2)])),
-            Value::Array(Arc::new(vec![Value::Int(1), Value::Int(3)])),
-            string("ab"),
-            Value::Int(-2),
+        Value::array(vec![
             Value::Int(4),
             Value::Int(4),
             Value::Int(3),
-        ]))
+            Value::Int(1),
+            Value::Int(2),
+            Value::Int(3),
+            Value::Bool(true),
+            Value::Bool(true),
+            Value::Bool(true),
+            string("ab"),
+            Value::Int(-2),
+            string("null"),
+            Value::Int(3),
+        ])
     );
 
-    // Pop on an empty array is an identity transform, and push forwards its
-    // extra arguments without touching the receiver.
-    assert_eq!(evaluated(&mut engine, "([].pop()).length"), Value::Int(0));
+    // Pop on an empty array is null, and callback natives iterate a snapshot
+    // so pushing inside map neither deadlocks nor disturbs the iteration.
+    assert_eq!(evaluated(&mut engine, "([].pop())"), Value::Null);
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            "grower = []; result = [1, 2].map((x) => { grower.push(x) }); [result.length, grower.length]",
+        ),
+        Value::array(vec![Value::Int(2), Value::Int(2)]),
+    );
 
     // Sort rejects elements it cannot order against each other.
     let mixed = engine.run_source("[1, \"two\"].sort()").unwrap_err();
     assert!(mixed.to_string().contains("sort"), "{mixed}");
-    let objects = engine.run_source("[{}].push({}).sort()").unwrap_err();
+    let objects = engine.run_source("[{}].push({}); [{}].sort()").unwrap_err();
     assert!(objects.to_string().contains("sort"), "{objects}");
 }
 
@@ -446,13 +454,13 @@ fn member_assignment_updates_objects_in_place() {
     );
     assert_eq!(
         value,
-        Value::Array(Arc::new(vec![
+        Value::array(vec![
             Value::Int(42),
             Value::Int(2),
             Value::Int(3),
             Value::Int(4),
             string("a,b,c,d"),
-        ]))
+        ])
     );
 
     let sealed = engine
@@ -486,7 +494,7 @@ fn file_date_and_math_namespaces_cover_the_flattened_surface() {
     );
     assert_eq!(
         value,
-        Value::Array(Arc::new(vec![
+        Value::array(vec![
             Value::Float(2.0),
             Value::Int(3),
             Value::Float(2.0),
@@ -498,7 +506,7 @@ fn file_date_and_math_namespaces_cover_the_flattened_surface() {
             Value::Bool(true),
             string("string"),
             Value::Bool(true),
-        ]))
+        ])
     );
 }
 
@@ -661,14 +669,14 @@ fn environment_namespace_is_dynamic_exported_and_scalar_canonical() {
     );
     assert_eq!(
         value,
-        Value::Array(Arc::new(vec![
+        Value::array(vec![
             string("after"),
             string("after"),
             Value::Null,
             string("after|42|1.5|true"),
             string("after"),
             string("object"),
-        ]))
+        ])
     );
     assert!(
         context
@@ -731,21 +739,21 @@ fn environment_bytes_path_views_and_validation_preserve_os_values() {
             &mut engine,
             "env.PATH = [\"/bin\", \"/usr/bin\"]; [env.PATH, $(/bin/sh -c 'printf %s \"$PATH\"')]",
         ),
-        Value::Array(Arc::new(vec![
-            Value::Array(Arc::new(vec![string("/bin"), string("/usr/bin")])),
+        Value::array(vec![
+            Value::array(vec![string("/bin"), string("/usr/bin")]),
             string("/bin:/usr/bin"),
-        ]))
+        ])
     );
     assert_eq!(
         evaluated(&mut engine, "env.PATH = \"/raw/one:/raw/two\"; env.PATH",),
-        Value::Array(Arc::new(vec![string("/raw/one"), string("/raw/two")]))
+        Value::array(vec![string("/raw/one"), string("/raw/two")])
     );
     assert_eq!(
         evaluated(
             &mut engine,
             "env.PATH = $(/usr/bin/printf '\\377'); env.PATH",
         ),
-        Value::Array(Arc::new(vec![Value::Bytes(Arc::from([0xff]))]))
+        Value::array(vec![Value::Bytes(Arc::from([0xff]))])
     );
 
     for source in [
@@ -769,7 +777,7 @@ fn environment_bytes_path_views_and_validation_preserve_os_values() {
     }
     assert_eq!(
         evaluated(&mut engine, "env.PATH"),
-        Value::Array(Arc::new(vec![Value::Bytes(Arc::from([0xff]))]))
+        Value::array(vec![Value::Bytes(Arc::from([0xff]))])
     );
 }
 
@@ -807,12 +815,12 @@ fn session_cwd_path_globs_redirections_and_stream_functions_share_context() {
         .into_owned();
     assert_eq!(
         value,
-        Value::Array(Arc::new(vec![
+        Value::array(vec![
             string("session-path"),
             string(&cwd),
-            Value::Array(Arc::new(vec![string("a.txt"), string("output.txt")])),
-            Value::Array(Arc::new(vec![string(&cwd)])),
-        ]))
+            Value::array(vec![string("a.txt"), string("output.txt")]),
+            Value::array(vec![string(&cwd)]),
+        ])
     );
     assert_eq!(
         fs::read(temp.path().join("output.txt")).unwrap(),
@@ -901,17 +909,17 @@ fn objects_spread_and_destructuring_preserve_value_order() {
     );
     assert_eq!(
         value,
-        Value::Array(Arc::new(vec![
+        Value::array(vec![
             Value::Int(9),
-            Value::Array(Arc::new(vec![string("z"), string("b")])),
-            Value::Array(Arc::new(vec![string("z"), string("a"), string("b")])),
+            Value::array(vec![string("z"), string("b")]),
+            Value::array(vec![string("z"), string("a"), string("b")]),
             Value::Int(3),
             Value::Int(4),
-            Value::Array(Arc::new(vec![Value::Int(5), Value::Int(6)])),
-        ]))
+            Value::array(vec![Value::Int(5), Value::Int(6)]),
+        ])
     );
 
-    let original = Value::Array(Arc::new(vec![Value::Int(1)]));
+    let original = Value::array(vec![Value::Int(1)]);
     let cloned = original.clone();
     let (Value::Array(left), Value::Array(right)) = (&original, &cloned) else {
         unreachable!()
@@ -939,7 +947,7 @@ fn closures_recursion_arrows_spread_calls_and_ufcs_share_one_function_model() {
     );
     assert_eq!(
         value,
-        Value::Array(Arc::new(vec![
+        Value::array(vec![
             Value::Int(11),
             Value::Int(120),
             Value::Int(9),
@@ -947,7 +955,7 @@ fn closures_recursion_arrows_spread_calls_and_ufcs_share_one_function_model() {
             Value::Bool(true),
             Value::Int(6),
             Value::Int(15),
-        ]))
+        ])
     );
     assert_eq!(
         evaluated(
@@ -979,7 +987,7 @@ fn common_methods_conversions_and_typeof_have_stable_nonmutating_results() {
     );
     assert_eq!(
         value,
-        Value::Array(Arc::new(vec![
+        Value::array(vec![
             Value::Int(2),
             string("é"),
             Value::Bool(true),
@@ -1006,7 +1014,7 @@ fn common_methods_conversions_and_typeof_have_stable_nonmutating_results() {
             Value::Int(3),
             Value::Float(2.5),
             Value::Bool(false),
-        ]))
+        ])
     );
 }
 
@@ -1027,7 +1035,7 @@ fn typed_unwinding_handles_loops_returns_throws_and_runtime_errors() {
     );
     assert_eq!(
         value,
-        Value::Array(Arc::new(vec![
+        Value::array(vec![
             Value::Int(4),
             Value::Int(3),
             string("boom"),
@@ -1035,7 +1043,7 @@ fn typed_unwinding_handles_loops_returns_throws_and_runtime_errors() {
             Value::Int(7),
             string("type"),
             Value::Int(9),
-        ]))
+        ])
     );
 }
 
@@ -1087,19 +1095,19 @@ fn member_assignment_updates_objects_and_respects_sealed_objects() {
             &mut engine,
             "o = {a: 1}; o.a = 9; o.b = 2; o[\"c\"] = 3; k = \"d\"; o[k] = 4; [o.a, o.b, o.c, o.d]",
         ),
-        Value::Array(Arc::new(vec![
+        Value::array(vec![
             Value::Int(9),
             Value::Int(2),
             Value::Int(3),
             Value::Int(4),
-        ]))
+        ])
     );
     assert_eq!(
         evaluated(
             &mut engine,
             "o = {a: 1}; Object.seal(o); o.a = 2; [o.a, Object.isSealed(o)]",
         ),
-        Value::Array(Arc::new(vec![Value::Int(2), Value::Bool(true)]))
+        Value::array(vec![Value::Int(2), Value::Bool(true)])
     );
     let error = engine
         .run_source("o = {a: 1}; Object.seal(o); o.b = 2")
@@ -1127,20 +1135,20 @@ fn file_date_and_math_namespaces_expose_deterministic_utilities() {
             &mut engine,
             "[Math.floor(2.7), Math.abs(0 - 4), Math.min(3, 1, 2), Math.max(3, 1, 2), Math.trunc(2.5)]",
         ),
-        Value::Array(Arc::new(vec![
+        Value::array(vec![
             Value::Float(2.0),
             Value::Int(4),
             Value::Int(1),
             Value::Int(3),
             Value::Float(2.0),
-        ]))
+        ])
     );
     assert_eq!(
         evaluated(
             &mut engine,
             "[File.exists(\"nope.josh\"), File.exists(\"Cargo.toml\")]"
         ),
-        Value::Array(Arc::new(vec![Value::Bool(false), Value::Bool(true)]))
+        Value::array(vec![Value::Bool(false), Value::Bool(true)])
     );
     assert_eq!(
         evaluated(&mut engine, "File.stat(\"Cargo.toml\").kind"),
@@ -1198,7 +1206,7 @@ fn chunks_rejects_oversized_buffers_before_spawn() {
             &mut engine,
             &format!("printf x | chunks {}", josh_runtime::MAX_CHUNK_SIZE),
         ),
-        Value::Array(Arc::new(vec![Value::Bytes(Arc::from(b"x".as_slice()))]))
+        Value::array(vec![Value::Bytes(Arc::from(b"x".as_slice()))])
     );
 }
 
@@ -1207,24 +1215,24 @@ fn structured_capture_cardinality_and_decode_policies_are_stable() {
     let mut engine = Engine::new(ProcessHost::default());
     assert_eq!(
         captured(&mut engine, "printf '' | lines"),
-        Value::Array(Arc::new(Vec::new()))
+        Value::array(Vec::new())
     );
     assert_eq!(
         captured(&mut engine, "printf one | lines"),
-        Value::Array(Arc::new(vec![string("one")]))
+        Value::array(vec![string("one")])
     );
     assert_eq!(captured(&mut engine, "printf 1 | json"), Value::Int(1));
     assert_eq!(
         captured(&mut engine, "printf ab | chunks(8)"),
-        Value::Array(Arc::new(vec![Value::Bytes(Arc::from(b"ab".as_slice()))]))
+        Value::array(vec![Value::Bytes(Arc::from(b"ab".as_slice()))])
     );
     assert_eq!(
         captured(&mut engine, "printf '' | chunks 8"),
-        Value::Array(Arc::new(Vec::new()))
+        Value::array(Vec::new())
     );
     assert_eq!(
         captured(&mut engine, "printf 'a\\nb\\n' | lines | collect"),
-        Value::Array(Arc::new(vec![string("a"), string("b")]))
+        Value::array(vec![string("a"), string("b")])
     );
     assert_eq!(
         captured(&mut engine, "printf '{\"a\":1}'"),
@@ -1261,7 +1269,7 @@ fn structured_sigpipe_requires_a_causal_downstream_close() {
     let mut engine = Engine::new(ProcessHost::default());
     assert_eq!(
         captured(&mut engine, "yes | lines | take 1"),
-        Value::Array(Arc::new(vec![string("y")]))
+        Value::array(vec![string("y")])
     );
     let error = engine
         .run_source("value = $(sh -c 'kill -PIPE $$' | lines)")
@@ -1277,7 +1285,7 @@ fn structured_functions_serialization_and_bounded_termination_cross_real_process
             &mut engine,
             "printf '1\\n2\\n3\\n' | lines | map (x => Number(x) * 2) | filter (x => x > 2) | take 2"
         ),
-        Value::Array(Arc::new(vec![Value::Int(4), Value::Int(6)]))
+        Value::array(vec![Value::Int(4), Value::Int(6)])
     );
     assert_eq!(
         captured(
@@ -1294,7 +1302,7 @@ fn structured_functions_serialization_and_bounded_termination_cross_real_process
     let started = std::time::Instant::now();
     assert_eq!(
         captured(&mut engine, "yes | lines | take 5"),
-        Value::Array(Arc::new(vec![string("y"); 5]))
+        Value::array(vec![string("y"); 5])
     );
     assert!(started.elapsed() < std::time::Duration::from_secs(2));
 }
@@ -1317,7 +1325,7 @@ fn take_and_first_stop_before_another_function_invocation() {
         if terminal == "first" {
             assert_eq!(value, string("a"));
         } else {
-            assert_eq!(value, Value::Array(Arc::new(vec![string("a")])));
+            assert_eq!(value, Value::array(vec![string("a")]));
         }
         assert_eq!(fs::read_to_string(count).unwrap(), "call\n");
     }
@@ -1473,11 +1481,7 @@ fn status_and_command_chains_suppress_only_completed_failures() {
     );
     assert_eq!(
         status,
-        Value::Array(Arc::new(vec![
-            Value::Bool(false),
-            Value::Int(7),
-            Value::Int(1),
-        ]))
+        Value::array(vec![Value::Bool(false), Value::Int(7), Value::Int(1),])
     );
     assert_eq!(
         evaluated(&mut engine, "sh -c 'exit 7' || true"),

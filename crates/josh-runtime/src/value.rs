@@ -18,7 +18,7 @@ pub enum Value {
     Float(f64),
     String(Arc<str>),
     Bytes(Arc<[u8]>),
-    Array(Arc<Vec<Value>>),
+    Array(Arc<ArrayValue>),
     Object(Arc<ObjectValue>),
     #[doc(hidden)]
     Environment,
@@ -28,6 +28,11 @@ pub enum Value {
 }
 
 impl Value {
+    #[must_use]
+    pub fn array(items: Vec<Value>) -> Self {
+        Self::Array(Arc::new(ArrayValue::from_vec(items)))
+    }
+
     #[must_use]
     pub fn truthy(&self) -> bool {
         match self {
@@ -116,7 +121,7 @@ impl fmt::Display for Value {
             Self::Bytes(value) => write!(formatter, "<{} bytes>", value.len()),
             Self::Array(values) => {
                 formatter.write_str("[")?;
-                for (index, value) in values.iter().enumerate() {
+                for (index, value) in values.snapshot().iter().enumerate() {
                     if index > 0 {
                         formatter.write_str(", ")?;
                     }
@@ -130,6 +135,97 @@ impl fmt::Display for Value {
             Self::Error(error) => write!(formatter, "{error}"),
             Self::Status(status) => write!(formatter, "{status}"),
         }
+    }
+}
+
+/// A Josh array: mutable, shared `Arc<ArrayValue>` handles observe the same
+/// interior state, so `push`/`pop`/`reverse`/`sort` edit in place
+/// JavaScript-style. Read paths that invoke callbacks snapshot first.
+#[derive(Debug, Default)]
+pub struct ArrayValue {
+    items: RwLock<Vec<Value>>,
+}
+
+impl ArrayValue {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    #[must_use]
+    pub fn from_vec(items: Vec<Value>) -> Self {
+        Self {
+            items: RwLock::new(items),
+        }
+    }
+
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.items
+            .read()
+            .unwrap_or_else(|error| error.into_inner())
+            .len()
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    #[must_use]
+    pub fn get(&self, index: usize) -> Option<Value> {
+        self.items
+            .read()
+            .unwrap_or_else(|error| error.into_inner())
+            .get(index)
+            .cloned()
+    }
+
+    /// A snapshot of the current items; iteration order is stable.
+    #[must_use]
+    pub fn snapshot(&self) -> Vec<Value> {
+        self.items
+            .read()
+            .unwrap_or_else(|error| error.into_inner())
+            .clone()
+    }
+
+    /// Append values, returning the new length (Array.prototype.push).
+    pub fn push_many(&self, values: impl IntoIterator<Item = Value>) -> usize {
+        let mut items = self
+            .items
+            .write()
+            .unwrap_or_else(|error| error.into_inner());
+        items.extend(values);
+        items.len()
+    }
+
+    /// Remove and return the last item (Array.prototype.pop).
+    pub fn pop(&self) -> Option<Value> {
+        self.items
+            .write()
+            .unwrap_or_else(|error| error.into_inner())
+            .pop()
+    }
+
+    /// Exclusive access for in-place transforms (reverse/sort); callbacks run
+    /// while the write lock is held, so they must not re-enter the array.
+    pub fn with_mut<R>(&self, transform: impl FnOnce(&mut Vec<Value>) -> R) -> R {
+        transform(
+            &mut self
+                .items
+                .write()
+                .unwrap_or_else(|error| error.into_inner()),
+        )
+    }
+}
+
+impl PartialEq for ArrayValue {
+    fn eq(&self, other: &Self) -> bool {
+        if std::ptr::eq(self, other) {
+            return true;
+        }
+        self.snapshot() == other.snapshot()
     }
 }
 
