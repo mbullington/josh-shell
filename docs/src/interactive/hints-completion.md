@@ -17,7 +17,7 @@ The replacement span uses UTF-8 byte offsets. Command/file completions request t
 
 ### Command-specific completion via carapace
 
-When an external `carapace` binary resolves on PATH, argument completion for an external command asks `carapace <name> _carapace export <name> <args…current-word>` and uses its JSON values (with descriptions, and `nospace` suffixes suppressing the trailing space). Every failure — the binary is absent, a spec for the command does not exist, the call errors, or the answer is empty — falls back silently to native file completion; there are no diagnostics. `JOSH_CARAPACE=0` disables the bridge entirely, and `JOSH_CARAPACE=/path/to/carapace` pins a specific binary. First words that are paths, `$variables`, or assignments never reach carapace.
+When an external `carapace` binary resolves on PATH, argument completion for an external command asks `carapace <name> export <name> <args…current-word>` and uses its JSON values (with descriptions, and `nospace` suffixes suppressing the trailing space). Every failure — the binary is absent, a spec for the command does not exist, the call errors, or the answer is empty — falls back silently to native file completion; there are no diagnostics. `JOSH_CARAPACE=0` disables the bridge entirely, and `JOSH_CARAPACE=/path/to/carapace` pins a specific binary. First words that are paths, `$variables`, or assignments never reach carapace.
 
 <a id="J-REPL-004"></a>
 ## Hints and history <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>

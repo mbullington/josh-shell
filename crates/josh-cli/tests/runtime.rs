@@ -386,6 +386,53 @@ fn prototype_namespaces_methods_and_statics_are_first_class() {
 }
 
 #[test]
+fn array_prototype_transforms_push_pop_reverse_sort_length() {
+    // Regression contract: push/pop/reverse/sort return new arrays and leave
+    // the receiver untouched (array values are immutable snapshots); sort
+    // orders numbers numerically and strings lexicographically, rejecting
+    // mixed element kinds; `length` answers via the builtin member read and
+    // through the prototype table. This is the documented PATH-extension idiom:
+    // `env.PATH = env.PATH.push("/new/dir")`.
+    let mut engine = Engine::new(ProcessHost::default());
+    let value = evaluated(
+        &mut engine,
+        "base = [1, 2]; pushed = base.push(3, 4); \
+         [pushed, pushed.pop(), base, [3, 1].sort(), [\"b\", \"a\"].sort().join(\"\"), \
+          [1.5, -2].sort().at(0), pushed.reverse().at(0), pushed.length, \
+          Array.prototype.length([9, 8, 7])]",
+    );
+    assert_eq!(
+        value,
+        Value::Array(Arc::new(vec![
+            Value::Array(Arc::new(vec![
+                Value::Int(1),
+                Value::Int(2),
+                Value::Int(3),
+                Value::Int(4),
+            ])),
+            Value::Array(Arc::new(vec![Value::Int(1), Value::Int(2), Value::Int(3)])),
+            Value::Array(Arc::new(vec![Value::Int(1), Value::Int(2)])),
+            Value::Array(Arc::new(vec![Value::Int(1), Value::Int(3)])),
+            string("ab"),
+            Value::Int(-2),
+            Value::Int(4),
+            Value::Int(4),
+            Value::Int(3),
+        ]))
+    );
+
+    // Pop on an empty array is an identity transform, and push forwards its
+    // extra arguments without touching the receiver.
+    assert_eq!(evaluated(&mut engine, "([].pop()).length"), Value::Int(0));
+
+    // Sort rejects elements it cannot order against each other.
+    let mixed = engine.run_source("[1, \"two\"].sort()").unwrap_err();
+    assert!(mixed.to_string().contains("sort"), "{mixed}");
+    let objects = engine.run_source("[{}].push({}).sort()").unwrap_err();
+    assert!(objects.to_string().contains("sort"), "{objects}");
+}
+
+#[test]
 fn member_assignment_updates_objects_in_place() {
     // Regression contract: statement-level `expr.name = value` and
     // `expr[key] = value` mutate the shared object, sealed objects reject new

@@ -143,3 +143,29 @@ phantom "torn frame" readings mid-investigation.
 4. Route completion + highlighting + file pane through `ShellContext`
    session env/cwd (already the daily-driver plan).
 5. Decide on history sync cadence.
+
+---
+
+## Follow-up fixes (verification wave 4)
+
+- **Array.prototype completed** (`natives.rs`): `push`/`pop`/`reverse`/`sort`/`length` are now
+  registered prototype natives. All are non-mutating transforms that return new array values,
+  matching Josh's immutable value snapshot semantics (`a.push(x)` without assignment is a no-op;
+  `env.PATH = env.PATH.push("/new/dir")` is the documented PATH-extension idiom). `sort` orders
+  numbers numerically (Int/Float interleaved, NaN-total) and strings lexicographically, and
+  rejects mixed element kinds. `.length` additionally keeps its builtin member-read fast path.
+  Regression test: `array_prototype_transforms_push_pop_reverse_sort_length` in
+  `crates/josh-cli/tests/runtime.rs`.
+- **Manual claims reconciled with implementation**: the reference sentence claiming
+  case/trim/split/parse/push/pop/reverse/sort/length/iterate/each/map/filter/reduce/toString across
+  type prototypes — and `keys`/`values`/`iterate`/`map`/`each`/`toString` on Object.prototype — was
+  false (root table is empty; verified `{a:1}.keys()` → "null value is not callable"). The sentence
+  now enumerates the real tables; `prototypes-namespaces.md` gained the transforms + root-table note.
+- **Carapace bridge protocol fix** (`carapace.rs`, `hints-completion.md`): the bridge invoked
+  `carapace <name> _carapace export <name> <prefix>` — with carapace 1.7.x (verified 1.7.1 via nix)
+  that invocation silently emits a bare newline, so the bridge always fell back to native
+  completion. The current macro protocol is `carapace <name> export <name> <args…prefix>`
+  (same JSON envelope: `nospace` + `values[].{value,description}`). Fixed in the daemon,
+  docs, and unit-test argv expectation; live-verified in a nix shell: `git ch`+Tab offers
+  `checkout`/…with descriptions, `git log --fo`+Tab offers `--follow`/`--format`, and
+  `JOSH_CARAPACE=0` still disables the bridge.

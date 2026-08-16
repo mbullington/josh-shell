@@ -1,8 +1,8 @@
 //! Optional command-specific completion through carapace
 //! (<https://carapace-sh.github.io/carapace/>). When a `carapace` binary
 //! resolves on PATH (and `JOSH_CARAPACE` is not `0`), argument completions
-//! for external commands are asked of `carapace <name> _carapace export
-//! <name> <args…prefix>` and its JSON `values` become suggestions. Every
+//! for external commands are asked of `carapace <name> export <name>
+//! <args…prefix>` and its JSON `values` become suggestions. Every
 //! failure mode — missing binary, nonzero exit, malformed JSON — falls back
 //! silently to the native file completer.
 
@@ -79,7 +79,6 @@ impl Carapace {
         }
         let output = Command::new(binary)
             .arg(name)
-            .arg("_carapace")
             .arg("export")
             .args(words)
             .stdin(std::process::Stdio::null())
@@ -287,7 +286,7 @@ printf '%s' '{"nospace":"/","values":[{"value":"src/","display":"src/"}]}'
             .unwrap();
         assert_eq!(
             fs::read_to_string(&record).unwrap(),
-            "fakecmd _carapace export fakecmd sub pr"
+            "fakecmd export fakecmd sub pr"
         );
     }
 

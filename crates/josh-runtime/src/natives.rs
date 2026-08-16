@@ -162,6 +162,23 @@ pub(crate) fn install(frame: &mut Frame) -> Prototypes {
                 Arc::from("slice"),
                 native("Array.prototype.slice", array_slice),
             ),
+            (
+                Arc::from("push"),
+                native("Array.prototype.push", array_push),
+            ),
+            (Arc::from("pop"), native("Array.prototype.pop", array_pop)),
+            (
+                Arc::from("reverse"),
+                native("Array.prototype.reverse", array_reverse),
+            ),
+            (
+                Arc::from("sort"),
+                native("Array.prototype.sort", array_sort),
+            ),
+            (
+                Arc::from("length"),
+                native("Array.prototype.length", array_length),
+            ),
         ],
     );
     let boolean_prototype = chained(&root, []);
@@ -633,6 +650,74 @@ fn array_slice(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
         return Err(type_error("array is too large to index"));
     };
     Ok(Value::Array(Arc::new(receiver[start..end].to_vec())))
+}
+
+fn array_push(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    expect_arity("Array.prototype.push", &args, 1, usize::MAX)?;
+    let Value::Array(value) = &args[0] else {
+        return Err(type_error(format!(
+            "Array.prototype.push receiver must be an array, got {}",
+            args[0].type_name()
+        )));
+    };
+    let mut output = value.to_vec();
+    output.extend(args.iter().skip(1).cloned());
+    Ok(Value::Array(Arc::new(output)))
+}
+
+fn array_pop(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    let receiver = array_receiver("Array.prototype.pop", &args, 0, 0)?;
+    let mut output = receiver.to_vec();
+    output.pop();
+    Ok(Value::Array(Arc::new(output)))
+}
+
+fn array_reverse(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    let receiver = array_receiver("Array.prototype.reverse", &args, 0, 0)?;
+    Ok(Value::Array(Arc::new(
+        receiver.iter().rev().cloned().collect::<Vec<_>>(),
+    )))
+}
+
+fn array_sort(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    let receiver = array_receiver("Array.prototype.sort", &args, 0, 0)?;
+    let mut output = receiver.to_vec();
+    let all_numbers = output
+        .iter()
+        .all(|value| matches!(value, Value::Int(_) | Value::Float(_)));
+    let all_strings = output.iter().all(|value| matches!(value, Value::String(_)));
+    if all_numbers {
+        output.sort_by(|a, b| {
+            let left = match a {
+                Value::Int(value) => *value as f64,
+                Value::Float(value) => *value,
+                _ => unreachable!("all-elements-checked sort"),
+            };
+            let right = match b {
+                Value::Int(value) => *value as f64,
+                Value::Float(value) => *value,
+                _ => unreachable!("all-elements-checked sort"),
+            };
+            left.total_cmp(&right)
+        });
+    } else if all_strings {
+        output.sort_by(|a, b| {
+            let (Value::String(left), Value::String(right)) = (a, b) else {
+                unreachable!("all-elements-checked sort");
+            };
+            left.cmp(right)
+        });
+    } else {
+        return Err(type_error(
+            "Array.prototype.sort needs all numbers or all strings",
+        ));
+    }
+    Ok(Value::Array(Arc::new(output)))
+}
+
+fn array_length(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    let receiver = array_receiver("Array.prototype.length", &args, 0, 0)?;
+    usize_value(receiver.len())
 }
 
 // --- Object statics --------------------------------------------------------
