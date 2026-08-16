@@ -356,7 +356,7 @@ fn if_and_try_are_value_producing_expressions() {
     assert_eq!(
         evaluated(
             &mut engine,
-            "x = try { status = $(/bin/sh -c 'exit 7') } catch e { e.code }; (x)"
+            "x = try { status = $(/bin/sh -c 'exit 7') } catch e { e.status.code }; (x)"
         ),
         Value::Int(7)
     );

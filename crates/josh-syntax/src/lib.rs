@@ -601,6 +601,16 @@ pub fn parse(source: impl Into<Arc<str>>) -> Parse {
     Parser::new(Arc::clone(&source)).finish()
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum BlockStyle {
+    /// Statement-level blocks: words form commands, as in top-level scripts.
+    Command,
+    /// Value-context blocks (expression `if`/`try` bodies, arrow bodies):
+    /// a statement made of one literal or variable-shaped token is an
+    /// expression rather than a command invocation.
+    Value,
+}
+
 struct Parser {
     source: Arc<str>,
     tokens: Vec<Token>,
@@ -620,7 +630,7 @@ impl Parser {
     }
 
     fn finish(mut self) -> Parse {
-        let program = self.parse_program(false);
+        let program = self.parse_program(false, BlockStyle::Command);
         let has_error = self
             .diagnostics
             .iter()
@@ -641,7 +651,7 @@ impl Parser {
         }
     }
 
-    fn parse_program(&mut self, in_block: bool) -> Program {
+    fn parse_program(&mut self, in_block: bool, style: BlockStyle) -> Program {
         let start = self.current_start();
         let mut statements = Vec::new();
         loop {
@@ -657,7 +667,7 @@ impl Parser {
                 continue;
             }
             let before = self.pos;
-            let statement = self.parse_statement();
+            let statement = self.parse_statement_styled(style);
             let statement_end = statement.span().end;
             let consumed_separator = self.tokens[before..self.pos].iter().any(|token| {
                 matches!(token.kind, TokenKind::Newline | TokenKind::Semicolon)
@@ -690,13 +700,17 @@ impl Parser {
     }
 
     fn parse_statement(&mut self) -> Statement {
+        self.parse_statement_styled(BlockStyle::Command)
+    }
+
+    fn parse_statement_styled(&mut self, style: BlockStyle) -> Statement {
         match self.peek_tag() {
             Some(TokenTag::Let) => return self.parse_let(),
             Some(TokenTag::Fn) => return self.parse_function(),
-            Some(TokenTag::If) => return Statement::Expr(self.parse_if_expression()),
-            Some(TokenTag::While) => return self.parse_while(),
-            Some(TokenTag::Loop) => return self.parse_loop(),
-            Some(TokenTag::Try) => return Statement::Expr(self.parse_try_expression()),
+            Some(TokenTag::If) => return Statement::Expr(self.parse_if_expression(style)),
+            Some(TokenTag::While) => return self.parse_while(style),
+            Some(TokenTag::Loop) => return self.parse_loop(style),
+            Some(TokenTag::Try) => return Statement::Expr(self.parse_try_expression(style)),
             Some(TokenTag::Throw) => return self.parse_throw(),
             Some(TokenTag::Return) => return self.parse_return(),
             Some(TokenTag::Break) => {
@@ -716,10 +730,52 @@ impl Parser {
         if self.is_environment_assignment_head() {
             return self.parse_environment_assignment();
         }
-        if self.is_expression_head() {
+        if self.is_expression_head()
+            || (style == BlockStyle::Value && self.is_value_expression_head())
+        {
             return Statement::Expr(self.parse_expr(0));
         }
         self.parse_command_chain()
+    }
+
+    /// In value-context blocks (expression `if`/`try` bodies, arrow bodies),
+    /// a statement that is exactly one literal or variable-shaped token is an
+    /// expression rather than a command invocation.
+    fn is_value_expression_head(&self) -> bool {
+        let Some(first) = self.peek_significant_index(0) else {
+            return false;
+        };
+        match &self.tokens[first].kind {
+            TokenKind::SingleQuoted | TokenKind::DoubleQuoted | TokenKind::String => true,
+            // A lone variable (`e`), or one followed by an expression
+            // operator (`x * 2`, `n === 3`, `e.code` was already covered by
+            // `is_expression_head`), is an expression statement.
+            TokenKind::Identifier => match self.peek_significant_index(1) {
+                None => true,
+                Some(next) => matches!(
+                    tag(&self.tokens[next].kind),
+                    TokenTag::Newline
+                        | TokenTag::Semicolon
+                        | TokenTag::RightBrace
+                        | TokenTag::Plus
+                        | TokenTag::Minus
+                        | TokenTag::Star
+                        | TokenTag::Slash
+                        | TokenTag::DoubleSlash
+                        | TokenTag::Percent
+                        | TokenTag::StrictEq
+                        | TokenTag::StrictNotEq
+                        | TokenTag::Less
+                        | TokenTag::LessEq
+                        | TokenTag::Greater
+                        | TokenTag::GreaterEq
+                        | TokenTag::Question
+                        | TokenTag::AndAnd
+                        | TokenTag::OrOr
+                ),
+            },
+            _ => false,
+        }
     }
 
     fn is_assignment_head(&self) -> bool {
@@ -1075,7 +1131,7 @@ impl Parser {
             String::new()
         };
         let params = self.parse_parameters();
-        let (body, end) = self.parse_required_block("function");
+        let (body, end) = self.parse_required_block("function", BlockStyle::Command);
         Statement::Function {
             name,
             params,
@@ -1114,27 +1170,29 @@ impl Parser {
         params
     }
 
-    fn parse_if_expression(&mut self) -> Expr {
+    fn parse_if_expression(&mut self, style: BlockStyle) -> Expr {
         let start = self.bump_span(LexMode::Expression).start;
         let condition = self.parse_condition();
-        let (then_block, mut end) = self.parse_required_block("if");
+        let (then_block, mut end) = self.parse_required_block("if", style);
+        let checkpoint = self.pos;
         self.skip_separators();
         let else_block = if self.at(TokenTag::Else) {
             self.bump_mode(LexMode::Expression);
             self.skip_trivia_mode(LexMode::Expression);
             if self.at(TokenTag::If) {
-                let nested = self.parse_if_expression();
+                let nested = self.parse_if_expression(style);
                 end = nested.span().end;
                 Some(Program {
                     span: nested.span(),
                     statements: vec![Statement::Expr(nested)],
                 })
             } else {
-                let (block, block_end) = self.parse_required_block("else");
+                let (block, block_end) = self.parse_required_block("else", style);
                 end = block_end;
                 Some(block)
             }
         } else {
+            self.pos = checkpoint;
             None
         };
         Expr::If {
@@ -1145,10 +1203,10 @@ impl Parser {
         }
     }
 
-    fn parse_while(&mut self) -> Statement {
+    fn parse_while(&mut self, style: BlockStyle) -> Statement {
         let start = self.bump_span(LexMode::Expression).start;
         let condition = self.parse_condition();
-        let (body, end) = self.parse_required_block("while");
+        let (body, end) = self.parse_required_block("while", style);
         Statement::While {
             condition,
             body,
@@ -1169,18 +1227,18 @@ impl Parser {
         }
     }
 
-    fn parse_loop(&mut self) -> Statement {
+    fn parse_loop(&mut self, style: BlockStyle) -> Statement {
         let start = self.bump_span(LexMode::Expression).start;
-        let (body, end) = self.parse_required_block("loop");
+        let (body, end) = self.parse_required_block("loop", style);
         Statement::Loop {
             body,
             span: Span::new(start, end),
         }
     }
 
-    fn parse_try_expression(&mut self) -> Expr {
+    fn parse_try_expression(&mut self, style: BlockStyle) -> Expr {
         let start = self.bump_span(LexMode::Expression).start;
-        let (body, _) = self.parse_required_block("try");
+        let (body, _) = self.parse_required_block("try", style);
         self.skip_separators();
         if !self.at(TokenTag::Catch) {
             self.diagnostics.push(self.expected(
@@ -1202,7 +1260,7 @@ impl Parser {
             self.skip_trivia_mode(LexMode::Expression);
             self.expect_closer(TokenTag::RightParen, ")", LexMode::Expression);
         }
-        let (catch_body, end) = self.parse_required_block("catch");
+        let (catch_body, end) = self.parse_required_block("catch", style);
         Expr::Try {
             body,
             catch_pattern,
@@ -1243,7 +1301,7 @@ impl Parser {
         }
     }
 
-    fn parse_required_block(&mut self, owner: &str) -> (Program, usize) {
+    fn parse_required_block(&mut self, owner: &str, style: BlockStyle) -> (Program, usize) {
         self.skip_separators();
         if !self.at(TokenTag::LeftBrace) {
             let at = self.current_start();
@@ -1264,7 +1322,7 @@ impl Parser {
             );
         }
         self.bump_mode(LexMode::Expression);
-        let body = self.parse_program(true);
+        let body = self.parse_program(true, style);
         self.skip_trivia_mode(LexMode::Command);
         let end = if self.at(TokenTag::RightBrace) {
             self.bump_span(LexMode::Expression).end
@@ -2022,8 +2080,8 @@ impl Parser {
                     span: Span::new(token.span.start, end),
                 }
             }
-            TokenKind::If => self.parse_if_expression(),
-            TokenKind::Try => self.parse_try_expression(),
+            TokenKind::If => self.parse_if_expression(BlockStyle::Value),
+            TokenKind::Try => self.parse_try_expression(BlockStyle::Value),
             TokenKind::Unsupported("equality operator `==`") => {
                 self.bump_mode(LexMode::Expression);
                 let mut d =
@@ -2135,7 +2193,7 @@ impl Parser {
     fn parse_arrow_body(&mut self) -> (FunctionBody, usize) {
         self.skip_trivia_mode(LexMode::Expression);
         if self.at(TokenTag::LeftBrace) {
-            let (body, end) = self.parse_required_block("arrow function");
+            let (body, end) = self.parse_required_block("arrow function", BlockStyle::Value);
             (FunctionBody::Block(body), end)
         } else {
             let body = self.parse_expr(0);
