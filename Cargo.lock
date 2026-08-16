@@ -410,6 +410,8 @@ dependencies = [
  "josh-syntax",
  "nu-ansi-term",
  "reedline",
+ "serde",
+ "serde_json",
  "signal-hook",
  "tempfile",
 ]

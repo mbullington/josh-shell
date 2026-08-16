@@ -6,6 +6,9 @@ use std::{
     sync::{Arc, RwLock, atomic::Ordering},
 };
 
+mod carapace;
+
+use carapace::Carapace;
 use nu_ansi_term::{Color, Style};
 use reedline::{
     ColumnarMenu, Completer, DefaultHinter, Emacs, FileBackedHistory, Highlighter, KeyCode,
@@ -192,6 +195,7 @@ impl Highlighter for JoshHighlighter {
 pub struct JoshCompleter {
     analyzer: ReplAnalyzer,
     snapshot: Arc<RwLock<Arc<CompletionSnapshot>>>,
+    carapace: Carapace,
 }
 impl Completer for JoshCompleter {
     fn complete(&mut self, line: &str, pos: usize) -> Vec<Suggestion> {
@@ -200,22 +204,40 @@ impl Completer for JoshCompleter {
             .snapshot
             .read()
             .expect("completion snapshot lock poisoned");
-        let values = match context.kind {
-            CompletionKind::Command => snapshot
-                .commands
-                .iter()
-                .filter(|x| x.starts_with(&context.prefix))
-                .cloned()
-                .collect(),
-            CompletionKind::Variable => snapshot
-                .variables
-                .iter()
-                .filter(|x| x.starts_with(&context.prefix))
-                .cloned()
-                .collect(),
-            CompletionKind::File => file_completions(&context.prefix, &snapshot.cwd),
+        let native_values = || -> Vec<String> {
+            match context.kind {
+                CompletionKind::Command => snapshot
+                    .commands
+                    .iter()
+                    .filter(|x| x.starts_with(&context.prefix))
+                    .cloned()
+                    .collect(),
+                CompletionKind::Variable => snapshot
+                    .variables
+                    .iter()
+                    .filter(|x| x.starts_with(&context.prefix))
+                    .cloned()
+                    .collect(),
+                CompletionKind::File => file_completions(&context.prefix, &snapshot.cwd),
+            }
         };
-        values
+        // Command-specific completion: when an external command precedes the
+        // word and carapace is installed, its suggestions win; any failure
+        // degrades silently to the native file list.
+        if matches!(context.kind, CompletionKind::File) && self.carapace.available() {
+            let words = carapace::command_words_up_to_cursor(&line[..context.span.end]);
+            if words.len() >= 2
+                && let Some(mut suggestions) = self.carapace.complete(&words)
+                && !suggestions.is_empty()
+            {
+                suggestions.truncate(200);
+                for suggestion in &mut suggestions {
+                    suggestion.span = ReedlineSpan::new(context.span.start, context.span.end);
+                }
+                return suggestions;
+            }
+        }
+        native_values()
             .into_iter()
             .take(200)
             .map(|value| Suggestion {
@@ -301,6 +323,7 @@ pub fn run_repl(engine: &mut Engine) -> Result<i32, Box<dyn std::error::Error>> 
         .with_completer(Box::new(JoshCompleter {
             analyzer: ReplAnalyzer,
             snapshot: Arc::clone(&snapshot),
+            carapace: Carapace::new(),
         }))
         .with_menu(ReedlineMenu::EngineCompleter(completion_menu))
         .with_edit_mode(Box::new(Emacs::new(keybindings)))

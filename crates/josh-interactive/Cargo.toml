@@ -11,6 +11,8 @@ josh-runtime.workspace = true
 josh-syntax.workspace = true
 nu-ansi-term.workspace = true
 reedline.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 signal-hook.workspace = true
 
 [dev-dependencies]
