@@ -8,6 +8,19 @@ PNG artifacts in `/tmp/josh-repl-test/artifacts/`.
 
 ## Confirmed bugs
 
+> **Status 2026-08-16:** B1 fixed (evaluator cancellation polling in
+> `Engine::run_program`; verified live under agent-terminal against a 16kRPM
+> `loop { }` — Ctrl-C now returns to the prompt), B2/B3/B4 fixed
+> (`CompletionSnapshot` is built from the session snapshot: session PATH for
+> command discovery and highlight classification, session environment keys for
+> variable completion, session cwd for file completion — empty-prefix scans the
+> cwd), B5 fixed (`editor.sync_history()` after each accepted line), B6 fixed
+> in the agent-terminal repo (`int`/`string` → `Number`/`String`, `fg` back to
+> its reserved negative after the fg slot was reverted in josh@df1c73d); the
+> full `scripts/josh-e2e.sh` passes clean end-to-end again.
+>
+> Repro details retained below for regression context.
+
 ### B1. SIGINT cannot interrupt pure-Josh evaluation (REPL hard-hangs)
 
 Repro: run `loop { }`, press Ctrl+C.

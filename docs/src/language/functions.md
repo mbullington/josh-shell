@@ -24,11 +24,11 @@ Parameters allow nested array/object destructuring and one trailing rest pattern
 
 A visible lexical function in command position runs before PATH lookup and receives evaluated command arguments. Member-call dispatch has this fixed order:
 
-1. a builtin method for the receiver's type;
-2. a visible lexical function with the member name, called as `name(receiver, ...args)` (UFCS);
-3. a callable object member.
+1. a function stored as the object's own field, called with the call's arguments only;
+2. a method in the receiver's prototype table (see [Builtin namespaces](../reference/operators-values.md#J-NAMES-001)), called with the receiver as the first argument;
+3. a visible lexical function with the member name, called as `name(receiver, ...args)` (UFCS).
 
-A builtin method therefore wins over a same-named lexical function. Josh has no `this`, prototypes, classes, hoisting, or mutable global method table.
+A prototype method therefore wins over a same-named lexical function, and an own field wins over a prototype method. Josh has no `this`, classes, or hoisting; the builtin prototype tables are the only shared method registry, and prototype methods declare the receiver explicitly with first-argument parameters (for example `(this, ...)`).
 
 <p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
 

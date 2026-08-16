@@ -2,7 +2,7 @@
 
 <div class="status-coverage">
 
-**Status coverage:** [J-RUN-004](../status/matrix.md#J-RUN-004) — **Implemented**; [J-RUN-003](../status/matrix.md#J-RUN-003) — **Implemented**; [J-STRUCT-001](../status/matrix.md#J-STRUCT-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
+**Status coverage:** [J-RUN-004](../status/matrix.md#J-RUN-004) — **Implemented**; [J-RUN-003](../status/matrix.md#J-RUN-003) — **Implemented**; [J-STRUCT-001](../status/matrix.md#J-STRUCT-001) — **Implemented**; [J-STREAM-002](../status/matrix.md#J-STREAM-002) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
 
 </div>
 
@@ -60,7 +60,24 @@ No content-based JSON inference or observed-item-count collapse occurs.
 <p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
 
 ```josh
-values = $(printf '1\n2\n3\n' | lines | map (x => int(x) * 2) | filter (x => x > 2) | take 2)
+values = $(printf '1\n2\n3\n' | lines | map (x => Number(x) * 2) | filter (x => x > 2) | take 2)
 ```
 
 A downstream close, including inherited stdout closing, is graceful for in-shell writers. `take` and `first` acknowledge each demanded item before allowing function workers to invoke again, then stop and join in-shell workers and external producers. Cancellation reaches external commands called by those functions. External outcomes remain ordered and use pipefail; only a proven non-final SIGPIPE caused by normal downstream close is treated as success. A deliberate SIGPIPE remains a failure.
+
+<a id="J-STREAM-002"></a>
+## Pipelines from values <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
+
+**Availability:** Available in the current development snapshot. Evidence: value-pipeline parse, evaluation, and focused-error tests.
+
+An array, map-shaped object, or scalar can start a pipeline instead of a command. Each item streams through the usual structured stages, and a bare closure is a map stage: its parameter is the item and its return value is emitted. An object becomes one `{key, value}` record per entry in insertion order; any other scalar is a single item.
+
+A one-stage pipeline whose stage is a standalone expression — a literal, a variable, a member read, a call — evaluates directly to that value with no stream at all, so `$(shared.nested) | $((x + 1))`-style capture of a computed scalar works without ceremony.
+
+<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+
+```josh
+doubled = $([1, 2, 3] | map (x => x * 2))
+joined = $(["a", "b"] | x => x + "!" | collect)
+count = $([10, 20, 30] | take 2)
+```

@@ -29,7 +29,7 @@ Add an explicit transformer before applying functions to command output. Streami
 <p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
 
 ```console
-josh> doubled = $(printf '1\n2\n' | lines | map (x => int(x) * 2) | collect)
+josh> doubled = $(printf '1\n2\n' | lines | map (x => Number(x) * 2) | collect)
 [2, 4]
 josh> doubled.join(",")
 2,4
