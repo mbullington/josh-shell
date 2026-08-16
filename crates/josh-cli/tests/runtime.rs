@@ -317,6 +317,52 @@ fn tilde_expands_to_session_home_before_globbing() {
 }
 
 #[test]
+fn if_and_try_are_value_producing_expressions() {
+    let mut engine = Engine::new(ProcessHost::default());
+    assert_eq!(
+        evaluated(&mut engine, "x = if (true) { 1 } else { 2 }; (x)"),
+        Value::Int(1)
+    );
+    assert_eq!(
+        evaluated(&mut engine, "x = if (false) { 1 }; (x)"),
+        Value::Null
+    );
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            "x = if (false) { 1 } else if (true) { 2 } else { 3 }; (x)"
+        ),
+        Value::Int(2)
+    );
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            "x = if /usr/bin/true { \"ok\" } else { \"no\" }; (x)"
+        ),
+        string("ok")
+    );
+    assert_eq!(
+        evaluated(&mut engine, "x = 1 + if (true) { 2 } else { 3 }; (x)"),
+        Value::Int(3)
+    );
+    assert_eq!(
+        evaluated(&mut engine, "x = try { throw \"boom\" } catch e { e }; (x)"),
+        string("boom")
+    );
+    assert_eq!(
+        evaluated(&mut engine, "x = try { 5 } catch e { 0 }; (x)"),
+        Value::Int(5)
+    );
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            "x = try { status = $(/bin/sh -c 'exit 7') } catch e { e.code }; (x)"
+        ),
+        Value::Int(7)
+    );
+}
+
+#[test]
 fn environment_namespace_is_dynamic_exported_and_scalar_canonical() {
     let context = ShellContext::from_process();
     let mut engine = Engine::with_shell_context(ProcessHost::default(), context.clone());
