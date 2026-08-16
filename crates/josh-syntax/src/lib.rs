@@ -701,10 +701,6 @@ impl Parser {
         }
     }
 
-    fn parse_statement(&mut self) -> Statement {
-        self.parse_statement_styled(BlockStyle::Command)
-    }
-
     fn parse_statement_styled(&mut self, style: BlockStyle) -> Statement {
         match self.peek_tag() {
             Some(TokenTag::Let) => return self.parse_let(),

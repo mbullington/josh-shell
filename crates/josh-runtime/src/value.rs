@@ -1,4 +1,8 @@
-use std::{collections::BTreeMap, fmt, sync::Arc};
+use std::{
+    collections::BTreeMap,
+    fmt,
+    sync::{Arc, RwLock},
+};
 
 use josh_syntax::{BindingPattern, FunctionBody};
 
@@ -70,7 +74,9 @@ impl PartialEq for Value {
             (Self::Object(left), Self::Object(right)) => left == right,
             (Self::Environment, Self::Environment) => true,
             (Self::Function(left), Self::Function(right)) => match (&left.kind, &right.kind) {
-                (FunctionKind::Builtin(left), FunctionKind::Builtin(right)) => left == right,
+                (FunctionKind::Native(left), FunctionKind::Native(right)) => {
+                    std::ptr::eq(*left, *right)
+                }
                 _ => Arc::ptr_eq(left, right),
             },
             (Self::Error(left), Self::Error(right)) => left == right,
@@ -127,9 +133,18 @@ impl fmt::Display for Value {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Default)]
+pub(crate) struct ObjectState {
+    pub entries: Vec<(Arc<str>, Value)>,
+    pub prototype: Option<Value>,
+    pub sealed: bool,
+}
+
+/// A Josh object: mutable, optionally sealed, with an optional prototype
+/// value. Shared `Arc<ObjectValue>` handles observe the same interior state.
+#[derive(Debug, Default)]
 pub struct ObjectValue {
-    entries: Vec<(Arc<str>, Value)>,
+    state: RwLock<ObjectState>,
 }
 
 impl ObjectValue {
@@ -140,66 +155,159 @@ impl ObjectValue {
 
     #[must_use]
     pub fn from_entries(entries: impl IntoIterator<Item = (Arc<str>, Value)>) -> Self {
-        let mut object = Self::new();
+        let object = Self::new();
         for (key, value) in entries {
             object.insert(key, value);
         }
         object
     }
 
-    pub fn insert(&mut self, key: Arc<str>, value: Value) {
-        if let Some((_, current)) = self.entries.iter_mut().find(|(name, _)| name == &key) {
+    pub fn insert(&self, key: Arc<str>, value: Value) {
+        let mut state = self
+            .state
+            .write()
+            .unwrap_or_else(|error| error.into_inner());
+        if let Some((_, current)) = state.entries.iter_mut().find(|(name, _)| name == &key) {
             *current = value;
         } else {
-            self.entries.push((key, value));
+            state.entries.push((key, value));
         }
     }
 
     pub fn try_insert(
-        &mut self,
+        &self,
         key: Arc<str>,
         value: Value,
     ) -> Result<(), std::collections::TryReserveError> {
-        if let Some((_, current)) = self.entries.iter_mut().find(|(name, _)| name == &key) {
+        let mut state = self
+            .state
+            .write()
+            .unwrap_or_else(|error| error.into_inner());
+        if let Some((_, current)) = state.entries.iter_mut().find(|(name, _)| name == &key) {
             *current = value;
         } else {
-            self.entries.try_reserve(1)?;
-            self.entries.push((key, value));
+            state.entries.try_reserve(1)?;
+            state.entries.push((key, value));
         }
         Ok(())
     }
 
     #[must_use]
-    pub fn get(&self, key: &str) -> Option<&Value> {
-        self.entries
+    pub fn get(&self, key: &str) -> Option<Value> {
+        self.state
+            .read()
+            .unwrap_or_else(|error| error.into_inner())
+            .entries
             .iter()
-            .find_map(|(name, value)| (&**name == key).then_some(value))
+            .find_map(|(name, value)| (&**name == key).then(|| value.clone()))
     }
 
     #[must_use]
     pub fn contains_key(&self, key: &str) -> bool {
-        self.get(key).is_some()
+        self.state
+            .read()
+            .unwrap_or_else(|error| error.into_inner())
+            .entries
+            .iter()
+            .any(|(name, _)| &**name == key)
     }
 
     #[must_use]
     pub fn len(&self) -> usize {
-        self.entries.len()
+        self.state
+            .read()
+            .unwrap_or_else(|error| error.into_inner())
+            .entries
+            .len()
     }
 
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.entries.is_empty()
+        self.len() == 0
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&Arc<str>, &Value)> {
-        self.entries.iter().map(|(key, value)| (key, value))
+    /// A snapshot of the object's own entries in insertion order.
+    #[must_use]
+    pub fn snapshot(&self) -> Vec<(Arc<str>, Value)> {
+        self.state
+            .read()
+            .unwrap_or_else(|error| error.into_inner())
+            .entries
+            .clone()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (Arc<str>, Value)> {
+        self.snapshot().into_iter()
+    }
+
+    #[must_use]
+    pub fn prototype(&self) -> Option<Value> {
+        self.state
+            .read()
+            .unwrap_or_else(|error| error.into_inner())
+            .prototype
+            .clone()
+    }
+
+    pub fn set_prototype(&self, prototype: Option<Value>) {
+        self.state
+            .write()
+            .unwrap_or_else(|error| error.into_inner())
+            .prototype = prototype;
+    }
+
+    #[must_use]
+    pub fn sealed(&self) -> bool {
+        self.state
+            .read()
+            .unwrap_or_else(|error| error.into_inner())
+            .sealed
+    }
+
+    pub fn set_sealed(&self, sealed: bool) {
+        self.state
+            .write()
+            .unwrap_or_else(|error| error.into_inner())
+            .sealed = sealed;
+    }
+
+    /// Write a member honoring the sealed rule: existing members stay
+    /// writable, new members are rejected on sealed objects.
+    pub fn assign_member(&self, key: Arc<str>, value: Value) -> Result<(), String> {
+        let mut state = self
+            .state
+            .write()
+            .unwrap_or_else(|error| error.into_inner());
+        if let Some((_, current)) = state.entries.iter_mut().find(|(name, _)| name == &key) {
+            *current = value;
+            return Ok(());
+        }
+        if state.sealed {
+            return Err(format!("object is sealed; cannot add member `{key}`"));
+        }
+        state.entries.push((key, value));
+        Ok(())
+    }
+
+    #[must_use]
+    pub fn own_entries(&self) -> Vec<(Arc<str>, Value)> {
+        self.snapshot()
+    }
+}
+
+impl PartialEq for ObjectValue {
+    fn eq(&self, other: &Self) -> bool {
+        if std::ptr::eq(self, other) {
+            return true;
+        }
+        self.snapshot() == other.snapshot()
     }
 }
 
 impl fmt::Display for ObjectValue {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str("{")?;
-        for (index, (key, value)) in self.entries.iter().enumerate() {
+        for (index, (key, value)) in self.snapshot().iter().enumerate() {
             if index > 0 {
                 formatter.write_str(", ")?;
             }
@@ -305,6 +413,7 @@ impl fmt::Display for StatusValue {
 #[derive(Clone)]
 pub struct FunctionValue {
     pub(crate) kind: FunctionKind,
+    pub(crate) members: Option<Value>,
 }
 
 #[derive(Clone)]
@@ -315,7 +424,23 @@ pub(crate) enum FunctionKind {
         body: Arc<FunctionBody>,
         captures: Arc<Frame>,
     },
-    Builtin(BuiltinFunction),
+    Native(&'static NativeFn),
+}
+
+/// A function implemented in Rust. Receives the engine and already-evaluated
+/// arguments, like a builtin.
+pub struct NativeFn {
+    pub name: &'static str,
+    pub function: fn(&mut crate::engine::Engine, Vec<Value>) -> crate::engine::EvalResult<Value>,
+}
+
+impl fmt::Debug for NativeFn {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("NativeFn")
+            .field("name", &self.name)
+            .finish_non_exhaustive()
+    }
 }
 
 impl FunctionValue {
@@ -332,19 +457,35 @@ impl FunctionValue {
                 body: Arc::new(body),
                 captures: Arc::new(captures),
             },
+            members: None,
         }
     }
 
-    pub(crate) const fn builtin(builtin: BuiltinFunction) -> Self {
+    pub(crate) const fn native(native: &'static NativeFn) -> Self {
         Self {
-            kind: FunctionKind::Builtin(builtin),
+            kind: FunctionKind::Native(native),
+            members: None,
+        }
+    }
+
+    pub(crate) fn native_with_members(native: &'static NativeFn, members: Value) -> Self {
+        Self {
+            kind: FunctionKind::Native(native),
+            members: Some(members),
+        }
+    }
+
+    pub(crate) fn member(&self, name: &str) -> Option<Value> {
+        match self.members.as_ref()? {
+            Value::Object(object) => object.get(name),
+            _ => None,
         }
     }
 
     fn name(&self) -> &str {
         match &self.kind {
             FunctionKind::User { name, .. } => name.as_deref().unwrap_or("anonymous"),
-            FunctionKind::Builtin(builtin) => builtin.name(),
+            FunctionKind::Native(native) => native.name,
         }
     }
 }
@@ -361,28 +502,5 @@ impl fmt::Debug for FunctionValue {
 impl fmt::Display for FunctionValue {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(formatter, "<function {}>", self.name())
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum BuiltinFunction {
-    String,
-    Int,
-    Float,
-    Bool,
-    Error,
-    Glob,
-}
-
-impl BuiltinFunction {
-    pub(crate) const fn name(self) -> &'static str {
-        match self {
-            Self::String => "string",
-            Self::Int => "int",
-            Self::Float => "float",
-            Self::Bool => "bool",
-            Self::Error => "error",
-            Self::Glob => "glob",
-        }
     }
 }

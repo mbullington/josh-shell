@@ -23,10 +23,7 @@ use crate::{
         CancellationToken, Captured, CommandSpec, ExecutionError, ExecutionHost, ExecutionResult,
         RedirectionSpec, StreamStage,
     },
-    value::{
-        BuiltinFunction, ErrorValue, Frame, FunctionKind, FunctionValue, ObjectValue, StatusValue,
-        Value,
-    },
+    value::{ErrorValue, Frame, FunctionKind, FunctionValue, ObjectValue, StatusValue, Value},
 };
 
 #[derive(Debug, Error)]
@@ -72,7 +69,7 @@ pub enum RunResult {
     Exit(i32),
 }
 
-enum Unwind {
+pub(crate) enum Unwind {
     Throw(Value),
     Return(Value),
     Break,
@@ -81,7 +78,7 @@ enum Unwind {
     Error(EngineError),
 }
 
-type EvalResult<T> = Result<T, Unwind>;
+pub(crate) type EvalResult<T> = Result<T, Unwind>;
 
 impl From<EngineError> for Unwind {
     fn from(error: EngineError) -> Self {
@@ -124,6 +121,7 @@ pub struct Engine {
     context: ShellContext,
     frames: Vec<Frame>,
     execution_cancellation: CancellationToken,
+    prototypes: crate::natives::Prototypes,
 }
 
 impl Engine {
@@ -162,17 +160,32 @@ impl Engine {
         context: ShellContext,
         execution_cancellation: CancellationToken,
     ) -> Self {
+        let mut root = Frame::new();
+        let prototypes = crate::natives::install(&mut root);
         Self {
             host: Box::new(host),
             context,
-            frames: vec![Frame::new()],
+            frames: vec![root],
             execution_cancellation,
+            prototypes,
         }
     }
 
     #[must_use]
     pub fn execution_cancellation(&self) -> Arc<AtomicBool> {
         self.execution_cancellation.local_flag()
+    }
+
+    pub(crate) fn host(&self) -> &dyn ExecutionHost {
+        &*self.host
+    }
+
+    pub(crate) fn shell_context_shared(&self) -> &ShellContext {
+        &self.context
+    }
+
+    pub(crate) fn type_prototypes(&self) -> &crate::natives::Prototypes {
+        &self.prototypes
     }
 
     #[must_use]
@@ -681,12 +694,7 @@ impl Engine {
             Value::Array(values) => values.as_ref().clone(),
             Value::Object(object) => object
                 .iter()
-                .map(|(key, value)| {
-                    Value::Array(Arc::new(vec![
-                        Value::String(Arc::clone(key)),
-                        value.clone(),
-                    ]))
-                })
+                .map(|(key, value)| Value::Array(Arc::new(vec![Value::String(key), value.clone()])))
                 .collect(),
             value => vec![value],
         };
@@ -1080,7 +1088,7 @@ impl Engine {
                 Ok(Value::Array(Arc::new(values)))
             }
             Expr::Object(entries, _) => {
-                let mut object = ObjectValue::new();
+                let object = ObjectValue::new();
                 for entry in entries {
                     match entry {
                         ObjectEntry::Property { key, value, .. } => {
@@ -1091,11 +1099,12 @@ impl Engine {
                                 return Err(type_error("object spread requires an object"));
                             };
                             for (key, value) in spread.iter() {
-                                object.insert(Arc::clone(key), value.clone());
+                                object.insert(key, value);
                             }
                         }
                     }
                 }
+                object.set_prototype(Some(self.prototypes.root.clone()));
                 Ok(Value::Object(Arc::new(object)))
             }
             Expr::Unary { op, expr, .. } => {
@@ -1203,8 +1212,21 @@ impl Engine {
         if let Expr::Member { object, name, .. } = callee {
             let receiver = self.eval_expr(object)?;
             let args = self.eval_call_args(args)?;
-            if let Some(result) = self.call_builtin_method(receiver.clone(), name, args.clone()) {
-                return result;
+            // An object's own fields shadow prototypes and are called without
+            // a receiver, mirroring plain property access.
+            if let Value::Object(object) = &receiver
+                && let Some(member) = object.get(name)
+            {
+                return self.call_value(member, args);
+            }
+            // Prototype methods (type prototypes, then the object's own
+            // prototype chain) receive the receiver first, like Python.
+            if let Some(Value::Function(function)) = self.resolve_prototype_member(&receiver, name)
+            {
+                let mut method_args = Vec::with_capacity(args.len() + 1);
+                method_args.push(receiver);
+                method_args.extend(args);
+                return self.call_function(function, method_args);
             }
             if let Some(Value::Function(function)) = self.resolve_lexical(name) {
                 let mut ufcs_args = Vec::with_capacity(args.len() + 1);
@@ -1218,6 +1240,41 @@ impl Engine {
         let function = self.eval_expr(callee)?;
         let args = self.eval_call_args(args)?;
         self.call_value(function, args)
+    }
+
+    /// Walk the prototype chain for a member: the receiver's type prototype,
+    /// or an object's custom prototype chain, ending at the root prototype.
+    /// Includes a cycle guard for hand-built prototype loops.
+    pub(crate) fn resolve_prototype_member(&self, receiver: &Value, name: &str) -> Option<Value> {
+        let mut visited: Vec<*const ObjectValue> = Vec::new();
+        let mut current = match receiver {
+            Value::Object(object) => object.prototype(),
+            Value::String(_) => Some(self.prototypes.string.clone()),
+            Value::Int(_) | Value::Float(_) => Some(self.prototypes.number.clone()),
+            Value::Bool(_) => Some(self.prototypes.boolean.clone()),
+            Value::Array(_) => Some(self.prototypes.array.clone()),
+            Value::Function(_) => Some(self.prototypes.function.clone()),
+            Value::Null
+            | Value::Bytes(_)
+            | Value::Environment
+            | Value::Error(_)
+            | Value::Status(_) => Some(self.prototypes.root.clone()),
+        };
+        while let Some(value) = current {
+            let Value::Object(object) = value else {
+                return None;
+            };
+            let pointer = Arc::as_ptr(&object);
+            if visited.contains(&pointer) {
+                return None;
+            }
+            visited.push(pointer);
+            if let Some(member) = object.get(name) {
+                return Some(member);
+            }
+            current = object.prototype();
+        }
+        None
     }
 
     fn eval_call_args(&mut self, args: &[CallArg]) -> EvalResult<Vec<Value>> {
@@ -1236,7 +1293,7 @@ impl Engine {
         Ok(values)
     }
 
-    fn call_value(&mut self, value: Value, args: Vec<Value>) -> EvalResult<Value> {
+    pub(crate) fn call_value(&mut self, value: Value, args: Vec<Value>) -> EvalResult<Value> {
         let Value::Function(function) = value else {
             return Err(type_error(format!(
                 "{} value is not callable",
@@ -1252,7 +1309,7 @@ impl Engine {
         args: Vec<Value>,
     ) -> EvalResult<Value> {
         match &function.kind {
-            FunctionKind::Builtin(builtin) => self.call_builtin_function(*builtin, args),
+            FunctionKind::Native(native) => (native.function)(self, args),
             FunctionKind::User {
                 name,
                 params,
@@ -1284,305 +1341,54 @@ impl Engine {
         }
     }
 
-    fn call_builtin_function(
-        &mut self,
-        builtin: BuiltinFunction,
-        args: Vec<Value>,
-    ) -> EvalResult<Value> {
-        expect_arity(builtin.name(), &args, 1, 1)?;
-        let value = &args[0];
-        match builtin {
-            BuiltinFunction::String => {
-                scalar_to_string(value).map(|value| Value::String(value.into()))
-            }
-            BuiltinFunction::Int => convert_int(value).map(Value::Int),
-            BuiltinFunction::Float => convert_float(value).map(Value::Float),
-            BuiltinFunction::Bool => Ok(Value::Bool(value.truthy())),
-            BuiltinFunction::Error => scalar_to_string(value)
-                .map(|message| Value::Error(Arc::new(ErrorValue::new("user", message)))),
-            BuiltinFunction::Glob => {
-                let pattern = expect_string(value)?;
-                let matches = self
-                    .host
-                    .glob(pattern.as_bytes(), &self.context)
-                    .map_err(EngineError::from)?;
-                Ok(Value::Array(Arc::new(
-                    matches.into_iter().map(bytes_to_value).collect(),
-                )))
-            }
-        }
-    }
-
-    #[allow(clippy::too_many_lines)]
-    fn call_builtin_method(
-        &mut self,
-        receiver: Value,
-        name: &str,
-        args: Vec<Value>,
-    ) -> Option<EvalResult<Value>> {
-        let result = match receiver {
-            Value::String(value)
-                if matches!(
-                    name,
-                    "length"
-                        | "contains"
-                        | "includes"
-                        | "startsWith"
-                        | "endsWith"
-                        | "split"
-                        | "replace"
-                        | "replaceAll"
-                        | "trim"
-                        | "toUpperCase"
-                        | "toLowerCase"
-                        | "at"
-                ) =>
-            {
-                self.string_method(&value, name, args)
-            }
-            Value::Array(value)
-                if matches!(
-                    name,
-                    "length"
-                        | "at"
-                        | "contains"
-                        | "includes"
-                        | "map"
-                        | "filter"
-                        | "reduce"
-                        | "flat"
-                        | "join"
-                        | "slice"
-                ) =>
-            {
-                self.array_method(&value, name, args)
-            }
-            Value::Object(value) if matches!(name, "keys" | "entries") => {
-                self.object_method(&value, name, args)
-            }
-            _ => return None,
-        };
-        Some(result)
-    }
-
-    fn string_method(&mut self, value: &str, name: &str, args: Vec<Value>) -> EvalResult<Value> {
-        match name {
-            "length" => {
-                expect_arity(name, &args, 0, 0)?;
-                usize_value(value.chars().count())
-            }
-            "contains" | "includes" => {
-                expect_arity(name, &args, 1, 1)?;
-                Ok(Value::Bool(value.contains(expect_string(&args[0])?)))
-            }
-            "startsWith" => {
-                expect_arity(name, &args, 1, 1)?;
-                Ok(Value::Bool(value.starts_with(expect_string(&args[0])?)))
-            }
-            "endsWith" => {
-                expect_arity(name, &args, 1, 1)?;
-                Ok(Value::Bool(value.ends_with(expect_string(&args[0])?)))
-            }
-            "split" => {
-                expect_arity(name, &args, 1, 1)?;
-                let separator = expect_string(&args[0])?;
-                let parts = if separator.is_empty() {
-                    value.chars().map(|ch| ch.to_string()).collect::<Vec<_>>()
-                } else {
-                    value.split(separator).map(str::to_owned).collect()
-                };
-                Ok(Value::Array(Arc::new(
-                    parts
-                        .into_iter()
-                        .map(|part| Value::String(Arc::from(part)))
-                        .collect(),
-                )))
-            }
-            "replace" | "replaceAll" => {
-                expect_arity(name, &args, 2, 2)?;
-                let from = expect_string(&args[0])?;
-                let to = expect_string(&args[1])?;
-                let output = if name == "replace" {
-                    value.replacen(from, to, 1)
-                } else {
-                    value.replace(from, to)
-                };
-                Ok(Value::String(Arc::from(output)))
-            }
-            "trim" => {
-                expect_arity(name, &args, 0, 0)?;
-                Ok(Value::String(Arc::from(value.trim())))
-            }
-            "toUpperCase" => {
-                expect_arity(name, &args, 0, 0)?;
-                Ok(Value::String(Arc::from(value.to_uppercase())))
-            }
-            "toLowerCase" => {
-                expect_arity(name, &args, 0, 0)?;
-                Ok(Value::String(Arc::from(value.to_lowercase())))
-            }
-            "at" => {
-                expect_arity(name, &args, 1, 1)?;
-                let index = expect_int(&args[0])?;
-                Ok(string_at(value, index))
-            }
-            _ => Err(type_error(format!("string has no method `{name}`"))),
-        }
-    }
-
-    #[allow(clippy::too_many_lines)]
-    fn array_method(&mut self, value: &[Value], name: &str, args: Vec<Value>) -> EvalResult<Value> {
-        match name {
-            "length" => {
-                expect_arity(name, &args, 0, 0)?;
-                usize_value(value.len())
-            }
-            "at" => {
-                expect_arity(name, &args, 1, 1)?;
-                Ok(sequence_at(value, expect_int(&args[0])?)
-                    .cloned()
-                    .unwrap_or(Value::Null))
-            }
-            "contains" | "includes" => {
-                expect_arity(name, &args, 1, 1)?;
-                Ok(Value::Bool(value.contains(&args[0])))
-            }
-            "map" | "filter" => {
-                expect_arity(name, &args, 1, 1)?;
-                let function = args[0].clone();
-                let whole = Value::Array(Arc::new(value.to_vec()));
-                let mut output = Vec::new();
-                for (index, item) in value.iter().enumerate() {
-                    let mapped = self.call_value(
-                        function.clone(),
-                        vec![item.clone(), usize_value(index)?, whole.clone()],
-                    )?;
-                    if name == "map" {
-                        output.push(mapped);
-                    } else if mapped.truthy() {
-                        output.push(item.clone());
-                    }
-                }
-                Ok(Value::Array(Arc::new(output)))
-            }
-            "reduce" => {
-                expect_arity(name, &args, 1, 2)?;
-                let function = args[0].clone();
-                let (mut accumulator, start) = if let Some(initial) = args.get(1) {
-                    (initial.clone(), 0)
-                } else {
-                    let Some(first) = value.first() else {
-                        return Err(type_error(
-                            "reduce on an empty array requires an initial value",
-                        ));
-                    };
-                    (first.clone(), 1)
-                };
-                let whole = Value::Array(Arc::new(value.to_vec()));
-                for (index, item) in value.iter().enumerate().skip(start) {
-                    accumulator = self.call_value(
-                        function.clone(),
-                        vec![
-                            accumulator,
-                            item.clone(),
-                            usize_value(index)?,
-                            whole.clone(),
-                        ],
-                    )?;
-                }
-                Ok(accumulator)
-            }
-            "flat" => {
-                expect_arity(name, &args, 0, 1)?;
-                let depth = args.first().map_or(Ok(1), expect_int)?;
-                if depth < 0 {
-                    return Err(type_error("flat depth must be nonnegative"));
-                }
-                let mut output = Vec::new();
-                flatten(value, depth, &mut output);
-                Ok(Value::Array(Arc::new(output)))
-            }
-            "join" => {
-                expect_arity(name, &args, 0, 1)?;
-                let separator = args.first().map_or(Ok(","), expect_string)?;
-                let text = value
-                    .iter()
-                    .map(scalar_to_string)
-                    .collect::<EvalResult<Vec<_>>>()?
-                    .join(separator);
-                Ok(Value::String(Arc::from(text)))
-            }
-            "slice" => {
-                expect_arity(name, &args, 0, 2)?;
-                let len = i64::try_from(value.len())
-                    .map_err(|_| type_error("array is too large to index"))?;
-                let start = args.first().map_or(Ok(0), expect_int)?;
-                let end = args.get(1).map_or(Ok(len), expect_int)?;
-                let start = normalize_slice_index(start, len);
-                let end = normalize_slice_index(end, len).max(start);
-                Ok(Value::Array(Arc::new(
-                    value[start as usize..end as usize].to_vec(),
-                )))
-            }
-            _ => Err(type_error(format!("array has no method `{name}`"))),
-        }
-    }
-
-    fn object_method(
-        &self,
-        value: &ObjectValue,
-        name: &str,
-        args: Vec<Value>,
-    ) -> EvalResult<Value> {
-        expect_arity(name, &args, 0, 0)?;
-        match name {
-            "keys" => Ok(Value::Array(Arc::new(
-                value
-                    .iter()
-                    .map(|(key, _)| Value::String(Arc::clone(key)))
-                    .collect(),
-            ))),
-            "entries" => Ok(Value::Array(Arc::new(
-                value
-                    .iter()
-                    .map(|(key, value)| {
-                        Value::Array(Arc::new(vec![
-                            Value::String(Arc::clone(key)),
-                            value.clone(),
-                        ]))
-                    })
-                    .collect(),
-            ))),
-            _ => Err(type_error(format!("object has no method `{name}`"))),
-        }
-    }
-
     fn member_value(&self, value: &Value, name: &str) -> EvalResult<Value> {
         match value {
-            Value::Environment => Ok(self.environment_value(name)),
-            Value::Object(object) => Ok(object.get(name).cloned().unwrap_or(Value::Null)),
-            Value::Array(values) if name == "length" => usize_value(values.len()),
-            Value::String(value) if name == "length" => usize_value(value.chars().count()),
-            Value::Bytes(value) if name == "length" => usize_value(value.len()),
-            Value::Status(status) => match name {
-                "success" => Ok(Value::Bool(status.success())),
-                "code" => Ok(Value::Int(i64::from(status.code()))),
-                "outcomes" => Ok(status_outcomes_value(status)),
-                _ => Ok(Value::Null),
-            },
-            Value::Error(error) => match name {
-                "kind" => Ok(Value::String(Arc::from(error.kind()))),
-                "message" => Ok(Value::String(Arc::from(error.message()))),
-                "status" => Ok(error.status().map_or(Value::Null, |status| {
-                    Value::Status(Arc::new(status.clone()))
-                })),
-                _ => Ok(Value::Null),
-            },
-            _ => Err(type_error(format!(
-                "{} value has no member `{name}`",
-                value.type_name()
-            ))),
+            Value::Environment => return Ok(self.environment_value(name)),
+            Value::Object(object) => {
+                if let Some(member) = object.get(name) {
+                    return Ok(member);
+                }
+            }
+            Value::Function(function) => {
+                if let Some(member) = function.member(name) {
+                    return Ok(member);
+                }
+            }
+            _ => {}
         }
+        match value {
+            Value::Array(values) if name == "length" => return usize_value(values.len()),
+            Value::String(value) if name == "length" => {
+                return usize_value(value.chars().count());
+            }
+            Value::Bytes(value) if name == "length" => return usize_value(value.len()),
+            Value::Status(status) => {
+                return Ok(match name {
+                    "success" => Value::Bool(status.success()),
+                    "code" => Value::Int(i64::from(status.code())),
+                    "outcomes" => status_outcomes_value(status),
+                    _ => self
+                        .resolve_prototype_member(value, name)
+                        .unwrap_or(Value::Null),
+                });
+            }
+            Value::Error(error) => {
+                return Ok(match name {
+                    "kind" => Value::String(Arc::from(error.kind())),
+                    "message" => Value::String(Arc::from(error.message())),
+                    "status" => error.status().map_or(Value::Null, |status| {
+                        Value::Status(Arc::new(status.clone()))
+                    }),
+                    _ => self
+                        .resolve_prototype_member(value, name)
+                        .unwrap_or(Value::Null),
+                });
+            }
+            _ => {}
+        }
+        Ok(self
+            .resolve_prototype_member(value, name)
+            .unwrap_or(Value::Null))
     }
 
     fn index_value(&self, value: &Value, index: &Value) -> EvalResult<Value> {
@@ -1601,12 +1407,11 @@ impl Engine {
                 key.type_name()
             ))),
             (Value::Object(object), Value::String(key)) => {
-                Ok(object.get(key).cloned().unwrap_or(Value::Null))
+                Ok(object.get(key).unwrap_or(Value::Null))
             }
-            (Value::Object(object), Value::Int(index)) => Ok(object
-                .get(&index.to_string())
-                .cloned()
-                .unwrap_or(Value::Null)),
+            (Value::Object(object), Value::Int(index)) => {
+                Ok(object.get(&index.to_string()).unwrap_or(Value::Null))
+            }
             _ => Err(type_error(format!(
                 "cannot index {} with {}",
                 value.type_name(),
@@ -1718,7 +1523,7 @@ impl Engine {
         if name == "env" {
             Some(Value::Environment)
         } else {
-            self.resolve_lexical(name).or_else(|| builtin_value(name))
+            self.resolve_lexical(name)
         }
     }
 
@@ -1785,7 +1590,7 @@ impl Engine {
     }
 }
 
-fn plain_command_word(word: &CommandWord) -> Option<String> {
+pub(crate) fn plain_command_word(word: &CommandWord) -> Option<String> {
     let mut value = String::new();
     for part in &word.parts {
         let WordPart::Literal { value: part, .. } = part else {
@@ -1967,19 +1772,6 @@ fn status_outcomes_value(status: &StatusValue) -> Value {
     ))
 }
 
-fn builtin_value(name: &str) -> Option<Value> {
-    let builtin = match name {
-        "string" => BuiltinFunction::String,
-        "int" => BuiltinFunction::Int,
-        "float" => BuiltinFunction::Float,
-        "bool" => BuiltinFunction::Bool,
-        "error" => BuiltinFunction::Error,
-        "glob" => BuiltinFunction::Glob,
-        _ => return None,
-    };
-    Some(Value::Function(Arc::new(FunctionValue::builtin(builtin))))
-}
-
 fn reject_reserved_name(name: &str) -> EvalResult<()> {
     if name == "env" {
         Err(type_error("`env` is a reserved runtime namespace"))
@@ -2130,11 +1922,7 @@ fn collect_bindings(
                 return Err(type_error("object pattern requires an object"));
             };
             for (key, pattern) in entries {
-                collect_bindings(
-                    pattern,
-                    object.get(key).cloned().unwrap_or(Value::Null),
-                    output,
-                )?;
+                collect_bindings(pattern, object.get(key).unwrap_or(Value::Null), output)?;
             }
             if let Some(pattern) = rest {
                 let remainder = ObjectValue::from_entries(
@@ -2145,7 +1933,7 @@ fn collect_bindings(
                                 .iter()
                                 .any(|(used, _)| used.as_str() == key.as_ref())
                         })
-                        .map(|(key, value)| (Arc::clone(key), value.clone())),
+                        .map(|(key, value)| (key, value)),
                 );
                 collect_bindings(pattern, Value::Object(Arc::new(remainder)), output)?;
             }
@@ -2173,7 +1961,7 @@ fn append_glob_literal(output: &mut Vec<u8>, value: &[u8]) {
     }
 }
 
-fn bytes_to_value(bytes: Vec<u8>) -> Value {
+pub(crate) fn bytes_to_value(bytes: Vec<u8>) -> Value {
     match String::from_utf8(bytes) {
         Ok(text) => Value::String(Arc::from(text)),
         Err(error) => Value::Bytes(Arc::from(error.into_bytes())),
@@ -2199,7 +1987,7 @@ fn value_to_bytes(value: &Value) -> EvalResult<Vec<u8>> {
     }
 }
 
-fn scalar_to_string(value: &Value) -> EvalResult<String> {
+pub(crate) fn scalar_to_string(value: &Value) -> EvalResult<String> {
     match value {
         Value::Null => Ok("null".into()),
         Value::Bool(value) => Ok(value.to_string()),
@@ -2216,44 +2004,12 @@ fn scalar_to_string(value: &Value) -> EvalResult<String> {
     }
 }
 
-fn convert_int(value: &Value) -> EvalResult<i64> {
-    match value {
-        Value::Int(value) => Ok(*value),
-        Value::Bool(value) => Ok(i64::from(*value)),
-        Value::Float(value)
-            if value.is_finite()
-                && value.fract() == 0.0
-                && *value >= i64::MIN as f64
-                && *value < -(i64::MIN as f64) =>
-        {
-            Ok(*value as i64)
-        }
-        Value::String(value) => value
-            .parse()
-            .map_err(|_| type_error("string is not a base-10 integer")),
-        _ => Err(type_error(format!(
-            "cannot convert {} to int",
-            value.type_name()
-        ))),
-    }
-}
-
-fn convert_float(value: &Value) -> EvalResult<f64> {
-    match value {
-        Value::Float(value) => Ok(*value),
-        Value::Int(value) => Ok(*value as f64),
-        Value::Bool(value) => Ok(if *value { 1.0 } else { 0.0 }),
-        Value::String(value) => value
-            .parse()
-            .map_err(|_| type_error("string is not a float")),
-        _ => Err(type_error(format!(
-            "cannot convert {} to float",
-            value.type_name()
-        ))),
-    }
-}
-
-fn expect_arity(name: &str, args: &[Value], minimum: usize, maximum: usize) -> EvalResult<()> {
+pub(crate) fn expect_arity(
+    name: &str,
+    args: &[Value],
+    minimum: usize,
+    maximum: usize,
+) -> EvalResult<()> {
     if (minimum..=maximum).contains(&args.len()) {
         Ok(())
     } else if minimum == maximum {
@@ -2269,7 +2025,7 @@ fn expect_arity(name: &str, args: &[Value], minimum: usize, maximum: usize) -> E
     }
 }
 
-fn expect_string(value: &Value) -> EvalResult<&str> {
+pub(crate) fn expect_string(value: &Value) -> EvalResult<&str> {
     if let Value::String(value) = value {
         Ok(value)
     } else {
@@ -2280,7 +2036,7 @@ fn expect_string(value: &Value) -> EvalResult<&str> {
     }
 }
 
-fn expect_int(value: &Value) -> EvalResult<i64> {
+pub(crate) fn expect_int(value: &Value) -> EvalResult<i64> {
     if let Value::Int(value) = value {
         Ok(*value)
     } else {
@@ -2291,13 +2047,13 @@ fn expect_int(value: &Value) -> EvalResult<i64> {
     }
 }
 
-fn usize_value(value: usize) -> EvalResult<Value> {
+pub(crate) fn usize_value(value: usize) -> EvalResult<Value> {
     i64::try_from(value)
         .map(Value::Int)
         .map_err(|_| type_error("value is too large for an integer"))
 }
 
-fn sequence_at<T>(values: &[T], index: i64) -> Option<&T> {
+pub(crate) fn sequence_at<T>(values: &[T], index: i64) -> Option<&T> {
     let len = i64::try_from(values.len()).ok()?;
     let index = if index < 0 {
         len.checked_add(index)?
@@ -2309,22 +2065,14 @@ fn sequence_at<T>(values: &[T], index: i64) -> Option<&T> {
         .and_then(|index| values.get(index))
 }
 
-fn string_at(value: &str, index: i64) -> Value {
+pub(crate) fn string_at(value: &str, index: i64) -> Value {
     let characters = value.chars().collect::<Vec<_>>();
     sequence_at(&characters, index).map_or(Value::Null, |character| {
         Value::String(Arc::from(character.to_string()))
     })
 }
 
-fn normalize_slice_index(index: i64, len: i64) -> i64 {
-    if index < 0 {
-        len.saturating_add(index).max(0)
-    } else {
-        index.min(len)
-    }
-}
-
-fn flatten(values: &[Value], depth: i64, output: &mut Vec<Value>) {
+pub(crate) fn flatten(values: &[Value], depth: i64, output: &mut Vec<Value>) {
     for value in values {
         if depth > 0
             && let Value::Array(nested) = value
@@ -2343,6 +2091,6 @@ fn undefined(name: &str) -> Unwind {
     .into()
 }
 
-fn type_error(message: impl Into<String>) -> Unwind {
+pub(crate) fn type_error(message: impl Into<String>) -> Unwind {
     EngineError::Type(message.into()).into()
 }

@@ -113,13 +113,13 @@ pub fn value_materialized_items(value: &Value, limit: usize) -> Option<usize> {
             Value::Array(values) => {
                 add(total, values.len(), limit)?;
                 for value in values.iter() {
-                    measure_nested(value, total, limit)?;
+                    measure_nested(&value, total, limit)?;
                 }
             }
             Value::Object(object) => {
                 add(total, object.len(), limit)?;
                 for (_, value) in object.iter() {
-                    measure_nested(value, total, limit)?;
+                    measure_nested(&value, total, limit)?;
                 }
             }
             _ => {}
@@ -152,14 +152,14 @@ pub fn value_materialized_bytes(value: &Value, limit: usize) -> Option<usize> {
             Value::Bytes(value) => add(total, value.len(), limit),
             Value::Array(values) => {
                 for value in values.iter() {
-                    measure(value, total, limit)?;
+                    measure(&value, total, limit)?;
                 }
                 Some(())
             }
             Value::Object(object) => {
                 for (key, value) in object.iter() {
                     add(total, key.len(), limit)?;
-                    measure(value, total, limit)?;
+                    measure(&value, total, limit)?;
                 }
                 Some(())
             }

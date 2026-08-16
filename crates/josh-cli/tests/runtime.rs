@@ -242,7 +242,7 @@ fn integer_arithmetic_errors_are_structured() {
         "x = (-9223372036854775807 - 1)\n(-x)",
         "x = (-9223372036854775807 - 1)\n(x // -1)",
         "x = (-9223372036854775807 - 1)\n(x % -1)",
-        "int(9223372036854775808.0)",
+        "Number([])",
     ] {
         assert!(
             matches!(engine.run_source(source), Err(EngineError::Type(_))),
@@ -680,7 +680,7 @@ fn objects_spread_and_destructuring_preserve_value_order() {
         &mut engine,
         "base = {a: 1, b: 2}; merged = {z: 0, ...base, a: 9}; \
          let {a, ...rest} = merged; let [first, ...tail] = [4, 5, 6]; \
-         [a, rest.keys(), merged.keys(), merged.entries().length, first, tail]",
+         [a, Object.keys(rest), Object.keys(merged), Object.entries(merged).length, first, tail]",
     );
     assert_eq!(
         value,
@@ -757,8 +757,8 @@ fn common_methods_conversions_and_typeof_have_stable_nonmutating_results() {
           xs.map(x => x * 2).join(\",\"), xs.filter(x => x > 1).join(\",\"), \
           xs.reduce((sum, x) => sum + x, 0), [1, [2, [3]]].flat(2).join(\"-\"), \
           xs.slice(1, -1).join(\",\"), xs.includes(2), xs.join(\",\"), \
-          {b: 2, a: 1}.entries().length, {\"0\": \"zero\"}[0], xs[-1], \
-          typeof {a: 1}, string(2), int(\"3\"), float(2), bool(0)]",
+          Object.entries({b: 2, a: 1}).length, {\"0\": \"zero\"}[0], xs[-1], \
+          typeof {a: 1}, String(2), Number(\"3\"), Number(2.5), Boolean(0)]",
     );
     assert_eq!(
         value,
@@ -787,7 +787,7 @@ fn common_methods_conversions_and_typeof_have_stable_nonmutating_results() {
             string("object"),
             string("2"),
             Value::Int(3),
-            Value::Float(2.0),
+            Value::Float(2.5),
             Value::Bool(false),
         ]))
     );
@@ -868,7 +868,7 @@ fn json_boundaries_preserve_object_insertion_order() {
     assert_eq!(
         evaluated(
             &mut engine,
-            "value = $(printf '{\"z\":0,\"a\":1,\"m\":2}' | json); value.keys().join(\",\")",
+            "value = $(printf '{\"z\":0,\"a\":1,\"m\":2}' | json); Object.keys(value).join(\",\")",
         ),
         string("z,a,m")
     );
@@ -978,14 +978,14 @@ fn structured_functions_serialization_and_bounded_termination_cross_real_process
     assert_eq!(
         captured(
             &mut engine,
-            "printf '1\\n2\\n3\\n' | lines | map (x => int(x) * 2) | filter (x => x > 2) | take 2"
+            "printf '1\\n2\\n3\\n' | lines | map (x => Number(x) * 2) | filter (x => x > 2) | take 2"
         ),
         Value::Array(Arc::new(vec![Value::Int(4), Value::Int(6)]))
     );
     assert_eq!(
         captured(
             &mut engine,
-            "printf 'a\\n2\\n' | lines | map (x => x === \"a\" ? x : int(x)) | cat"
+            "printf 'a\\n2\\n' | lines | map (x => x === \"a\" ? x : Number(x)) | cat"
         ),
         string("a\n2")
     );

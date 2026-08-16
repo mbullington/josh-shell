@@ -4,6 +4,7 @@ mod context;
 mod engine;
 mod host;
 mod materialize;
+mod natives;
 mod value;
 
 pub use context::{ShellContext, ShellContextError, ShellSnapshot};

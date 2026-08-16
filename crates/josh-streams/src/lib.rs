@@ -1201,9 +1201,9 @@ fn write_json_value(output: &mut BoundedBytes, value: &Value) -> Result<(), Work
                 if index > 0 {
                     output.extend_from_slice(b",")?;
                 }
-                write_json_string(output, key)?;
+                write_json_string(output, &key)?;
                 output.extend_from_slice(b":")?;
-                write_json_value(output, value)?;
+                write_json_value(output, &value)?;
             }
             output.extend_from_slice(b"}")?;
         }
@@ -1294,7 +1294,7 @@ fn from_json(value: JsonValue) -> Result<Value, String> {
             Ok(Value::Array(Arc::new(converted)))
         }
         JsonValue::Object(entries) => {
-            let mut converted = ObjectValue::new();
+            let converted = ObjectValue::new();
             for (key, value) in entries {
                 converted
                     .try_insert(Arc::from(key), from_json(value)?)
