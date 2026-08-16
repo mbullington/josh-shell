@@ -371,20 +371,6 @@ impl Engine {
                 Ok(function)
             }
             Statement::Expr(expr) => self.eval_expr(expr),
-            Statement::If {
-                condition,
-                then_block,
-                else_block,
-                ..
-            } => {
-                if self.eval_condition(condition)? {
-                    self.eval_block(then_block)
-                } else if let Some(block) = else_block {
-                    self.eval_block(block)
-                } else {
-                    Ok(Value::Null)
-                }
-            }
             Statement::While {
                 condition, body, ..
             } => {
@@ -411,20 +397,6 @@ impl Engine {
                 }
                 Ok(last)
             }
-            Statement::Try {
-                body,
-                catch_pattern,
-                catch_body,
-                ..
-            } => match self.eval_block(body) {
-                Ok(value) => Ok(value),
-                Err(Unwind::Throw(value)) => self.eval_catch(catch_pattern, catch_body, value),
-                Err(Unwind::Error(error)) => {
-                    let value = error.into_value();
-                    self.eval_catch(catch_pattern, catch_body, value)
-                }
-                Err(unwind) => Err(unwind),
-            },
             Statement::Throw { value, .. } => Err(Unwind::Throw(self.eval_expr(value)?)),
             Statement::Return { value, .. } => Err(Unwind::Return(
                 value
@@ -1128,6 +1100,34 @@ impl Engine {
                     Ok(completion.value)
                 }
             }
+            Expr::If {
+                condition,
+                then_block,
+                else_block,
+                ..
+            } => {
+                if self.eval_condition(condition)? {
+                    self.eval_block(then_block)
+                } else if let Some(block) = else_block {
+                    self.eval_block(block)
+                } else {
+                    Ok(Value::Null)
+                }
+            }
+            Expr::Try {
+                body,
+                catch_pattern,
+                catch_body,
+                ..
+            } => match self.eval_block(body) {
+                Ok(value) => Ok(value),
+                Err(Unwind::Throw(value)) => self.eval_catch(catch_pattern, catch_body, value),
+                Err(Unwind::Error(error)) => {
+                    let value = error.into_value();
+                    self.eval_catch(catch_pattern, catch_body, value)
+                }
+                Err(unwind) => Err(unwind),
+            },
             Expr::Missing(_) | Expr::Error(_) => {
                 Err(type_error("cannot evaluate a recovered expression"))
             }

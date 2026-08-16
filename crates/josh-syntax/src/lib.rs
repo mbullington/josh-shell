@@ -230,12 +230,6 @@ pub enum Statement {
         span: Span,
     },
     Expr(Expr),
-    If {
-        condition: IfCondition,
-        then_block: Program,
-        else_block: Option<Program>,
-        span: Span,
-    },
     While {
         condition: IfCondition,
         body: Program,
@@ -243,12 +237,6 @@ pub enum Statement {
     },
     Loop {
         body: Program,
-        span: Span,
-    },
-    Try {
-        body: Program,
-        catch_pattern: BindingPattern,
-        catch_body: Program,
         span: Span,
     },
     Throw {
@@ -284,10 +272,8 @@ impl Statement {
             | Self::EnvironmentAssignment { span, .. }
             | Self::Let { span, .. }
             | Self::Function { span, .. }
-            | Self::If { span, .. }
             | Self::While { span, .. }
             | Self::Loop { span, .. }
-            | Self::Try { span, .. }
             | Self::Throw { span, .. }
             | Self::Return { span, .. }
             | Self::Break { span }
@@ -353,7 +339,7 @@ impl BindingPattern {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum IfCondition {
-    Expr(Expr),
+    Expr(Box<Expr>),
     Command(Pipeline),
 }
 
@@ -484,6 +470,18 @@ pub enum Expr {
         else_expr: Box<Expr>,
         span: Span,
     },
+    If {
+        condition: IfCondition,
+        then_block: Program,
+        else_block: Option<Program>,
+        span: Span,
+    },
+    Try {
+        body: Program,
+        catch_pattern: BindingPattern,
+        catch_body: Program,
+        span: Span,
+    },
     Capture {
         pipeline: Box<Pipeline>,
         span: Span,
@@ -506,6 +504,7 @@ impl Expr {
             | Self::Object(_, x)
             | Self::Missing(x)
             | Self::Error(x) => *x,
+            Self::If { span, .. } | Self::Try { span, .. } => *span,
             Self::Unary { span, .. }
             | Self::Binary { span, .. }
             | Self::Call { span, .. }
@@ -694,10 +693,10 @@ impl Parser {
         match self.peek_tag() {
             Some(TokenTag::Let) => return self.parse_let(),
             Some(TokenTag::Fn) => return self.parse_function(),
-            Some(TokenTag::If) => return self.parse_if(),
+            Some(TokenTag::If) => return Statement::Expr(self.parse_if_expression()),
             Some(TokenTag::While) => return self.parse_while(),
             Some(TokenTag::Loop) => return self.parse_loop(),
-            Some(TokenTag::Try) => return self.parse_try(),
+            Some(TokenTag::Try) => return Statement::Expr(self.parse_try_expression()),
             Some(TokenTag::Throw) => return self.parse_throw(),
             Some(TokenTag::Return) => return self.parse_return(),
             Some(TokenTag::Break) => {
@@ -1115,7 +1114,7 @@ impl Parser {
         params
     }
 
-    fn parse_if(&mut self) -> Statement {
+    fn parse_if_expression(&mut self) -> Expr {
         let start = self.bump_span(LexMode::Expression).start;
         let condition = self.parse_condition();
         let (then_block, mut end) = self.parse_required_block("if");
@@ -1124,11 +1123,11 @@ impl Parser {
             self.bump_mode(LexMode::Expression);
             self.skip_trivia_mode(LexMode::Expression);
             if self.at(TokenTag::If) {
-                let nested = self.parse_if();
+                let nested = self.parse_if_expression();
                 end = nested.span().end;
                 Some(Program {
                     span: nested.span(),
-                    statements: vec![nested],
+                    statements: vec![Statement::Expr(nested)],
                 })
             } else {
                 let (block, block_end) = self.parse_required_block("else");
@@ -1138,7 +1137,7 @@ impl Parser {
         } else {
             None
         };
-        Statement::If {
+        Expr::If {
             condition,
             then_block,
             else_block,
@@ -1164,7 +1163,7 @@ impl Parser {
             let expr = self.parse_expr(0);
             self.skip_trivia_mode(LexMode::Expression);
             self.expect_closer(TokenTag::RightParen, ")", LexMode::Expression);
-            IfCondition::Expr(expr)
+            IfCondition::Expr(Box::new(expr))
         } else {
             IfCondition::Command(self.parse_pipeline(&[TokenTag::LeftBrace]))
         }
@@ -1179,7 +1178,7 @@ impl Parser {
         }
     }
 
-    fn parse_try(&mut self) -> Statement {
+    fn parse_try_expression(&mut self) -> Expr {
         let start = self.bump_span(LexMode::Expression).start;
         let (body, _) = self.parse_required_block("try");
         self.skip_separators();
@@ -1204,7 +1203,7 @@ impl Parser {
             self.expect_closer(TokenTag::RightParen, ")", LexMode::Expression);
         }
         let (catch_body, end) = self.parse_required_block("catch");
-        Statement::Try {
+        Expr::Try {
             body,
             catch_pattern,
             catch_body,
@@ -2023,6 +2022,8 @@ impl Parser {
                     span: Span::new(token.span.start, end),
                 }
             }
+            TokenKind::If => self.parse_if_expression(),
+            TokenKind::Try => self.parse_try_expression(),
             TokenKind::Unsupported("equality operator `==`") => {
                 self.bump_mode(LexMode::Expression);
                 let mut d =
@@ -2933,6 +2934,30 @@ fn offset_expr(expr: &mut Expr, offset: usize) {
             offset_span(span, offset);
             offset_pipeline(pipeline, offset);
         }
+        Expr::If {
+            condition,
+            then_block,
+            else_block,
+            span,
+        } => {
+            offset_span(span, offset);
+            offset_condition(condition, offset);
+            offset_program(then_block, offset);
+            if let Some(block) = else_block {
+                offset_program(block, offset);
+            }
+        }
+        Expr::Try {
+            body,
+            catch_pattern,
+            catch_body,
+            span,
+        } => {
+            offset_span(span, offset);
+            offset_program(body, offset);
+            offset_pattern(catch_pattern, offset);
+            offset_program(catch_body, offset);
+        }
     }
 }
 
@@ -3024,19 +3049,6 @@ fn offset_program(program: &mut Program, offset: usize) {
                 offset_program(body, offset);
             }
             Statement::Expr(expr) => offset_expr(expr, offset),
-            Statement::If {
-                condition,
-                then_block,
-                else_block,
-                span,
-            } => {
-                offset_span(span, offset);
-                offset_condition(condition, offset);
-                offset_program(then_block, offset);
-                if let Some(block) = else_block {
-                    offset_program(block, offset);
-                }
-            }
             Statement::While {
                 condition,
                 body,
@@ -3049,17 +3061,6 @@ fn offset_program(program: &mut Program, offset: usize) {
             Statement::Loop { body, span } => {
                 offset_span(span, offset);
                 offset_program(body, offset);
-            }
-            Statement::Try {
-                body,
-                catch_pattern,
-                catch_body,
-                span,
-            } => {
-                offset_span(span, offset);
-                offset_program(body, offset);
-                offset_pattern(catch_pattern, offset);
-                offset_program(catch_body, offset);
             }
             Statement::Throw { value, span } => {
                 offset_span(span, offset);

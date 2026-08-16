@@ -85,30 +85,30 @@ fn ambiguity_corpus_has_stable_statement_shapes() {
 fn if_condition_variants_are_explicit() {
     assert!(matches!(
         one("if (n > 3) { printf yes }"),
-        Statement::If {
+        Statement::Expr(Expr::If {
             condition: IfCondition::Expr(_),
             ..
-        }
+        })
     ));
     assert!(matches!(
         one("if grep -q foo file { printf yes }"),
-        Statement::If {
+        Statement::Expr(Expr::If {
             condition: IfCondition::Command(_),
             ..
-        }
+        })
     ));
-    let Statement::If {
+    let Statement::Expr(Expr::If {
         condition: IfCondition::Command(command),
         ..
-    } = one("if printf '{' { printf yes }")
+    }) = one("if printf '{' { printf yes }")
     else {
         panic!("expected command condition")
     };
     assert_eq!(command.stages[0].words.len(), 2);
-    let Statement::If {
+    let Statement::Expr(Expr::If {
         condition: IfCondition::Command(command),
         ..
-    } = one(r"if printf \{ { printf yes }")
+    }) = one(r"if printf \{ { printf yes }")
     else {
         panic!("expected command condition")
     };
@@ -185,10 +185,10 @@ fn double_quote_interpolations_remain_semantic_parts() {
 
 #[test]
 fn multiline_command_forms_make_progress_and_preserve_pipelines() {
-    let Statement::If {
+    let Statement::Expr(Expr::If {
         condition: IfCondition::Command(condition),
         ..
-    } = one("if true\n{ printf yes }")
+    }) = one("if true\n{ printf yes }")
     else {
         panic!("expected command condition")
     };
