@@ -6,6 +6,10 @@ use std::{
     sync::{Arc, atomic::AtomicBool},
 };
 
+use crate::{
+    MAX_MATERIALIZED_BYTES, MAX_MATERIALIZED_ITEMS, MaterializationLimit, materialization_limit,
+    value_materialized_bytes, value_materialized_items,
+};
 use josh_syntax::{
     ArrayElement, AssignOp, BinaryOp, BindingPattern, CallArg, ChainOp, CommandWord, Diagnostic,
     EnvironmentTarget, Expr, ExternalCommand, FunctionBody, IfCondition, ObjectEntry, Pipeline,
@@ -187,6 +191,7 @@ impl Engine {
     }
 
     pub fn run_source(&mut self, source: impl Into<Arc<str>>) -> Result<RunResult, EngineError> {
+        let source = source.into();
         let parsed = parse(source);
         let program = parsed
             .strict_program()
@@ -448,10 +453,24 @@ impl Engine {
                 pipeline
                     .stages
                     .iter()
-                    .map(|stage| self.structural_stream_shape(stage)),
+                    .enumerate()
+                    .map(|(index, stage)| self.structural_stream_shape(index, stage)),
             )?;
         }
         if let [stage] = pipeline.stages.as_slice() {
+            // `$((5))` and `$([1, 2])`: a single-stage pipeline whose word is a
+            // parenthesized expression evaluates as a value source, not a command.
+            if stage.words.len() == 1
+                && stage.redirections.is_empty()
+                && let Some(value) = self.eval_standalone_word(&stage.words[0])?
+                && !matches!(value, Value::Function(_))
+            {
+                return Ok(Completion::success(if capture {
+                    value
+                } else {
+                    Value::Null
+                }));
+            }
             let command = self.eval_command(stage)?;
             return self.run_standalone(command, capture);
         }
@@ -486,7 +505,7 @@ impl Engine {
         Self::complete_execution(result)
     }
 
-    fn structural_stream_shape(&self, stage: &ExternalCommand) -> StreamShape {
+    fn structural_stream_shape(&self, index: usize, stage: &ExternalCommand) -> StreamShape {
         if matches!(
             stage.words.as_slice(),
             [CommandWord {
@@ -494,7 +513,13 @@ impl Engine {
                 ..
             }] if matches!(parts.as_slice(), [WordPart::Evaluated { .. }])
         ) {
-            return StreamShape::Function;
+            // A single evaluated word at stage 0 is a value source
+            // (`[1, 2, 3] | ...`); elsewhere it is a closure stage.
+            return if index == 0 {
+                StreamShape::Source
+            } else {
+                StreamShape::Function
+            };
         }
         let name = stage.words.first().and_then(plain_command_word);
         match name.as_deref() {
@@ -523,12 +548,13 @@ impl Engine {
                     "pipeline stage {index} redirections require an external command"
                 )));
             }
-            let Value::Function(function) = value else {
-                return Err(type_error(format!(
+            return match value {
+                Value::Function(function) => Ok(StreamStage::Function(function)),
+                value if index == 0 => self.source_stream_stage(value),
+                _ => Err(type_error(format!(
                     "pipeline stage {index} expression must evaluate to a function"
-                )));
+                ))),
             };
-            return Ok(StreamStage::Function(function));
         }
 
         let name = stage.words.first().and_then(plain_command_word);
@@ -647,6 +673,45 @@ impl Engine {
                 Ok(StreamStage::External(command))
             }
         }
+    }
+
+    fn source_stream_stage(&mut self, value: Value) -> EvalResult<StreamStage> {
+        let scalar = !matches!(value, Value::Array(_) | Value::Object(_));
+        let values: Vec<Value> = match value {
+            Value::Array(values) => values.as_ref().clone(),
+            Value::Object(object) => object
+                .iter()
+                .map(|(key, value)| {
+                    Value::Array(Arc::new(vec![
+                        Value::String(Arc::clone(key)),
+                        value.clone(),
+                    ]))
+                })
+                .collect(),
+            value => vec![value],
+        };
+        let mut items = 0_usize;
+        let mut bytes = 0_usize;
+        for value in &values {
+            let Some(count) = value_materialized_items(value, MAX_MATERIALIZED_ITEMS - items)
+            else {
+                return Err(EngineError::Process(materialization_limit(
+                    "pipeline source",
+                    MaterializationLimit::Items(MAX_MATERIALIZED_ITEMS),
+                ))
+                .into());
+            };
+            items += count;
+            let Some(size) = value_materialized_bytes(value, MAX_MATERIALIZED_BYTES - bytes) else {
+                return Err(EngineError::Process(materialization_limit(
+                    "pipeline source",
+                    MaterializationLimit::Bytes(MAX_MATERIALIZED_BYTES),
+                ))
+                .into());
+            };
+            bytes += size;
+        }
+        Ok(StreamStage::Source { values, scalar })
     }
 
     fn eval_standalone_word(&mut self, word: &CommandWord) -> EvalResult<Option<Value>> {
@@ -1767,6 +1832,7 @@ fn expect_stream_arity(
 #[derive(Clone, Copy)]
 enum StreamShape {
     External,
+    Source,
     Text,
     BytesToValues,
     Function,
@@ -1776,6 +1842,7 @@ enum StreamShape {
 fn stream_shape(stage: &StreamStage) -> StreamShape {
     match stage {
         StreamStage::External(_) => StreamShape::External,
+        StreamStage::Source { .. } => StreamShape::Source,
         StreamStage::Text => StreamShape::Text,
         StreamStage::Json
         | StreamStage::Lines
@@ -1794,6 +1861,14 @@ fn validate_stream_shapes(shapes: impl IntoIterator<Item = StreamShape>) -> Eval
     for (index, shape) in shapes.into_iter().enumerate() {
         port = Some(match shape {
             StreamShape::External => StreamPort::Bytes,
+            StreamShape::Source => match port {
+                None => StreamPort::Values,
+                Some(_) => {
+                    return Err(type_error(format!(
+                        "pipeline stage {index} source must be the first pipeline stage"
+                    )));
+                }
+            },
             StreamShape::Text => match port {
                 Some(StreamPort::Bytes) => StreamPort::Values,
                 Some(StreamPort::Values) => StreamPort::Bytes,

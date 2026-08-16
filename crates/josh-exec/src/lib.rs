@@ -109,6 +109,9 @@ impl ExecutionHost for ProcessHost {
                             command.redirections,
                         )
                     }
+                    StreamStage::Source { values, scalar } => {
+                        PreflightStage::Ready(PlannedStage::Source { values, scalar })
+                    }
                     StreamStage::Text => PreflightStage::Ready(PlannedStage::Text),
                     StreamStage::Json => PreflightStage::Ready(PlannedStage::Json),
                     StreamStage::Lines => PreflightStage::Ready(PlannedStage::Lines),

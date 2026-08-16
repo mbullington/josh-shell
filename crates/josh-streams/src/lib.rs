@@ -61,6 +61,7 @@ pub enum PlannedRedirection {
 #[derive(Debug, Clone)]
 pub enum PlannedStage {
     External(PlannedExternal),
+    Source { values: Vec<Value>, scalar: bool },
     Text,
     Json,
     Lines,
@@ -160,6 +161,7 @@ enum Cardinality {
 #[derive(Debug)]
 enum Stage {
     External(PlannedExternal),
+    Source(Vec<Value>),
     BytesToText,
     ValuesToText,
     Json,
@@ -398,10 +400,23 @@ fn run_with_materialization_limits(
         if matches!(stage, Stage::External(_)) {
             continue;
         }
-        let input = inputs[index].take().expect("in-shell stages require input");
         let output = outputs[index].take().expect("every stage has an output");
         let cancellation = cancellation.clone();
         let early = Arc::clone(&early);
+        if let Stage::Source(values) = stage {
+            workers.push(thread::spawn(move || {
+                let result = run_source_worker(values, output, &cancellation, &early);
+                if result.is_err() {
+                    cancellation.cancel();
+                }
+                WorkerReport {
+                    stage: index,
+                    result,
+                }
+            }));
+            continue;
+        }
+        let input = inputs[index].take().expect("in-shell stages require input");
         let run_function = Arc::clone(&run_function);
         workers.push(thread::spawn(move || {
             let result = run_worker(
@@ -561,6 +576,18 @@ fn resolve(
     for (index, stage) in stages.into_iter().enumerate() {
         let (stage, output) = match stage {
             PlannedStage::External(command) => (Stage::External(command), Port::Bytes),
+            PlannedStage::Source { values, scalar } => {
+                if port.is_some() {
+                    return Err(transition_error(
+                        index,
+                        "source must be the first pipeline stage",
+                    ));
+                }
+                if scalar {
+                    cardinality = Cardinality::One;
+                }
+                (Stage::Source(values), Port::Values)
+            }
             PlannedStage::Text => match port {
                 Some(Port::Bytes) => {
                     cardinality = Cardinality::One;
@@ -732,6 +759,25 @@ fn capture_terminal_values(
         values.push(value.value.clone())?;
     }
     Ok(values.into_values())
+}
+
+fn run_source_worker(
+    values: Vec<Value>,
+    output: Output,
+    cancellation: &CancellationToken,
+    early: &AtomicBool,
+) -> Result<(), WorkerError> {
+    let Output::Values(output) = output else {
+        return Err(WorkerError::Message(
+            "pipeline source requires a value output".into(),
+        ));
+    };
+    for value in values {
+        if cancellation.is_cancelled() || !send_value(&output, value, cancellation, early) {
+            break;
+        }
+    }
+    Ok(())
 }
 
 fn run_worker(

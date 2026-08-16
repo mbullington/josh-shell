@@ -616,6 +616,7 @@ struct Parser {
     tokens: Vec<Token>,
     pos: usize,
     diagnostics: Vec<Diagnostic>,
+    expression_newlines: u64,
 }
 
 impl Parser {
@@ -626,6 +627,7 @@ impl Parser {
             tokens,
             pos: 0,
             diagnostics,
+            expression_newlines: 0,
         }
     }
 
@@ -730,12 +732,72 @@ impl Parser {
         if self.is_environment_assignment_head() {
             return self.parse_environment_assignment();
         }
+        if matches!(
+            self.peek_tag(),
+            Some(TokenTag::LeftParen | TokenTag::LeftBracket)
+        ) && let Some(statement) = self.parse_value_pipeline_probe()
+        {
+            return statement;
+        }
         if self.is_expression_head()
             || (style == BlockStyle::Value && self.is_value_expression_head())
         {
             return Statement::Expr(self.parse_expr(0));
         }
         self.parse_command_chain()
+    }
+
+    /// `[1, 2, 3] | x => x * 2` and `([1, 2, 3]) | take 1` at statement level:
+    /// a parenthesized or array expression piped into more stages. Returns
+    /// `None` (restoring completely) when no pipe follows the expression.
+    fn parse_value_pipeline_probe(&mut self) -> Option<Statement> {
+        let checkpoint = self.pos;
+        let diagnostics = self.diagnostics.len();
+        let expr = self.parse_expr(0);
+        self.skip_trivia_mode(LexMode::Command);
+        if !self.at(TokenTag::Pipe) {
+            self.pos = checkpoint;
+            self.diagnostics.truncate(diagnostics);
+            return None;
+        }
+        Some(Statement::Command(self.parse_value_pipeline_tail(expr)))
+    }
+
+    /// After a source expression followed by `|`, parses the remaining
+    /// stages and returns the whole pipeline (source at stage 0).
+    fn parse_value_pipeline_tail(&mut self, source: Expr) -> Pipeline {
+        let start = source.span().start;
+        let mut stages = vec![source_stage(source)];
+        while self.at(TokenTag::Pipe) {
+            self.bump_mode(LexMode::Command);
+            self.skip_trivia_mode(LexMode::Command);
+            while self.at(TokenTag::Newline) {
+                self.bump_mode(LexMode::Command);
+                self.skip_trivia_mode(LexMode::Command);
+            }
+            if self.at_end() {
+                self.diagnostics.push(Diagnostic::eof(
+                    "P130",
+                    "pipeline cannot end with `|`",
+                    self.source.len(),
+                    &["command"],
+                ));
+                break;
+            }
+            stages.push(self.parse_command(&[
+                TokenTag::AndAnd,
+                TokenTag::OrOr,
+                TokenTag::Newline,
+                TokenTag::Semicolon,
+                TokenTag::RightBrace,
+            ]));
+            self.skip_trivia_mode(LexMode::Command);
+        }
+        let end = stages.last().map_or(start, |stage| stage.span.end);
+        Pipeline {
+            stages,
+            span: Span::new(start, end),
+        }
     }
 
     /// In value-context blocks (expression `if`/`try` bodies, arrow bodies),
@@ -1075,6 +1137,24 @@ impl Parser {
             }
         };
         let value = self.parse_expr(0);
+        // `v = [1, 2, 3] | x => x * 2`: a pipeline after a plain `=`
+        // assigns the captured result.
+        let value = if matches!(op, AssignOp::Assign) {
+            self.skip_trivia_mode(LexMode::Command);
+            if self.at(TokenTag::Pipe) {
+                let source_start = value.span().start;
+                let pipeline = self.parse_value_pipeline_tail(value);
+                let end = pipeline.span.end;
+                Expr::Capture {
+                    pipeline: Box::new(pipeline),
+                    span: Span::new(source_start, end),
+                }
+            } else {
+                value
+            }
+        } else {
+            value
+        };
         Statement::Assignment {
             name,
             op,
@@ -1357,7 +1437,13 @@ impl Parser {
                 diagnosed_empty_stage = true;
                 continue;
             }
-            stages.push(self.parse_command(stops));
+            let stage = if stages.is_empty() {
+                self.parse_source_stage_probe()
+                    .unwrap_or_else(|| self.parse_command(stops))
+            } else {
+                self.parse_command(stops)
+            };
+            stages.push(stage);
             self.skip_trivia_mode(LexMode::Command);
             if !self.at(TokenTag::Pipe) {
                 break;
@@ -1399,6 +1485,25 @@ impl Parser {
             stages,
             span: Span::new(start, end),
         }
+    }
+
+    /// `$([1, 2, 3] | map (x => x + 1))`: an array expression as the first
+    /// stage of a captured pipeline. Returns `None` (restoring completely)
+    /// when no pipe follows the expression.
+    fn parse_source_stage_probe(&mut self) -> Option<ExternalCommand> {
+        if self.peek_tag() != Some(TokenTag::LeftBracket) {
+            return None;
+        }
+        let checkpoint = self.pos;
+        let diagnostics = self.diagnostics.len();
+        let expr = self.parse_expr(0);
+        self.skip_trivia_mode(LexMode::Command);
+        if !self.at(TokenTag::Pipe) {
+            self.pos = checkpoint;
+            self.diagnostics.truncate(diagnostics);
+            return None;
+        }
+        Some(source_stage(expr))
     }
 
     fn parse_command(&mut self, stops: &[TokenTag]) -> ExternalCommand {
@@ -1462,6 +1567,22 @@ impl Parser {
                 break;
             }
             if (had_space || words.is_empty()) && self.at(TokenTag::LeftParen) {
+                let token_start = self.pos;
+                if self.is_parenthesized_arrow() {
+                    let expr = self.parse_expr(0);
+                    let span = expr.span();
+                    words.push(CommandWord {
+                        span,
+                        parts: vec![WordPart::Evaluated {
+                            expr: Box::new(expr),
+                            span,
+                        }],
+                    });
+                    if self.crossed_newline(token_start) {
+                        break;
+                    }
+                    continue;
+                }
                 let open = self.bump_span(LexMode::Expression);
                 let expr = self.parse_expr(0);
                 self.skip_trivia_mode(LexMode::Expression);
@@ -1473,6 +1594,29 @@ impl Parser {
                         span: Span::new(open.start, end),
                     }],
                 });
+                if self.crossed_newline(token_start) {
+                    break;
+                }
+                continue;
+            }
+            if (had_space || words.is_empty())
+                && self.at(TokenTag::Identifier)
+                && self.nth_significant_tag(1) == Some(TokenTag::Arrow)
+            {
+                // `| x => x * 2`: an unparenthesized closure stage.
+                let token_start = self.pos;
+                let expr = self.parse_expr(0);
+                let span = expr.span();
+                words.push(CommandWord {
+                    span,
+                    parts: vec![WordPart::Evaluated {
+                        expr: Box::new(expr),
+                        span,
+                    }],
+                });
+                if self.crossed_newline(token_start) {
+                    break;
+                }
                 continue;
             }
             let before = self.pos;
@@ -1498,6 +1642,15 @@ impl Parser {
             redirections,
             span: Span::new(start, end),
         }
+    }
+
+    // Command words never span a newline: expression parsing consumes
+    // newlines as trivia while looking for more operators, so an evaluated
+    // word that crossed one has overrun the end of this command.
+    fn crossed_newline(&self, token_start: usize) -> bool {
+        self.tokens[token_start..self.pos]
+            .iter()
+            .any(|token| token.kind == TokenKind::Newline)
     }
 
     fn at_redirection(&self) -> bool {
@@ -1822,10 +1975,16 @@ impl Parser {
 
     fn parse_expr(&mut self, min_bp: u8) -> Expr {
         self.skip_trivia_mode(LexMode::Expression);
+        let newline_mark = self.expression_newlines;
         let mut lhs = self.parse_prefix();
         loop {
             let had_trivia = self.skip_trivia_mode(LexMode::Expression);
-            if self.at(TokenTag::LeftParen) && !had_trivia {
+            // An adjacent `(` continues an expression into a call only when
+            // it is truly adjacent: nothing, including a newline swallowed
+            // as expression trivia at any nested precedence level, may
+            // separate them.
+            let adjacent = !had_trivia && self.expression_newlines == newline_mark;
+            if self.at(TokenTag::LeftParen) && adjacent {
                 let start = lhs.span().start;
                 self.bump_mode(LexMode::Expression);
                 let mut args = Vec::new();
@@ -2325,6 +2484,9 @@ impl Parser {
     fn skip_trivia_mode(&mut self, mode: LexMode) -> bool {
         let mut any = false;
         while self.is_trivia() || (mode == LexMode::Expression && self.at(TokenTag::Newline)) {
+            if self.at(TokenTag::Newline) {
+                self.expression_newlines += 1;
+            }
             any = true;
             self.bump_mode(mode);
         }
@@ -2534,6 +2696,22 @@ fn tag(kind: &TokenKind) -> TokenTag {
         TokenKind::CaptureStart => TokenTag::CaptureStart,
         TokenKind::Unsupported(_) | TokenKind::InterpolationStart => TokenTag::Unsupported,
         TokenKind::Unknown => TokenTag::Unknown,
+    }
+}
+
+/// Wraps an expression as the synthetic first command of a value pipeline.
+fn source_stage(expr: Expr) -> ExternalCommand {
+    let span = expr.span();
+    ExternalCommand {
+        words: vec![CommandWord {
+            span,
+            parts: vec![WordPart::Evaluated {
+                expr: Box::new(expr),
+                span,
+            }],
+        }],
+        redirections: Vec::new(),
+        span,
     }
 }
 

@@ -275,6 +275,70 @@ fn string(value: &str) -> Value {
     Value::String(Arc::from(value))
 }
 
+#[test]
+fn value_pipelines_stream_expressions_through_closure_stages() {
+    let mut engine = Engine::new(ProcessHost::default());
+    assert_eq!(
+        evaluated(&mut engine, "v = [1, 2, 3] | x => x * 2\n(v)"),
+        Value::Array(Arc::new(vec![Value::Int(2), Value::Int(4), Value::Int(6)]))
+    );
+    assert_eq!(
+        evaluated(&mut engine, "v = 5 | x => x * 2\n(v)"),
+        Value::Int(10)
+    );
+    assert_eq!(
+        evaluated(&mut engine, "v = $([1, 2, 3] | x => x + 1)\n(v)"),
+        Value::Array(Arc::new(vec![Value::Int(2), Value::Int(3), Value::Int(4)]))
+    );
+    assert_eq!(
+        evaluated(&mut engine, "v = [10, 20] | x => x * 3 | take 1\n(v)"),
+        Value::Array(Arc::new(vec![Value::Int(30)]))
+    );
+    assert_eq!(
+        evaluated(&mut engine, "v = [1, 4] | x => x * 2 | x => x + 1\n(v)"),
+        Value::Array(Arc::new(vec![Value::Int(3), Value::Int(9)]))
+    );
+    assert_eq!(evaluated(&mut engine, "v = $((5))\n(v)"), Value::Int(5));
+    // A bare statement pipeline also leaves its value for the REPL to print.
+    assert_eq!(
+        evaluated(&mut engine, "[1, 2, 3] | x => x * 2"),
+        Value::Array(Arc::new(vec![Value::Int(2), Value::Int(4), Value::Int(6)]))
+    );
+    // Closure stream stages stay equivalent to `map`.
+    assert_eq!(
+        evaluated(&mut engine, "v = [1, 2] | x => x + 1\n(v)"),
+        evaluated(&mut engine, "v = [1, 2] | map (x => x + 1)\n(v)"),
+    );
+}
+
+#[test]
+fn value_pipeline_parse_and_eval_errors_are_focused() {
+    let mut engine = Engine::new(ProcessHost::default());
+    let error = engine.run_source("(x => x) | x => x").unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("pipeline stage 0 function requires a value stream"),
+        "{error}"
+    );
+    let error = engine.run_source("v = [1] | (5)").unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("pipeline stage 1 expression must evaluate to a function"),
+        "{error}"
+    );
+    let error = engine
+        .run_source("v = [1, 2] | this-command-does-not-exist-josh")
+        .unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("command not found: this-command-does-not-exist-josh"),
+        "{error}"
+    );
+}
+
 fn captured(engine: &mut Engine, pipeline: &str) -> Value {
     evaluated(
         engine,

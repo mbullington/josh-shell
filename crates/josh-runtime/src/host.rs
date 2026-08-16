@@ -101,6 +101,13 @@ pub enum Captured {
 #[derive(Debug, Clone)]
 pub enum StreamStage {
     External(CommandSpec),
+    /// Pre-materialized items fed into the pipeline by the engine
+    /// (`[1, 2, 3] | x => x * 2`). `scalar` marks a non-array source so a
+    /// bare capture of it stays a scalar.
+    Source {
+        values: Vec<Value>,
+        scalar: bool,
+    },
     Text,
     Json,
     Lines,
