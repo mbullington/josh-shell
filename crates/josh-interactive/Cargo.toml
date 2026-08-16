@@ -1,0 +1,20 @@
+[package]
+name = "josh-interactive"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Interactive Reedline integration for Josh"
+
+[dependencies]
+josh-exec.workspace = true
+josh-runtime.workspace = true
+josh-syntax.workspace = true
+nu-ansi-term.workspace = true
+reedline.workspace = true
+signal-hook.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

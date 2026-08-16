@@ -1,0 +1,20 @@
+[package]
+name = "josh-exec"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "OS process execution for Josh"
+
+[dependencies]
+glob.workspace = true
+josh-runtime.workspace = true
+josh-streams.workspace = true
+nix.workspace = true
+os_pipe.workspace = true
+signal-hook.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

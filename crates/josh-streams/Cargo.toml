@@ -1,0 +1,18 @@
+[package]
+name = "josh-streams"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Structured stream execution for Josh"
+
+[dependencies]
+josh-runtime.workspace = true
+nix.workspace = true
+os_pipe.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,22 @@
+[package]
+name = "josh-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Command-line entry point for Josh"
+
+[[bin]]
+name = "josh"
+path = "src/main.rs"
+
+[dependencies]
+josh-exec.workspace = true
+josh-interactive.workspace = true
+josh-runtime.workspace = true
+
+[dev-dependencies]
+nix.workspace = true
+tempfile.workspace = true
+
+[lints]
+workspace = true

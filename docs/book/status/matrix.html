@@ -1,0 +1,292 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Capability status - Josh Manual</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-e96d0476.css">
+        <link rel="stylesheet" href="../css/chrome-d279d366.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../theme/status-2563544c.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-95fa12dd.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-44895a87.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Josh Manual</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="capability-status"><a class="header" href="#capability-status">Capability status</a></h1>
+<div class="status-coverage">
+<p><strong>Status coverage:</strong> This page makes no product-availability claims. It is the authoritative ledger. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
+</div>
+
+<p>Each row is atomic. <strong>Implemented</strong> requires executable evidence. <strong>Specified</strong> means accepted but not available in the current verified build. <strong>Planned</strong> is directional. <strong>Unresolved</strong> promises no behavior.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>ID</th><th>Capability</th><th>Product</th><th>Status</th><th>Exact included scope</th><th>Explicit exclusions</th><th>Evidence, specification, tracker, or decision</th><th>Manual anchor</th><th>Verified against</th><th>Last checked</th></tr>
+</thead>
+<tbody>
+<tr><td><a id="J-CLI-001"></a>J-CLI-001</td><td>CLI entry points</td><td>Josh</td><td>Implemented</td><td>REPL, <code>-c</code>, script path, help, version</td><td>Script arguments and other flags</td><td><a href="../contributing/build-test.html#josh-evidence"><code>cli</code> tests</a></td><td><a href="../reference/josh-cli.html#J-CLI-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
+<tr><td><a id="J-PARSE-001"></a>J-PARSE-001</td><td>Lossless tolerant parse</td><td>Josh</td><td>Implemented</td><td>Source, trivia tokens, AST, diagnostics, spans</td><td>Incremental reparse and CST</td><td><a href="../contributing/build-test.html#josh-evidence"><code>syntax</code> tests</a></td><td><a href="../architecture/parser.html#J-PARSE-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
+<tr><td><a id="J-PARSE-002"></a>J-PARSE-002</td><td>Dual lexical modes</td><td>Josh</td><td>Implemented</td><td>Command/expression classification and quote modes</td><td>Runtime-dependent parsing</td><td><a href="../contributing/build-test.html#josh-evidence"><code>syntax</code> tests</a></td><td><a href="../language/modes.html#J-PARSE-002">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
+<tr><td><a id="J-PARSE-003"></a>J-PARSE-003</td><td>Disambiguation catalog</td><td>Josh</td><td>Implemented</td><td>Required command, assignment, call, arrow, and condition cases</td><td>Runtime guessing</td><td><a href="../contributing/build-test.html#josh-evidence"><code>ambiguity_corpus_has_stable_statement_shapes</code></a></td><td><a href="../reference/disambiguation.html#J-PARSE-003">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
+<tr><td><a id="J-PARSE-004"></a>J-PARSE-004</td><td>Completeness and recovery</td><td>Josh</td><td>Implemented</td><td>Complete, Incomplete, Invalid; strict policy reuses parse</td><td>Separate strict parser</td><td><a href="../contributing/build-test.html#josh-evidence"><code>eof_only_errors_are_incomplete_but_hard_errors_are_invalid</code></a></td><td><a href="../reference/grammar.html#J-PARSE-004">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
+<tr><td><a id="J-EXPR-001"></a>J-EXPR-001</td><td>Data expressions</td><td>Josh</td><td>Implemented</td><td>Scalars, arrays, objects, spread, destructuring, ternary, member/index access</td><td>Destructuring assignment and mutation</td><td><a href="../contributing/build-test.html#josh-evidence"><code>runtime</code> tests</a></td><td><a href="../reference/operators-values.html#J-EXPR-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="J-EXPR-002"></a>J-EXPR-002</td><td>Function-shaped syntax</td><td>Josh</td><td>Implemented</td><td>Calls, member/index access, declarations, arrows, spread calls, parameter patterns</td><td>Hoisting and mutual forward recursion</td><td><a href="../contributing/build-test.html#josh-evidence"><code>syntax</code> tests</a></td><td><a href="../language/functions.html#J-EXPR-002">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="J-RUN-001"></a>J-RUN-001</td><td>External commands</td><td>Josh</td><td>Implemented</td><td>PATH/direct resolution and Unix byte argv</td><td>Functions as stages and globbing</td><td><a href="../contributing/build-test.html#josh-evidence"><code>cli</code> smoke</a></td><td><a href="../journeys/external-commands.html#J-RUN-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
+<tr><td><a id="J-RUN-002"></a>J-RUN-002</td><td>Standalone builtins</td><td>Josh</td><td>Implemented</td><td><code>cd</code> and <code>exit [status]</code> as standalone commands</td><td>Builtins in pipelines or capture</td><td><a href="../contributing/build-test.html#josh-evidence"><code>builtins_are_dispatched_from_evaluated_argv_and_validate_arity</code></a></td><td><a href="../tutorial/first-session.html#J-RUN-002">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
+<tr><td><a id="J-RUN-003"></a>J-RUN-003</td><td>External byte pipelines</td><td>Josh</td><td>Implemented</td><td>OS pipes, pre-resolution, pipefail, downstream-close SIGPIPE exception</td><td>Background pipelines</td><td><a href="../contributing/build-test.html#josh-evidence"><code>pipeline_uses_pipefail_and_ignores_nonfinal_sigpipe</code></a></td><td><a href="../tutorial/pipelines-and-failures.html#J-RUN-003">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="J-RUN-004"></a>J-RUN-004</td><td>Synchronous capture</td><td>Josh</td><td>Implemented</td><td>String/Bytes result and terminal CR/LF trimming</td><td>Size limit, JSON detection, streaming capture</td><td><a href="../contributing/build-test.html#josh-evidence"><code>captures_trim_all_terminal_lf_and_crlf</code></a></td><td><a href="../language/capture-pipelines.html#J-RUN-004">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
+<tr><td><a id="J-RUN-005"></a>J-RUN-005</td><td>Bindings and assignment</td><td>Josh</td><td>Implemented</td><td>Lexical frames, <code>let</code>, nearest-binding assignment, array/object destructuring</td><td>Export declarations and destructuring assignment</td><td><a href="../contributing/build-test.html#josh-evidence"><code>engine_capture_commits_only_on_success</code></a></td><td><a href="../language/variables-values.html#J-RUN-005">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="J-RUN-006"></a>J-RUN-006</td><td>If statements</td><td>Josh</td><td>Implemented</td><td>Expression and command conditions, else-if, else, completed-nonzero suppression</td><td>Planning-error suppression</td><td><a href="../contributing/build-test.html#josh-evidence"><code>if_condition_variants_are_explicit</code></a></td><td><a href="../language/control-flow-jobs.html#J-RUN-006">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="J-ARGV-001"></a>J-ARGV-001</td><td>argv conversion</td><td>Josh</td><td>Implemented</td><td>No word splitting; concatenation; array splat; byte argv; sorted quote-aware globs</td><td>Implicit object serialization outside value streams</td><td><a href="../contributing/build-test.html#josh-evidence"><code>runtime</code> tests</a></td><td><a href="../reference/argv-boundaries.html#J-ARGV-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="J-ERR-001"></a>J-ERR-001</td><td>Errors and exit policy</td><td>Josh</td><td>Implemented</td><td>Structured parse/runtime/process errors, interactive recovery, throw/catch, status and chains</td><td>Background-job errors</td><td><a href="../contributing/build-test.html#josh-evidence"><code>batch_errors_are_nonzero_and_exit_status_is_honored</code></a></td><td><a href="../reference/diagnostics.html#J-ERR-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="J-REPL-001"></a>J-REPL-001</td><td>Editing and multiline</td><td>Josh</td><td>Implemented</td><td>Reedline editor, prompts, parser-driven continuation</td><td>Job-control editing modes</td><td><a href="../contributing/build-test.html#josh-evidence"><code>validator_continues_only_incomplete_input</code></a></td><td><a href="../interactive/editing.html#J-REPL-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
+<tr><td><a id="J-REPL-002"></a>J-REPL-002</td><td>Token highlighting</td><td>Josh</td><td>Implemented</td><td>Mode-aware token styles and first-command PATH color</td><td>Fully nested interpolation token coloring</td><td><a href="../contributing/build-test.html#josh-evidence"><code>repl</code> adapter checks</a></td><td><a href="../interactive/highlighting.html#J-REPL-002">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
+<tr><td><a id="J-REPL-003"></a>J-REPL-003</td><td>Completion</td><td>Josh</td><td>Implemented</td><td>Command, file, and variable prefixes; UTF-8-safe spans</td><td>Semantic evaluation and third-party specs</td><td><a href="../contributing/build-test.html#josh-evidence"><code>completion_context_uses_utf8_safe_byte_spans</code></a></td><td><a href="../interactive/hints-completion.html#J-REPL-003">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
+<tr><td><a id="J-REPL-004"></a>J-REPL-004</td><td>Hints and history</td><td>Josh</td><td>Implemented</td><td>Plain file-backed history and prefix hints</td><td>SQLite and history sync</td><td><a href="../architecture/repl.html#reedline-ownership">Reedline construction</a></td><td><a href="../interactive/hints-completion.html#J-REPL-004">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
+<tr><td><a id="J-REPL-005"></a>J-REPL-005</td><td>Interactive signals</td><td>Josh</td><td>Implemented</td><td>Ctrl-C clears input; Ctrl-D exits; child Ctrl-C leaves shell alive</td><td>Process-group transfer and job control</td><td><a href="../contributing/build-test.html#josh-evidence"><code>foreground child</code> PTY probe</a></td><td><a href="../interactive/signals-troubleshooting.html#J-REPL-005">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
+<tr><td><a id="J-ENV-001"></a>J-ENV-001</td><td><code>$NAME</code> fallback</td><td>Josh</td><td>Implemented</td><td>Lexical binding before inherited environment in command interpolation</td><td><code>env</code> object and export API</td><td><a href="../language/variables-values.html#environment-boundary">Engine source behavior</a></td><td><a href="../language/variables-values.html#J-ENV-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
+<tr><td><a id="J-STRUCT-001"></a>J-STRUCT-001</td><td>Structured streams and transformers</td><td>Josh</td><td>Implemented</td><td>Explicit byte/value transitions, function/map/filter/take/first/collect, bounded cancellation, stable capture cardinality</td><td>Generic iterable or user-visible Stream value</td><td><a href="../contributing/build-test.html#josh-evidence"><code>structured_*</code> tests and E2E</a></td><td><a href="../language/capture-pipelines.html#J-STRUCT-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="J-FILES-001"></a>J-FILES-001</td><td>Redirections and globs</td><td>Josh</td><td>Implemented</td><td><code>&gt;</code>, <code>&gt;&gt;</code>, <code>&lt;</code>, <code>2&gt;</code>, <code>2&gt;&gt;</code>, <code>2&gt;&amp;1</code>, <code>&amp;&gt;</code>; left-to-right planning; sorted quote-aware globs and <code>glob()</code></td><td>Process substitution</td><td><a href="../contributing/build-test.html#josh-evidence"><code>redirections_*</code> and glob CLI tests</a></td><td><a href="../language/files.html#J-FILES-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="J-CF-001"></a>J-CF-001</td><td>Non-job control flow</td><td>Josh</td><td>Implemented</td><td><code>while</code>, <code>loop</code>, <code>try/catch</code>, return, break, continue, throw, status, command chains</td><td>No <code>for</code> production</td><td><a href="../contributing/build-test.html#josh-evidence"><code>typed_unwinding_*</code> and chain tests</a></td><td><a href="../language/control-flow-jobs.html#J-CF-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="J-JOBS-001"></a>J-JOBS-001</td><td>Background jobs and job control</td><td>Josh</td><td>Planned</td><td>Background statements and terminal process-group control</td><td>No current <code>&amp;</code> execution</td><td><a href="../roadmap/planned.html#j-jobs-001">Tracker</a></td><td><a href="../language/control-flow-jobs.html#J-JOBS-001">Manual</a></td><td>Project brief</td><td>2026-08-14</td></tr>
+<tr><td><a id="J-FUNC-001"></a>J-FUNC-001</td><td>Function execution and UFCS</td><td>Josh</td><td>Implemented</td><td>Declarations/arrows, snapshot closures, direct recursion, destructured/rest parameters, finite methods, lexical UFCS</td><td>No hoisting, prototypes, or <code>this</code></td><td><a href="../contributing/build-test.html#josh-evidence"><code>closures_*</code> and method tests</a></td><td><a href="../language/functions.html#J-FUNC-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="J-MOD-001"></a>J-MOD-001</td><td>Modules and <code>source</code></td><td>Josh</td><td>Planned</td><td>Scoped imports/exports and current-scope source</td><td>URL modules need a security decision</td><td><a href="../roadmap/planned.html#j-mod-001">Tracker</a></td><td><a href="../language/modules-configuration.html#J-MOD-001">Manual</a></td><td>Project brief</td><td>2026-08-14</td></tr>
+<tr><td><a id="J-CONFIG-001"></a>J-CONFIG-001</td><td>Configuration</td><td>Josh</td><td>Implemented</td><td>XDG <code>env.josh</code>/interactive <code>init.josh</code>, global lexical scope, prompt function, <code>--no-config</code>, error policy</td><td>General <code>source</code>, imports, or config schema</td><td><a href="../contributing/build-test.html#josh-evidence">Startup CLI and PTY tests</a></td><td><a href="../language/modules-configuration.html#J-CONFIG-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="J-ENV-002"></a>J-ENV-002</td><td><code>env</code> namespace and export</td><td>Josh</td><td>Specified</td><td><code>env.FOO</code> reads/writes process environment; assignment stays local</td><td>Not available in current evaluator</td><td><a href="../language/variables-values.html#J-ENV-002">Specification</a></td><td><a href="../language/variables-values.html#J-ENV-002">Manual</a></td><td>Accepted architecture</td><td>2026-08-14</td></tr>
+<tr><td><a id="J-BG-001"></a>J-BG-001</td><td>Job expression assignment</td><td>Josh</td><td>Unresolved</td><td>Choose whether/how a background job produces a value</td><td><code>j = sleep 100 &amp;</code> is not valid syntax</td><td><a href="../roadmap/unresolved.html#J-BG-001">Decision question</a></td><td><a href="../roadmap/unresolved.html#J-BG-001">Manual</a></td><td>Open</td><td>2026-08-14</td></tr>
+<tr><td><a id="J-UNICODE-001"></a>J-UNICODE-001</td><td>String indexing unit</td><td>Josh</td><td>Implemented</td><td>Unicode scalar <code>length</code>, signed indexing, and <code>at</code></td><td>Grapheme-cluster indexing</td><td><a href="../contributing/build-test.html#josh-evidence">Unicode method/index tests</a></td><td><a href="../reference/operators-values.html#J-UNICODE-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="AT-BUILD-001"></a>AT-BUILD-001</td><td>Pinned static build</td><td>agent-terminal</td><td>Implemented</td><td>Clean Ghostty tree digest, SHA, Zig 0.16.0, ReleaseFast, baseline CPU, SIMD off, static link</td><td>Initial Nix cache provisioning may be slow</td><td><a href="../agent-terminal/install.html#AT-BUILD-001">Build identity and link inspection</a></td><td><a href="../agent-terminal/install.html#AT-BUILD-001">Manual</a></td><td>agent-terminal 0.1.0; Ghostty d760ee96</td><td>2026-08-15</td></tr>
+<tr><td><a id="AT-CLI-001"></a>AT-CLI-001</td><td>Cross-invocation CLI</td><td>agent-terminal</td><td>Implemented</td><td>launch, snapshot, screenshot, type, key, resize, wait, list, close</td><td>No TCP or shared daemon</td><td><a href="../contributing/build-test.html#agent-terminal-evidence">Real CLI smoke</a></td><td><a href="../agent-terminal/cli-reference.html#AT-CLI-001">Manual</a></td><td>agent-terminal 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="AT-PTY-001"></a>AT-PTY-001</td><td>Real PTY and Ghostty state</td><td>agent-terminal</td><td>Implemented</td><td>One PTY, child, <code>libghostty-vt</code> terminal per daemon</td><td>No substitute ANSI parser</td><td><a href="../contributing/build-test.html#agent-terminal-evidence">Linked-library and real PTY tests</a></td><td><a href="../architecture/agent-terminal.html#AT-PTY-001">Manual</a></td><td>agent-terminal 0.1.0; Ghostty d760ee96</td><td>2026-08-15</td></tr>
+<tr><td><a id="AT-SNAP-001"></a>AT-SNAP-001</td><td>Semantic snapshots</td><td>agent-terminal</td><td>Implemented</td><td>Formatter text and schema v2 grid/cell/style/render state</td><td>No checkpoint restore</td><td><a href="../contributing/build-test.html#agent-terminal-evidence">Real semantic snapshot smoke</a></td><td><a href="../agent-terminal/snapshots.html#AT-SNAP-001">Manual</a></td><td>agent-terminal 0.1.0; Ghostty d760ee96</td><td>2026-08-15</td></tr>
+<tr><td><a id="AT-INPUT-001"></a>AT-INPUT-001</td><td>Input and resize</td><td>agent-terminal</td><td>Implemented</td><td>Exact UTF-8 type, mode-aware keys, PTY/grid resize</td><td>No mouse or clipboard</td><td><a href="../contributing/build-test.html#agent-terminal-evidence">Unicode, key, and resize smoke</a></td><td><a href="../agent-terminal/input-wait.html#AT-INPUT-001">Manual</a></td><td>agent-terminal 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="AT-WAIT-001"></a>AT-WAIT-001</td><td>Daemon-side waits</td><td>agent-terminal</td><td>Implemented</td><td>Case-sensitive visible text, stable revision, timeout 124</td><td>No regex or hidden scrollback match</td><td><a href="../agent-terminal/josh-scenario.html#AT-JOSH-001">Text and stability E2E waits</a></td><td><a href="../agent-terminal/input-wait.html#AT-WAIT-001">Manual</a></td><td>agent-terminal 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="AT-LIFE-001"></a>AT-LIFE-001</td><td>Session lifecycle</td><td>agent-terminal</td><td>Implemented</td><td>UUID sessions, health handshake, close escalation, reap, idle expiry</td><td>Not a hostile-process sandbox</td><td><a href="../agent-terminal/josh-scenario.html#AT-JOSH-001">Close and direct PID reap proof</a></td><td><a href="../agent-terminal/sessions.html#AT-LIFE-001">Manual</a></td><td>agent-terminal 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="AT-PROTO-001"></a>AT-PROTO-001</td><td>NDJSON protocol v1</td><td>agent-terminal</td><td>Implemented</td><td>Typed envelopes, 1 MiB request cap, errors, handshake</td><td>Unix socket only; no compatibility promise beyond version</td><td><a href="../contributing/build-test.html#agent-terminal-evidence">Cross-invocation smoke</a></td><td><a href="../agent-terminal/schema.html#AT-PROTO-001">Manual</a></td><td>agent-terminal 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="AT-SEC-001"></a>AT-SEC-001</td><td>Local security controls</td><td>agent-terminal</td><td>Implemented</td><td>Owner-only paths/sockets, symlink rejection, trusted same-user clients</td><td>No sandbox or network exposure</td><td><a href="../contributing/build-test.html#agent-terminal-evidence">Permission assertions</a></td><td><a href="../agent-terminal/security.html#AT-SEC-001">Manual</a></td><td>agent-terminal 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="AT-JOSH-001"></a>AT-JOSH-001</td><td>Josh REPL automation scenario</td><td>agent-terminal</td><td>Implemented</td><td>Fixed grid, XDG config/prompt, language/control/stream/file capabilities, negative exclusions, semantic snapshot, repeated PNG, exit/close/leak proof</td><td>Hostile descendant containment</td><td><a href="../agent-terminal/josh-scenario.html#AT-JOSH-001"><code>scripts/josh-e2e.sh</code> evidence</a></td><td><a href="../agent-terminal/josh-scenario.html#AT-JOSH-001">Manual</a></td><td>agent-terminal 0.1.0 + Josh 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="AT-PNG-001"></a>AT-PNG-001</td><td>Deterministic PNG renderer</td><td>agent-terminal</td><td>Implemented</td><td>Client-side schema-v2 rendering, captured Ghostty colors/palette/cursor, pinned fonts/96 DPI/8×16 grid, effects/wide/background, metadata-free PNG</td><td>Host font fallback and animation</td><td><a href="../contributing/build-test.html#agent-terminal-evidence">Pixel/unit, CLI, and repeated-byte E2E</a></td><td><a href="../agent-terminal/screenshots.html#AT-PNG-001">Manual</a></td><td>agent-terminal 0.1.0</td><td>2026-08-15</td></tr>
+</tbody>
+</table>
+</div>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../contributing/release-checklist.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../roadmap/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../contributing/release-checklist.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../roadmap/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

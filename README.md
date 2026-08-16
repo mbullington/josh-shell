@@ -1,0 +1,41 @@
+# Josh
+
+Josh is a Unix-first JavaScript Object Shell. It combines deterministic command/expression parsing, lexical functions and objects, explicit byte/value pipelines, and parser-driven interactive editing.
+
+## Build and run
+
+```sh
+cargo build --workspace
+cargo run -- -c 'printf hello | tr a-z A-Z'
+cargo run -- script.josh
+cargo run
+```
+
+Use `--no-config` for reproducible automation. Otherwise Josh runs `$XDG_CONFIG_HOME/josh/env.josh` (or `~/.config/josh/env.josh`) for every session and `init.josh` for interactive sessions. A zero-argument `prompt` function may return the prompt string. `JOSH_HISTORY` selects the history file.
+
+## Implemented
+
+- Six-crate workspace: syntax, runtime, process execution, structured streams, interactive editing, and CLI composition.
+- Lossless tolerant parser with strict policy, spans, diagnostics, and Complete/Incomplete/Invalid classification.
+- Null, bool, int, float, string, bytes, array, insertion-ordered object, function, error, and status values.
+- Lexical frames; snapshot closures; declarations/arrows; direct recursion; destructured/rest parameters; calls, members, indexes, spread, finite methods, and lexical UFCS.
+- `if/else`, `while`, `loop`, `try/catch`, `throw`, `return`, `break`, `continue`, command `&&`/`||`, and `status pipeline`.
+- External commands, PATH planning, OS byte pipes, pipefail, capture, redirections, and sorted quote-aware glob expansion.
+- Explicit `text`, `json`, `lines`, `jsonl`, `chunks(n)`, function, `map`, `filter`, `take`, `first`, and `collect` stages with bounded channels and stable capture cardinality.
+- Reedline REPL with continuation, highlighting, completion, hints, history, and configured prompts.
+
+## Excluded
+
+Background `&`, `jobs`, `fg`, `bg`, imports, exports, `source`, and remote modules are rejected. There is no `for` production, VM, event loop, prototype system, `this`, job table, or user-visible generic Stream value.
+
+## Verification
+
+```sh
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace --all-targets
+cargo build --workspace --all-targets
+python3 docs/tools/check-manual.py
+```
+
+The cross-project proof is `../agent-terminal/scripts/josh-e2e.sh`; it uses an isolated XDG config and fixed 80×24 grid, exercises the implemented language/stream/file surfaces, records semantic JSON and a deterministic PNG, rejects excluded jobs/modules, exits, and proves process/socket/runtime cleanup.

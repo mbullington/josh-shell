@@ -1,0 +1,12 @@
+[package]
+name = "josh-syntax"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Lossless syntax and parsing for Josh"
+
+[dependencies]
+unicode-ident.workspace = true
+
+[lints]
+workspace = true

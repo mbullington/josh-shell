@@ -1,0 +1,13 @@
+[package]
+name = "josh-runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Values and evaluation for Josh"
+
+[dependencies]
+josh-syntax.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true
