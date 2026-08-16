@@ -21,3 +21,5 @@ Grids are limited to 300 columns, 200 rows, and 20,000 total cells. The current 
 **Availability:** Available in agent-terminal 0.1.0. Evidence: the CLI smoke test and Josh scenario exercise daemon-side text and stability waits.
 
 `--text` matches a substring of current Ghostty-formatted visible text. `--stable 200ms` succeeds after revision remains unchanged for that interval. PTY reads continue while clients wait. Timeout exits 124 and carries last snapshot metadata; child exit triggers one final check before an exited-before-condition error.
+
+Reads are not paints: a stable wait issued immediately after submitted input can succeed against the last fully painted pre-input frame. See the [errata](errata.md) for the input-then-wait rule and measured settle budgets.

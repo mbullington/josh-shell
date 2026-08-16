@@ -11,7 +11,7 @@ pub use context::{ShellContext, ShellContextError, ShellSnapshot};
 pub use engine::{Engine, EngineError, MAX_CHUNK_SIZE, RunResult};
 pub use host::{
     CancellationToken, Captured, CommandSpec, ExecutionError, ExecutionHost, ExecutionResult,
-    RedirectionSpec, StageOutcome, StreamStage,
+    RedirectionSpec, StageOutcome, StreamStage, SuspendedJob,
 };
 pub use materialize::{
     BoundedBytes, MAX_MATERIALIZED_BYTES, MAX_MATERIALIZED_ITEMS, MaterializationLimit,

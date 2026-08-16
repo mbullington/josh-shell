@@ -2498,7 +2498,7 @@ impl Parser {
         let token = self.tokens.get(self.pos)?;
         let name = &self.source[token.span.range()];
         match name {
-            "jobs" | "fg" | "bg" => Some("job control"),
+            "jobs" | "bg" => Some("job control"),
             "source" | "import" | "export" => Some("modules and source loading"),
             _ => None,
         }

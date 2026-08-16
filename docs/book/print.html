@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-95fa12dd.js";
+            window.path_to_searchindex_js = "searchindex-04af2f04.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-44895a87.js"></script>
+        <script src="toc-18901016.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -992,6 +992,7 @@ agent-terminal close "$id"
 <h2 id="wait-conditions-implemented"><a class="header" href="#wait-conditions-implemented">Wait conditions <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
 <p><strong>Availability:</strong> Available in agent-terminal 0.1.0. Evidence: the CLI smoke test and Josh scenario exercise daemon-side text and stability waits.</p>
 <p><code>--text</code> matches a substring of current Ghostty-formatted visible text. <code>--stable 200ms</code> succeeds after revision remains unchanged for that interval. PTY reads continue while clients wait. Timeout exits 124 and carries last snapshot metadata; child exit triggers one final check before an exited-before-condition error.</p>
+<p>Reads are not paints: a stable wait issued immediately after submitted input can succeed against the last fully painted pre-input frame. See the <a href="#agent-terminal-errata">errata</a> for the input-then-wait rule and measured settle budgets.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="agent-terminal-cli-reference"><a class="header" href="#agent-terminal-cli-reference">agent-terminal CLI reference</a></h1>
 <div class="status-coverage">
@@ -1161,12 +1162,61 @@ cmp terminal.png terminal-repeat.png
 <li><strong>Runtime path rejected:</strong> remove symlinks, fix ownership, use 0700 directories, and keep the path short enough for <code>sockaddr_un</code>.</li>
 <li><strong>Text wait times out:</strong> matching is case-sensitive and limited to current Ghostty-formatted visible text. Inspect the last revision metadata and a JSON snapshot.</li>
 <li><strong>Stable wait never completes:</strong> output is still advancing revision. Bound the child or increase the quiet duration and timeout.</li>
+<li><strong>Snapshot after a successful stable wait shows pre-input text:</strong> known wait-admission defect; do not wait immediately after submitting input. See the <a href="#agent-terminal-errata">errata</a> for the settle and polling rules.</li>
 <li><strong>Exited child remains listed:</strong> final terminal state is retained by design. Run <code>close</code> to remove the session.</li>
 <li><strong>Screenshot shows U+FFFD:</strong> the grapheme is absent from the pinned JetBrains Mono faces. Host font fallback is disabled for deterministic output.</li>
 <li><strong>Repeated screenshots differ:</strong> wait for a stable revision, keep grid, palette, default colors, and cursor state fixed, and compare commands built from the same lockfile and font assets.</li>
 <li><strong>Close cannot contain a descendant:</strong> lifecycle cleanup is not a sandbox; inspect escaped process groups with host tools.</li>
 </ul>
 <p>Every test script should use a unique temporary runtime directory and an EXIT/INT/TERM trap. After testing, require an empty <code>list --json</code>, no <code>control.sock</code>, and no new daemon or child process.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="agent-terminal-errata"><a class="header" href="#agent-terminal-errata">agent-terminal errata</a></h1>
+<div class="status-coverage">
+<p><strong>Status coverage:</strong> <a href="#AT-WAIT-001-1">AT-WAIT-001</a> — <strong>Implemented</strong> (qualified by erratum 1 below); <a href="#AT-INPUT-001-1">AT-INPUT-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
+</div>
+
+<p>Known behavioral defects and empirical guidance, recorded from real automation
+runs against the Josh REPL. Each entry states the observed behavior, the rule
+to follow until it is fixed, and the evidence. Full investigation writeup lives
+outside the book at <code>docs/repl-integration-investigation.md</code> (repo root
+relative), with scenarios and harness under <code>/tmp/josh-repl-test/</code>.</p>
+<h2 id="1-a-stable-wait-can-satisfy-against-a-pre-input-frame"><a class="header" href="#1-a-stable-wait-can-satisfy-against-a-pre-input-frame">1. A stable wait can satisfy against a pre-input frame</a></h2>
+<p><strong>Affected:</strong> agent-terminal 0.1.0, <code>agent-terminal wait</code>.</p>
+<p><strong>Observed:</strong> <code>wait --stable</code> issued immediately after <code>type</code>/<code>key</code> can succeed
+while the next <code>snapshot --json</code> still shows the <em>pre-input</em> grid: the typed
+text is absent, the cursor sits at its old position, and the revision has not
+advanced. Reproduced 3/3 against the Josh REPL with 100–200 ms stable
+intervals.</p>
+<p><strong>Why it matters:</strong> <a href="#type-press-keys-resize-and-wait">input-wait.md</a> says PTY reads continue
+while clients wait, but reads are not the same as paints. A wait admitted
+before the submitted input has been painted can satisfy its quiet interval
+against the last fully painted frame, and a snapshot taken right after the
+wait returns reflects that lag. Scripts that treat “wait succeeded” as “all
+submitted input is rendered” read a torn, pre-input state.</p>
+<p><strong>Rule until fixed:</strong> do not use <code>wait --stable</code> as the first operation after
+submitting input. Either sleep past observed paint latency (see entry 2) and
+then snapshot, or poll <code>snapshot --json</code> rows for the expected text with
+bounded retries. <code>wait --text</code> is less exposed because its final check matches
+post-input text, but follow it with a short sleep before asserting on the full
+grid.</p>
+<p><strong>Fix direction:</strong> serialize input submit → paint → wait-admission ordering,
+or record the input revision and reject wait admission until it has painted.
+Remove this entry and update <a href="#type-press-keys-resize-and-wait">input-wait.md</a> when fixed.</p>
+<h2 id="2-settle-budgets-measured-latencies-and-recommended-waits"><a class="header" href="#2-settle-budgets-measured-latencies-and-recommended-waits">2. Settle budgets: measured latencies and recommended waits</a></h2>
+<p><strong>Observed:</strong> the Josh REPL renders a line submission in 4–8 ms of paint time,
+but the gap between CLI acknowledgment and the <em>last</em> painted revision can
+exceed 100 ms. Consequently a 100 ms revision quiet bound or a 100 ms sleep
+is <strong>not</strong> a safe settle budget, and tight bounds yield intermittent pre-input
+snapshots under load.</p>
+<p><strong>Rule:</strong> after each input burst, sleep 300–500 ms before asserting on
+<code>snapshot --json</code>, or poll for expected row text with bounded retries
+(10 × 100 ms was robust in the investigation harness). Deterministic PNG
+capture additionally requires the revision-stable, fixed-grid/fixed-palette
+conditions in <a href="#deterministic-png-screenshots">screenshots.md</a>; byte-identical screenshots
+were reproducible under those conditions in the Josh e2e.</p>
+<p><strong>Evidence:</strong> <code>/tmp/josh-repl-test/scen_g.py</code> and <code>scen_g1.py</code>…<code>scen_g4.py</code>
+(driver-settle and polling variants, including the 3/3 wait-stale
+reproduction), plus the investigation report linked above.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="reference"><a class="header" href="#reference">Reference</a></h1>
 <div class="status-coverage">

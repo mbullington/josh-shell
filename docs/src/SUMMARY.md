@@ -42,6 +42,7 @@
   - [Security](agent-terminal/security.md)
   - [Deterministic PNG screenshots](agent-terminal/screenshots.md)
   - [Troubleshooting](agent-terminal/troubleshooting.md)
+  - [Errata](agent-terminal/errata.md)
 - [Reference](reference/index.md)
   - [Josh command-line interface](reference/josh-cli.md)
   - [Lexical modes and grammar](reference/grammar.md)

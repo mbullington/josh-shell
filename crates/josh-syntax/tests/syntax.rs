@@ -425,14 +425,9 @@ fn advanced_recovery_stays_lossless_and_classifies_eof_only_failures() {
     }
 
     assert!(matches!(one("for item"), Statement::Command(_)));
-    for source in [
-        "import thing",
-        "export thing",
-        "source file",
-        "jobs",
-        "fg",
-        "bg",
-    ] {
+    // `fg` is a real builtin now (the one suspended foreground slot); `jobs`
+    // and `bg` stay excluded with `&`, per J-JOBS-001.
+    for source in ["import thing", "export thing", "source file", "jobs", "bg"] {
         assert_eq!(
             parse(source).completeness,
             Completeness::Invalid,

@@ -122,6 +122,7 @@ pub struct Engine {
     frames: Vec<Frame>,
     execution_cancellation: CancellationToken,
     prototypes: crate::natives::Prototypes,
+    suspended: Option<crate::host::SuspendedJob>,
 }
 
 impl Engine {
@@ -168,6 +169,7 @@ impl Engine {
             frames: vec![root],
             execution_cancellation,
             prototypes,
+            suspended: None,
         }
     }
 
@@ -567,7 +569,7 @@ impl Engine {
             self.execution_cancellation.clone(),
             self.context.clone(),
         );
-        Self::complete_execution(result)
+        self.complete_execution(result)
     }
 
     fn structural_stream_shape(&self, index: usize, stage: &ExternalCommand) -> StreamShape {
@@ -847,6 +849,26 @@ impl Engine {
                 .unwrap_or(0);
             return Err(Unwind::Exit(code));
         }
+        if name.as_slice() == b"fg" {
+            if !redirections.is_empty() {
+                return Err(EngineError::Unsupported("redirections on builtins".into()).into());
+            }
+            if capture {
+                return Err(EngineError::Unsupported("builtins inside captures".into()).into());
+            }
+            if argv.len() > 1 {
+                return Err(type_error("fg expects no arguments"));
+            }
+            let Some(job) = self.suspended.take() else {
+                return Err(type_error("fg: no suspended job"));
+            };
+            let result = self.host.resume_suspended(
+                &job,
+                self.execution_cancellation.clone(),
+                self.context.clone(),
+            );
+            return self.complete_execution(result);
+        }
         if name.as_slice() == b"cd" {
             if !redirections.is_empty() {
                 return Err(EngineError::Unsupported("redirections on builtins".into()).into());
@@ -906,14 +928,22 @@ impl Engine {
             self.execution_cancellation.clone(),
             self.context.clone(),
         );
-        Self::complete_execution(result)
+        self.complete_execution(result)
     }
 
     fn complete_execution(
+        &mut self,
         result: Result<ExecutionResult, ExecutionError>,
     ) -> EvalResult<Completion> {
         match result {
             Ok(result) => Ok(completion_from_result(result)),
+            Err(ExecutionError::Stopped(job)) => {
+                self.suspended = Some(job.clone());
+                Ok(Completion::success(Value::String(Arc::from(format!(
+                    "[1] suspended: {}",
+                    job.description
+                )))))
+            }
             Err(
                 error @ (ExecutionError::CommandFailed { .. }
                 | ExecutionError::PipelineFailed { .. }),

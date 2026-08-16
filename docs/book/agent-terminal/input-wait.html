@@ -36,10 +36,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-95fa12dd.js";
+            window.path_to_searchindex_js = "../searchindex-04af2f04.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-44895a87.js"></script>
+        <script src="../toc-18901016.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -189,6 +189,7 @@
 <h2 id="wait-conditions-implemented"><a class="header" href="#wait-conditions-implemented">Wait conditions <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
 <p><strong>Availability:</strong> Available in agent-terminal 0.1.0. Evidence: the CLI smoke test and Josh scenario exercise daemon-side text and stability waits.</p>
 <p><code>--text</code> matches a substring of current Ghostty-formatted visible text. <code>--stable 200ms</code> succeeds after revision remains unchanged for that interval. PTY reads continue while clients wait. Timeout exits 124 and carries last snapshot metadata; child exit triggers one final check before an exited-before-condition error.</p>
+<p>Reads are not paints: a stable wait issued immediately after submitted input can succeed against the last fully painted pre-input frame. See the <a href="errata.html">errata</a> for the input-then-wait rule and measured settle budgets.</p>
 
                     </main>
 

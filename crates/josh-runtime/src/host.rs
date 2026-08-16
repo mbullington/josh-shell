@@ -166,8 +166,12 @@ pub enum ExecutionError {
     Cancelled,
     #[error("cannot control the foreground terminal: {0}")]
     Terminal(#[source] io::Error),
-    #[error("foreground pipeline stopped by signal {signal}; suspended jobs are not supported")]
+    #[error(
+        "captured pipeline stopped by signal {signal}; suspended jobs require a foreground terminal"
+    )]
     ForegroundStopped { signal: i32 },
+    #[error("pipeline suspended")]
+    Stopped(SuspendedJob),
     #[error("command argument cannot be represented on this platform: {0}")]
     InvalidArgument(String),
     #[error("invalid glob pattern `{pattern}`: {message}")]
@@ -180,6 +184,15 @@ pub enum ExecutionError {
         #[source]
         source: io::Error,
     },
+}
+
+/// A foreground pipeline parked by a terminal-stop signal (Ctrl-Z). The
+/// process group stays stopped in place; `fg` resumes it.
+#[derive(Clone, Debug)]
+pub struct SuspendedJob {
+    pub pgid: i32,
+    pub description: String,
+    pub signal: i32,
 }
 
 pub trait ExecutionHost {
@@ -200,4 +213,18 @@ pub trait ExecutionHost {
     ) -> Result<ExecutionResult, ExecutionError>;
 
     fn glob(&self, pattern: &[u8], context: &ShellContext) -> Result<Vec<Vec<u8>>, ExecutionError>;
+
+    /// Resume a previously suspended foreground pipeline, returning its
+    /// outcomes. Returning `ExecutionError::Stopped` parks it again.
+    fn resume_suspended(
+        &mut self,
+        job: &SuspendedJob,
+        cancellation: CancellationToken,
+        context: ShellContext,
+    ) -> Result<ExecutionResult, ExecutionError> {
+        let _ = (job, cancellation, context);
+        Err(ExecutionError::Collect(io::Error::other(
+            "suspended jobs are not supported by this host",
+        )))
+    }
 }

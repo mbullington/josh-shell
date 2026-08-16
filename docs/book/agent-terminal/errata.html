@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Glossary - Josh Manual</title>
+        <title>Errata - Josh Manual</title>
 
 
         <!-- Custom HTML head -->
@@ -175,33 +175,63 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="glossary"><a class="header" href="#glossary">Glossary</a></h1>
+                        <h1 id="agent-terminal-errata"><a class="header" href="#agent-terminal-errata">agent-terminal errata</a></h1>
 <div class="status-coverage">
-<p><strong>Status coverage:</strong> This page makes no product-availability claims. Definitions do not imply implementation.</p>
+<p><strong>Status coverage:</strong> <a href="../status/matrix.html#AT-WAIT-001">AT-WAIT-001</a> — <strong>Implemented</strong> (qualified by erratum 1 below); <a href="../status/matrix.html#AT-INPUT-001">AT-INPUT-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
 </div>
 
-<p><strong>Josh</strong> — JavaScript Object Shell, a Unix-first shell with a JavaScript-shaped deterministic data language.</p>
-<p><strong>Command mode</strong> — lexical/parser context in which bare words form command argv and shell operators delimit pipelines/statements.</p>
-<p><strong>Expression mode</strong> — lexical/parser context in which literals, identifiers, operators, arrays, and expression continuations are parsed.</p>
-<p><strong>Byte stream</strong> — ordered process bytes, normally carried by an OS pipe between external commands.</p>
-<p><strong>Value stream</strong> — planned ordered Josh values with explicit conversion at byte boundaries.</p>
-<p><strong>Capture</strong> — synchronous <code>$(pipeline)</code> execution that collects final stdout as String or Bytes after terminal newline trimming.</p>
-<p><strong>Splice</strong> — insertion of a Josh value into a command word; a sole unquoted array variable expands to multiple argv entries.</p>
-<p><strong>Semantic snapshot</strong> — terminal text plus structured grid, cursor, row, cell, style, title, process, and revision facts. It is not a screenshot.</p>
-<p><strong>Session</strong> — one agent-terminal daemon’s ownership unit: one PTY, child, Ghostty state, socket, and lifecycle.</p>
-<p><strong>Protocol version</strong> — compatibility discriminator for agent-terminal request/response envelopes.</p>
-<p><strong>Revision</strong> — monotonic per-session counter advanced by processed output batches and resize; not a timestamp.</p>
-<p><strong>Pipefail</strong> — pipeline policy under which any non-suppressed stage failure fails the pipeline.</p>
+<p>Known behavioral defects and empirical guidance, recorded from real automation
+runs against the Josh REPL. Each entry states the observed behavior, the rule
+to follow until it is fixed, and the evidence. Full investigation writeup lives
+outside the book at <code>docs/repl-integration-investigation.md</code> (repo root
+relative), with scenarios and harness under <code>/tmp/josh-repl-test/</code>.</p>
+<h2 id="1-a-stable-wait-can-satisfy-against-a-pre-input-frame"><a class="header" href="#1-a-stable-wait-can-satisfy-against-a-pre-input-frame">1. A stable wait can satisfy against a pre-input frame</a></h2>
+<p><strong>Affected:</strong> agent-terminal 0.1.0, <code>agent-terminal wait</code>.</p>
+<p><strong>Observed:</strong> <code>wait --stable</code> issued immediately after <code>type</code>/<code>key</code> can succeed
+while the next <code>snapshot --json</code> still shows the <em>pre-input</em> grid: the typed
+text is absent, the cursor sits at its old position, and the revision has not
+advanced. Reproduced 3/3 against the Josh REPL with 100–200 ms stable
+intervals.</p>
+<p><strong>Why it matters:</strong> <a href="input-wait.html">input-wait.md</a> says PTY reads continue
+while clients wait, but reads are not the same as paints. A wait admitted
+before the submitted input has been painted can satisfy its quiet interval
+against the last fully painted frame, and a snapshot taken right after the
+wait returns reflects that lag. Scripts that treat “wait succeeded” as “all
+submitted input is rendered” read a torn, pre-input state.</p>
+<p><strong>Rule until fixed:</strong> do not use <code>wait --stable</code> as the first operation after
+submitting input. Either sleep past observed paint latency (see entry 2) and
+then snapshot, or poll <code>snapshot --json</code> rows for the expected text with
+bounded retries. <code>wait --text</code> is less exposed because its final check matches
+post-input text, but follow it with a short sleep before asserting on the full
+grid.</p>
+<p><strong>Fix direction:</strong> serialize input submit → paint → wait-admission ordering,
+or record the input revision and reject wait admission until it has painted.
+Remove this entry and update <a href="input-wait.html">input-wait.md</a> when fixed.</p>
+<h2 id="2-settle-budgets-measured-latencies-and-recommended-waits"><a class="header" href="#2-settle-budgets-measured-latencies-and-recommended-waits">2. Settle budgets: measured latencies and recommended waits</a></h2>
+<p><strong>Observed:</strong> the Josh REPL renders a line submission in 4–8 ms of paint time,
+but the gap between CLI acknowledgment and the <em>last</em> painted revision can
+exceed 100 ms. Consequently a 100 ms revision quiet bound or a 100 ms sleep
+is <strong>not</strong> a safe settle budget, and tight bounds yield intermittent pre-input
+snapshots under load.</p>
+<p><strong>Rule:</strong> after each input burst, sleep 300–500 ms before asserting on
+<code>snapshot --json</code>, or poll for expected row text with bounded retries
+(10 × 100 ms was robust in the investigation harness). Deterministic PNG
+capture additionally requires the revision-stable, fixed-grid/fixed-palette
+conditions in <a href="screenshots.html">screenshots.md</a>; byte-identical screenshots
+were reproducible under those conditions in the Josh e2e.</p>
+<p><strong>Evidence:</strong> <code>/tmp/josh-repl-test/scen_g.py</code> and <code>scen_g1.py</code>…<code>scen_g4.py</code>
+(driver-settle and polling variants, including the 3/3 wait-stale
+reproduction), plus the investigation report linked above.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../reference/diagnostics.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../agent-terminal/troubleshooting.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../architecture/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../reference/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -211,11 +241,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../reference/diagnostics.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../agent-terminal/troubleshooting.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../architecture/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../reference/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

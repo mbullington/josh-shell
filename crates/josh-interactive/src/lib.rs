@@ -35,22 +35,37 @@ pub struct CompletionContext {
 pub struct CompletionSnapshot {
     pub commands: Arc<BTreeSet<String>>,
     pub variables: Arc<BTreeSet<String>>,
+    pub cwd: Arc<PathBuf>,
 }
 
 impl CompletionSnapshot {
+    /// Build from the *session* shell snapshot: command lookup follows
+    /// mutations of `env.PATH`, variables come from the session environment,
+    /// and relative PATH entries resolve against the session cwd.
     #[must_use]
-    pub fn build(lexical: &[String]) -> Self {
-        Self::build_from_paths(
-            lexical,
-            env::split_paths(&env::var_os("PATH").unwrap_or_default()),
-        )
+    pub fn build(lexical: &[String], snapshot: &josh_runtime::ShellSnapshot) -> Self {
+        let cwd = snapshot.cwd().to_path_buf();
+        let path = snapshot
+            .environment_variable(std::ffi::OsStr::new("PATH"))
+            .unwrap_or_else(|| env::var_os("PATH").unwrap_or_default());
+        let directories = env::split_paths(&path).map(|entry| {
+            if entry.is_absolute() {
+                entry
+            } else {
+                cwd.join(entry)
+            }
+        });
+        Self::build_from_parts(lexical, directories, snapshot.environment().keys(), cwd)
     }
 
-    fn build_from_paths(
+    fn build_from_parts(
         lexical: &[String],
         directories: impl IntoIterator<Item = PathBuf>,
+        environment: impl IntoIterator<Item = impl AsRef<std::ffi::OsStr>>,
+        cwd: PathBuf,
     ) -> Self {
-        let mut commands = BTreeSet::from(["cd".into(), "exit".into(), "status".into()]);
+        let mut commands =
+            BTreeSet::from(["cd".into(), "exit".into(), "fg".into(), "status".into()]);
         for directory in directories {
             if let Ok(entries) = fs::read_dir(directory) {
                 for entry in entries.flatten() {
@@ -63,10 +78,15 @@ impl CompletionSnapshot {
             }
         }
         let mut variables = lexical.iter().cloned().collect::<BTreeSet<_>>();
-        variables.extend(env::vars().map(|(name, _)| name));
+        variables.extend(
+            environment
+                .into_iter()
+                .filter_map(|name| name.as_ref().to_str().map(str::to_owned)),
+        );
         Self {
             commands: Arc::new(commands),
             variables: Arc::new(variables),
+            cwd: Arc::new(cwd),
         }
     }
 }
@@ -192,7 +212,7 @@ impl Completer for JoshCompleter {
                 .filter(|x| x.starts_with(&context.prefix))
                 .cloned()
                 .collect(),
-            CompletionKind::File => file_completions(&context.prefix),
+            CompletionKind::File => file_completions(&context.prefix, &snapshot.cwd),
         };
         values
             .into_iter()
@@ -249,6 +269,7 @@ pub fn run_repl(engine: &mut Engine) -> Result<i32, Box<dyn std::error::Error>> 
     signal_hook::flag::register(signal_hook::consts::SIGINT, Arc::clone(&interrupted))?;
     let snapshot = Arc::new(RwLock::new(Arc::new(CompletionSnapshot::build(
         &engine.variable_names(),
+        &engine.shell_snapshot(),
     ))));
     let history_path = engine
         .environment_variable_os("JOSH_HISTORY")
@@ -305,8 +326,9 @@ pub fn run_repl(engine: &mut Engine) -> Result<i32, Box<dyn std::error::Error>> 
                     Err(error) => print_engine_error(&error),
                 }
                 interrupted.store(false, Ordering::Release);
-                *snapshot.write().expect("completion snapshot lock poisoned") =
-                    Arc::new(CompletionSnapshot::build(&engine.variable_names()));
+                *snapshot.write().expect("completion snapshot lock poisoned") = Arc::new(
+                    CompletionSnapshot::build(&engine.variable_names(), &engine.shell_snapshot()),
+                );
             }
             Signal::CtrlC => {
                 interrupted.store(false, Ordering::Release);
@@ -361,8 +383,17 @@ fn token_style(kind: &TokenKind, mode: LexMode) -> Style {
     }
 }
 
-fn file_completions(prefix: &str) -> Vec<String> {
-    let path = Path::new(if prefix.is_empty() { "." } else { prefix });
+fn file_completions(prefix: &str, cwd: &Path) -> Vec<String> {
+    // Resolve relative prefixes against the session cwd; an empty prefix (or
+    // one whose parent is empty, like `comp_a`) scans the cwd itself.
+    let candidate = if prefix.is_empty() {
+        cwd.join(".")
+    } else if Path::new(prefix).is_absolute() {
+        PathBuf::from(prefix)
+    } else {
+        cwd.join(prefix)
+    };
+    let path = candidate.as_path();
     let (directory, base) = if path.is_dir() {
         (path, "")
     } else {
