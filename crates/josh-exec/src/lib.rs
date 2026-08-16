@@ -91,6 +91,34 @@ impl ExecutionHost for ProcessHost {
         resume_foreground_group(job, cancellation, &context, self.terminal.as_ref())
     }
 
+    #[cfg(unix)]
+    fn teardown_suspended(&mut self, job: &SuspendedJob) {
+        use nix::sys::{
+            signal::{Signal, killpg},
+            wait::{WaitPidFlag, waitpid},
+        };
+        use nix::unistd::Pid;
+
+        let pgid = Pid::from_raw(job.pgid);
+        let _ = killpg(pgid, Signal::SIGHUP);
+        let _ = killpg(pgid, Signal::SIGCONT);
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        let _ = killpg(pgid, Signal::SIGKILL);
+        let drained = std::time::Instant::now() + std::time::Duration::from_secs(1);
+        loop {
+            match waitpid(Pid::from_raw(-pgid.as_raw()), Some(WaitPidFlag::WNOHANG)) {
+                Ok(nix::sys::wait::WaitStatus::StillAlive) => {
+                    if std::time::Instant::now() >= drained {
+                        break; // SIGKILL is a guarantee; this is only a belt-and-braces cap.
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(2));
+                }
+                Ok(_) | Err(nix::errno::Errno::EINTR) => {}
+                Err(_) => break, // ECHILD: the group is fully reaped
+            }
+        }
+    }
+
     fn execute_stream(
         &mut self,
         stages: Vec<StreamStage>,

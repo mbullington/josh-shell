@@ -1,4 +1,5 @@
 use std::{
+    cell::RefCell,
     ffi::OsString,
     fs,
     process::Command,
@@ -13,8 +14,8 @@ use std::{
 use josh_exec::{ProcessHost, plan, run};
 use josh_runtime::{
     CancellationToken, Captured, CommandSpec, Engine, EngineError, ExecutionError, ExecutionHost,
-    ExecutionResult, MaterializationLimit, RunResult, ShellContext, ShellContextError, StreamStage,
-    Value,
+    ExecutionResult, MaterializationLimit, RunResult, ShellContext, ShellContextError,
+    StageOutcome, StreamStage, Value,
 };
 use tempfile::tempdir;
 
@@ -453,6 +454,109 @@ fn file_date_and_math_namespaces_cover_the_flattened_surface() {
             Value::Bool(true),
         ]))
     );
+}
+
+#[test]
+fn suspended_slot_roundtrips_through_fg() {
+    use josh_runtime::SuspendedJob;
+
+    struct MockHost {
+        stopped: Option<SuspendedJob>,
+        resumed: RefCell<Option<i32>>,
+    }
+
+    impl ExecutionHost for MockHost {
+        fn execute(
+            &mut self,
+            commands: Vec<CommandSpec>,
+            capture: bool,
+            _cancellation: CancellationToken,
+            _context: ShellContext,
+        ) -> Result<ExecutionResult, ExecutionError> {
+            assert!(!capture);
+            let argv = commands
+                .into_iter()
+                .map(|command| {
+                    command
+                        .argv
+                        .into_iter()
+                        .map(|arg| String::from_utf8(arg).unwrap())
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                })
+                .collect::<Vec<_>>()
+                .join(" | ");
+            let job = self.stopped.as_ref().expect("one suspension scheduled");
+            return Err(ExecutionError::Stopped(SuspendedJob {
+                description: argv,
+                ..job.clone()
+            }));
+        }
+
+        fn execute_stream(
+            &mut self,
+            _stages: Vec<josh_runtime::StreamStage>,
+            _capture: bool,
+            _cancellation: CancellationToken,
+            _context: ShellContext,
+        ) -> Result<ExecutionResult, ExecutionError> {
+            unreachable!()
+        }
+
+        fn glob(
+            &self,
+            _pattern: &[u8],
+            _context: &ShellContext,
+        ) -> Result<Vec<Vec<u8>>, ExecutionError> {
+            unimplemented!()
+        }
+
+        fn resume_suspended(
+            &mut self,
+            job: &SuspendedJob,
+            _cancellation: CancellationToken,
+            _context: ShellContext,
+        ) -> Result<ExecutionResult, ExecutionError> {
+            *self.resumed.borrow_mut() = Some(job.pgid);
+            Ok(ExecutionResult {
+                outcomes: vec![StageOutcome {
+                    stage: 0,
+                    rendered: job.description.clone(),
+                    code: Some(0),
+                    signal: None,
+                    success: true,
+                }],
+                captured: None,
+            })
+        }
+    }
+
+    let mut engine = Engine::new(MockHost {
+        stopped: Some(SuspendedJob {
+            pgid: 4242,
+            description: "sleep 30".into(),
+            signal: 20,
+        }),
+        resumed: RefCell::new(None),
+    });
+
+    match engine
+        .run_source("sleep 30")
+        .expect("suspension surfaces as a value")
+    {
+        RunResult::Value(Value::String(notice)) => {
+            assert_eq!(notice.as_ref(), "[1] suspended: sleep 30");
+        }
+        other => panic!("unexpected run result: {other:?}"),
+    }
+    match engine.run_source("fg").expect("fg resumes the parked slot") {
+        RunResult::Value(Value::Null) => {}
+        other => panic!("unexpected fg result: {other:?}"),
+    }
+    // `RunResult::Value` variants here are only illustrative: fg maps the
+    // host's outcomes through Completion, so status stays external-command.
+    let error = engine.run_source("fg").unwrap_err().to_string();
+    assert!(error.contains("no suspended job"), "{error}");
 }
 
 #[test]

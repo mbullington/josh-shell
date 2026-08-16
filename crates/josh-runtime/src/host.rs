@@ -227,4 +227,12 @@ pub trait ExecutionHost {
             "suspended jobs are not supported by this host",
         )))
     }
+
+    /// Terminate and reap a suspended foreground pipeline that the shell is
+    /// refusing (a second stop while the slot is occupied) or abandoning
+    /// (shell exit). Bounded: HUP/CONT, a brief grace period, then KILL.
+    /// Must be idempotent for already-reaped groups.
+    fn teardown_suspended(&mut self, job: &SuspendedJob) {
+        let _ = job;
+    }
 }
