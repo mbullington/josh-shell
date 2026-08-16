@@ -282,6 +282,40 @@ fn captured(engine: &mut Engine, pipeline: &str) -> Value {
     )
 }
 
+#[cfg(unix)]
+#[test]
+fn tilde_expands_to_session_home_before_globbing() {
+    let temp = tempdir().unwrap();
+    let context = ShellContext::new(
+        temp.path(),
+        [(OsString::from("HOME"), temp.path().as_os_str().to_owned())],
+    );
+    let mut engine = Engine::with_shell_context(ProcessHost::default(), context);
+    let home = temp.path().to_string_lossy().into_owned();
+
+    fs::write(temp.path().join("data.joshtilde"), "x").unwrap();
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            "result = $(/bin/echo ~ ~/sub ~root \"~\" a~); (result)"
+        ),
+        string(&format!("{home} {home}/sub ~root ~ a~"))
+    );
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            "globbed = $(/bin/echo ~/*.joshtilde); (globbed)"
+        ),
+        string(&format!("{home}/data.joshtilde"))
+    );
+    engine.run_source("cd ~").unwrap();
+    let canonical = temp.path().canonicalize().unwrap();
+    assert_eq!(
+        evaluated(&mut engine, "cwd = $(/bin/pwd); (cwd)"),
+        string(&canonical.to_string_lossy())
+    );
+}
+
 #[test]
 fn environment_namespace_is_dynamic_exported_and_scalar_canonical() {
     let context = ShellContext::from_process();

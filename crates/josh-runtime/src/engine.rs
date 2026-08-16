@@ -902,7 +902,29 @@ impl Engine {
         let mut bytes = Vec::new();
         let mut pattern = Vec::new();
         let mut glob_active = false;
-        for part in &word.parts {
+        for (index, part) in word.parts.iter().enumerate() {
+            let tilde_prefix = index == 0
+                && matches!(
+                    part,
+                    WordPart::Literal {
+                        value,
+                        glob_unquoted: true,
+                        ..
+                    } if value == "~"
+                )
+                && match word.parts.get(1) {
+                    None => true,
+                    Some(WordPart::Literal { value, .. }) => value.starts_with('/'),
+                    Some(_) => false,
+                };
+            if tilde_prefix
+                && let Some(home) = self.context.environment_variable(OsStr::new("HOME"))
+                && let Some(home) = os_string_bytes(home)
+            {
+                bytes.extend(&home);
+                append_glob_literal(&mut pattern, &home);
+                continue;
+            }
             let value = self.eval_word_part(part)?;
             let unquoted = match part {
                 WordPart::Literal { glob_unquoted, .. } => *glob_unquoted,
