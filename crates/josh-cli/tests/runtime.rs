@@ -1137,7 +1137,6 @@ fn structured_graph_validation_precedes_spawn_and_byte_functions_have_a_transfor
 }
 
 #[test]
-#[test]
 fn member_assignment_updates_objects_and_respects_sealed_objects() {
     let mut engine = Engine::new(ProcessHost::default());
     assert_eq!(

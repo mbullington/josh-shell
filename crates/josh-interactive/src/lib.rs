@@ -45,14 +45,16 @@ impl CompletionSnapshot {
     #[must_use]
     pub fn build(lexical: &[String], snapshot: &josh_runtime::ShellSnapshot) -> Self {
         let cwd = snapshot.cwd().to_path_buf();
+        let fallback = env::var_os("PATH").unwrap_or_default();
         let path = snapshot
             .environment_variable(std::ffi::OsStr::new("PATH"))
-            .unwrap_or_else(|| env::var_os("PATH").unwrap_or_default());
-        let directories = env::split_paths(&path).map(|entry| {
+            .unwrap_or(&fallback);
+        let root = cwd.clone();
+        let directories = env::split_paths(path).map(move |entry| {
             if entry.is_absolute() {
                 entry
             } else {
-                cwd.join(entry)
+                root.join(entry)
             }
         });
         Self::build_from_parts(lexical, directories, snapshot.environment().keys(), cwd)
@@ -317,7 +319,10 @@ pub fn run_repl(engine: &mut Engine) -> Result<i32, Box<dyn std::error::Error>> 
             Signal::Success(line) => {
                 interrupted.store(false, Ordering::Release);
                 match engine.run_source(Arc::<str>::from(line)) {
-                    Ok(RunResult::Exit(code)) => return Ok(code),
+                    Ok(RunResult::Exit(code)) => {
+                        engine.finalize_suspended();
+                        return Ok(code);
+                    }
                     Ok(RunResult::Value(value)) => {
                         if value != Value::Null {
                             println!("{value}");
@@ -334,7 +339,10 @@ pub fn run_repl(engine: &mut Engine) -> Result<i32, Box<dyn std::error::Error>> 
                 interrupted.store(false, Ordering::Release);
                 continue;
             }
-            Signal::CtrlD => return Ok(0),
+            Signal::CtrlD => {
+                engine.finalize_suspended();
+                return Ok(0);
+            }
             Signal::HostCommand(_) | Signal::ExternalBreak(_) => continue,
             _ => continue,
         }
@@ -449,9 +457,57 @@ mod tests {
         fs::set_permissions(&executable, fs::Permissions::from_mode(0o700)).unwrap();
         fs::set_permissions(&inert, fs::Permissions::from_mode(0o600)).unwrap();
 
-        let snapshot = CompletionSnapshot::build_from_paths(&[], [directory.path().to_path_buf()]);
+        let snapshot = CompletionSnapshot::build_from_parts(
+            &[],
+            [directory.path().to_path_buf()],
+            std::iter::empty::<String>(),
+            std::env::temp_dir(),
+        );
         assert!(snapshot.commands.contains("runs"));
         assert!(!snapshot.commands.contains("does-not-run"));
+    }
+
+    #[test]
+    fn completion_snapshot_follows_session_path_and_environment() {
+        let directory = tempdir().unwrap();
+        let bin = directory.path().join("bin");
+        fs::create_dir(&bin).unwrap();
+        let command = bin.join("brandnewcmd99");
+        fs::write(&command, "").unwrap();
+        fs::set_permissions(&command, fs::Permissions::from_mode(0o700)).unwrap();
+
+        let context =
+            josh_runtime::ShellContext::new(directory.path().to_path_buf(), std::iter::empty());
+        context
+            .set_environment_variable("PATH", Some(bin.as_os_str().to_owned()))
+            .unwrap();
+        context
+            .set_environment_variable("BRANDNEW_VARIABLE", Some("1".into()))
+            .unwrap();
+        let snapshot = CompletionSnapshot::build(&[], &context.snapshot());
+        assert!(snapshot.commands.contains("brandnewcmd99"));
+        assert!(snapshot.variables.contains("BRANDNEW_VARIABLE"));
+    }
+
+    #[test]
+    fn file_completions_resolve_against_session_cwd() {
+        let directory = tempdir().unwrap();
+        let file = directory.path().join("comp_alpha.txt");
+        fs::write(&file, "").unwrap();
+
+        assert!(
+            super::file_completions("comp_a", directory.path())
+                .into_iter()
+                .any(|value| value == "comp_alpha.txt")
+        );
+        let nested = directory.path().join("nested");
+        fs::create_dir(&nested).unwrap();
+        fs::write(nested.join("unique-nested-file.txt"), "").unwrap();
+        assert!(
+            super::file_completions("nested/uniq", directory.path())
+                .into_iter()
+                .any(|value| value == "nested/unique-nested-file.txt")
+        );
     }
 }
 

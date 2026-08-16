@@ -205,6 +205,14 @@ impl Engine {
         self.context.environment_variable(OsStr::new(name))
     }
 
+    /// Terminate and reap a parked foreground pipeline, if any. Idempotent;
+    /// call paths: `exit`, REPL shutdown, and Ctrl+D.
+    pub fn finalize_suspended(&mut self) {
+        if let Some(job) = self.suspended.take() {
+            self.host.teardown_suspended(&job);
+        }
+    }
+
     pub fn run_source(&mut self, source: impl Into<Arc<str>>) -> Result<RunResult, EngineError> {
         let source = source.into();
         let parsed = parse(source);
@@ -217,7 +225,10 @@ impl Engine {
     pub fn run_program(&mut self, program: &Program) -> Result<RunResult, EngineError> {
         match self.eval_program(program) {
             Ok(value) => Ok(RunResult::Value(value)),
-            Err(Unwind::Exit(code)) => Ok(RunResult::Exit(code)),
+            Err(Unwind::Exit(code)) => {
+                self.finalize_suspended();
+                Ok(RunResult::Exit(code))
+            }
             Err(Unwind::Throw(value)) => Err(EngineError::Uncaught(value)),
             Err(Unwind::Return(_)) => Err(EngineError::InvalidControl("return")),
             Err(Unwind::Break) => Err(EngineError::InvalidControl("break")),
@@ -938,6 +949,15 @@ impl Engine {
         match result {
             Ok(result) => Ok(completion_from_result(result)),
             Err(ExecutionError::Stopped(job)) => {
+                if let Some(existing) = &self.suspended {
+                    // Deterministic policy: refuse a second parked group
+                    // instead of silently replacing (and leaking) the first.
+                    self.host.teardown_suspended(&job);
+                    return Err(type_error(format!(
+                        "foreground slot occupied by `{}`; run fg to finish it before suspending another pipeline",
+                        existing.description
+                    )));
+                }
                 self.suspended = Some(job.clone());
                 Ok(Completion::success(Value::String(Arc::from(format!(
                     "[1] suspended: {}",
