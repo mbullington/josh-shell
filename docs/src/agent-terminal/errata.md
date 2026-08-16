@@ -12,35 +12,31 @@ to follow until it is fixed, and the evidence. Full investigation writeup lives
 outside the book at `docs/repl-integration-investigation.md` (repo root
 relative), with scenarios and harness under `/tmp/josh-repl-test/`.
 
-## 1. A stable wait can satisfy against a pre-input frame
+## 1. (Fixed) Stable waits could satisfy against a pre-input frame
 
-**Affected:** agent-terminal 0.1.0, `agent-terminal wait`.
+**Affected:** agent-terminal development builds before `ec1d958`
+("daemon: gate stable waits on input submission time", 2026-08-16).
 
-**Observed:** `wait --stable` issued immediately after `type`/`key` can succeed
-while the next `snapshot --json` still shows the *pre-input* grid: the typed
-text is absent, the cursor sits at its old position, and the revision has not
-advanced. Reproduced 3/3 against the Josh REPL with 100–200 ms stable
-intervals.
+**Observed:** `wait --stable` issued immediately after `type`/`key` satisfied
+its quiet interval against the last fully painted *pre-input* frame: the
+daemon's stability source (`last_revision_at`) only advanced on PTY reads, so
+an idle session looked quiet the moment the wait was admitted. The next
+`snapshot --json` showed the pre-input grid — typed text absent, cursor at its
+old position. Reproduced 3/3 against the Josh REPL.
 
-**Why it matters:** [input-wait.md](input-wait.md) says PTY reads continue
-while clients wait, but reads are not the same as paints. A wait admitted
-before the submitted input has been painted can satisfy its quiet interval
-against the last fully painted frame, and a snapshot taken right after the
-wait returns reflects that lag. Scripts that treat "wait succeeded" as "all
-submitted input is rendered" read a torn, pre-input state.
-
-**Rule until fixed:** do not use `wait --stable` as the first operation after
-submitting input. Either sleep past observed paint latency (see entry 2) and
-then snapshot, or poll `snapshot --json` rows for the expected text with
-bounded retries. `wait --text` is less exposed because its final check matches
-post-input text, but follow it with a short sleep before asserting on the full
-grid.
-
-**Fix direction:** serialize input submit → paint → wait-admission ordering,
-or record the input revision and reject wait admission until it has painted.
-Remove this entry and update [input-wait.md](input-wait.md) when fixed.
+**Fix:** the session now stamps `last_input_at` after every successful
+`type`/`key` write, and the stability window is measured from
+`max(last_revision_at, last_input_at)`. A wait admitted immediately after
+input cannot satisfy until at least one quiet interval has passed with no new
+input *or* output. Regression: `stable_waits_account_for_recent_input` in
+`tests/cli_smoke.rs` (`type`, `wait --stable 150ms`, assert ≥150 ms elapsed
+and the typed marker visible in the post-wait snapshot), verified live against
+the Josh REPL. On current builds, wait-after-input is safe; scripts may still
+prefer the settle budgets in entry 2 when polling without waits.
 
 ## 2. Settle budgets: measured latencies and recommended waits
+
+Guidance entry; still applies when scripts poll snapshots without `wait`.
 
 **Observed:** the Josh REPL renders a line submission in 4–8 ms of paint time,
 but the gap between CLI acknowledgment and the *last* painted revision can

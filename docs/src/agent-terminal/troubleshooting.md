@@ -12,7 +12,7 @@
 - **Runtime path rejected:** remove symlinks, fix ownership, use 0700 directories, and keep the path short enough for `sockaddr_un`.
 - **Text wait times out:** matching is case-sensitive and limited to current Ghostty-formatted visible text. Inspect the last revision metadata and a JSON snapshot.
 - **Stable wait never completes:** output is still advancing revision. Bound the child or increase the quiet duration and timeout.
-- **Snapshot after a successful stable wait shows pre-input text:** known wait-admission defect; do not wait immediately after submitting input. See the [errata](errata.md) for the settle and polling rules.
+- **Snapshot after a successful stable wait shows pre-input text:** fixed defect in development builds before `ec1d958`; update agent-terminal. See the [errata](errata.md).
 - **Exited child remains listed:** final terminal state is retained by design. Run `close` to remove the session.
 - **Screenshot shows U+FFFD:** the grapheme is absent from the pinned JetBrains Mono faces. Host font fallback is disabled for deterministic output.
 - **Repeated screenshots differ:** wait for a stable revision, keep grid, palette, default colors, and cursor state fixed, and compare commands built from the same lockfile and font assets.

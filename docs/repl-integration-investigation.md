@@ -19,6 +19,11 @@ PNG artifacts in `/tmp/josh-repl-test/artifacts/`.
 > its reserved negative after the fg slot was reverted in josh@df1c73d); the
 > full `scripts/josh-e2e.sh` passes clean end-to-end again.
 >
+> Independent re-verification 2026-08-16: `/tmp/josh-repl-test/verify_b1_b5.py`
+> drives the live REPL through agent-terminal@`ec1d958` (which adds the
+> stable-wait input gate for the wait-stale erratum) — B1–B5 all PASS, and
+> `type` → `wait --stable` → `snapshot` returns the typed input every time.
+>
 > Repro details retained below for regression context.
 
 ### B1. SIGINT cannot interrupt pure-Josh evaluation (REPL hard-hangs)
