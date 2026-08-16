@@ -1,0 +1,55 @@
+# Prototypes and namespaces
+
+<div class="status-coverage">
+
+**Status coverage:** [J-OBJ-001](../status/matrix.md#J-OBJ-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
+
+</div>
+
+<a id="J-OBJ-001"></a>
+## Prototypal method lookup and builtin namespaces <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
+
+**Availability:** Available in the current development snapshot. Evidence: prototype namespace, conversion, member assignment, and cycle-rejection tests.
+
+Josh has no classes or implicit `this`. Objects are ordered key/value maps with an optional prototype link, and method lookup walks: the object's own fields → the object's prototype chain → the value's *type prototype*. A method found on a prototype is called with the receiver passed as the first argument.
+
+<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+
+```josh
+Animal = { legs: 4 }
+Animal.speak = (this) => "legs:" + String(this.legs)
+cat = Object.create(Animal)   # prototype chain, not a copy
+cat.name = "Miso"
+cat.speak()                    # "legs:4" — receiver travels as `this`
+```
+
+Every value has a type prototype the namespaces own: `"text".toUpperCase()` resolves through `String.prototype`, `[1,2].map(...)` through `Array.prototype`, and so on. The namespaces themselves are first-class values:
+
+| Namespace | Surface |
+|---|---|
+| `Object` | `keys`, `entries`, `values`, `create(proto)`, `fromEntries`, `getPrototype`, `setPrototype`, `seal`, `isSealed` |
+| `String` | conversion `String(x)`; `String.prototype`: `at`, `contains`, `startsWith`, `endsWith`, `split`, `replace`, `replaceAll`, `trim`, `toUpperCase`, `toLowerCase` |
+| `Number` | conversion `Number(x)`; `Number.prototype`: `abs`, `ceil`, `floor`, `round`, `norm`; constants `NaN`, `MAX_VALUE`, `MIN_VALUE`, `MAX_INT`, `MIN_INT` |
+| `Boolean` | conversion `Boolean(x)` |
+| `Array` | conversion `Array(x)`; `Array.prototype`: `at`, `contains`, `map`, `filter`, `reduce`, `flat`, `join`, `slice` |
+| `Function` | never callable: constructing functions goes through `=>` |
+| `File` | `exists`, `stat` |
+| `Date` | `now` (epoch milliseconds), `toLocaleString` |
+| `Math` | `abs`, `cbrt`, `ceil`, `exp`, `floor`, `log`, `log2`, `log10`, `max`, `min`, `pow`, `random`, `round`, `sign`, `sqrt`, `trunc`; constants `PI`, `E` |
+
+Rules that stay constant:
+
+- Reading a missing member is `null`, never an error. Typo'd method calls then fail at the call with a "not callable" error pointing at the resolved null.
+- Object literals start with the root prototype shared by all objects, while `Object.create(null)` opts out entirely.
+- `Object.setPrototype` refuses cycles; `Object.seal` prevents adding new keys to that object while existing keys stay writable.
+- `o.name = value` and `o[key] = value` mutate objects in place anywhere an expression position was already a statement; assignments target objects only.
+
+<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+
+```josh
+cfg = { retries: 0 }
+cfg.retries = 3
+cfg["source"] = "user"
+String.prototype.shout = (this) => this.toUpperCase() + "!"
+"ok".shout()                  # "OK!"
+```

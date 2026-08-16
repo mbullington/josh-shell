@@ -11,9 +11,13 @@
 
 **Availability:** Available in Josh 0.1.0. Evidence: UTF-8-safe completion-context tests and Reedline adapter construction.
 
-At a statement or post-pipe command head, completion searches builtins and executable names indexed from PATH. After `$`, it searches Josh bindings and inherited environment names. Elsewhere, it lists matching files and appends `/` to directories. Results are prefix-based, sorted where file traversal permits, capped at 200, and never evaluate source.
+At a statement or post-pipe command head, completion searches builtins and executable names indexed from the session's `env.PATH` — including entries relative to the session cwd — so `cd` and PATH edits apply on the very next Tab. After `$`, it searches Josh bindings and inherited environment names. Elsewhere, it lists matching files and appends `/` to directories. Results are prefix-based, sorted where file traversal permits, capped at 200, and never evaluate source.
 
 The replacement span uses UTF-8 byte offsets. Command/file completions request trailing whitespace; variable completions do not.
+
+### Command-specific completion via carapace
+
+When an external `carapace` binary resolves on PATH, argument completion for an external command asks `carapace <name> _carapace export <name> <args…current-word>` and uses its JSON values (with descriptions, and `nospace` suffixes suppressing the trailing space). Every failure — the binary is absent, a spec for the command does not exist, the call errors, or the answer is empty — falls back silently to native file completion; there are no diagnostics. `JOSH_CARAPACE=0` disables the bridge entirely, and `JOSH_CARAPACE=/path/to/carapace` pins a specific binary. First words that are paths, `$variables`, or assignments never reach carapace.
 
 <a id="J-REPL-004"></a>
 ## Hints and history <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>

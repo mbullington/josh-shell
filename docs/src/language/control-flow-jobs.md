@@ -2,7 +2,7 @@
 
 <div class="status-coverage">
 
-**Status coverage:** [J-RUN-006](../status/matrix.md#J-RUN-006) — **Implemented**; [J-CF-001](../status/matrix.md#J-CF-001) — **Implemented**; [J-JOBS-001](../status/matrix.md#J-JOBS-001) — **Planned**; [J-BG-001](../status/matrix.md#J-BG-001) — **Unresolved**. See [status conventions](../welcome/status-conventions.md).
+**Status coverage:** [J-RUN-006](../status/matrix.md#J-RUN-006) — **Implemented**; [J-EXPR-003](../status/matrix.md#J-EXPR-003) — **Implemented**; [J-CF-001](../status/matrix.md#J-CF-001) — **Implemented**; [J-JOBS-001](../status/matrix.md#J-JOBS-001) — **Planned**; [J-BG-001](../status/matrix.md#J-BG-001) — **Unresolved**. See [status conventions](../welcome/status-conventions.md).
 
 </div>
 
@@ -18,6 +18,20 @@ A parenthesized condition is an expression and uses Josh truthiness. An unparent
 ```josh
 if (3 > 2) { printf 'yes\n' } else { printf 'no\n' }
 if grep -q needle file.txt { printf 'found\n' }
+```
+
+<a id="J-EXPR-003"></a>
+## If and try as expressions <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
+
+**Availability:** Available in the current development snapshot. Evidence: parser tests for expression-position `if`/`try` and runtime tests for produced values.
+
+`if` and `try` produce values wherever an expression is legal: assignment right-hand sides, call arguments, captures, and pipeline sources. The `else` branch is required in expression position, and `try` still requires its `catch` block. As statements they behave exactly as before.
+
+<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+
+```josh
+size_label = if ($total > 1000) { "large" } else { "small" }
+recovered = try { read_config() } catch (e) { defaults }
 ```
 
 <a id="J-CF-001"></a>

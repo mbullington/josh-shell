@@ -2,7 +2,7 @@
 
 <div class="status-coverage">
 
-**Status coverage:** [J-FILES-001](../status/matrix.md#J-FILES-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
+**Status coverage:** [J-FILES-001](../status/matrix.md#J-FILES-001) — **Implemented**; [J-TILDE-001](../status/matrix.md#J-TILDE-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
 
 </div>
 
@@ -49,3 +49,17 @@ files = glob("crates/**/*.rs")
 ```
 
 REPL file completion and execution-time glob expansion are separate features.
+
+<a id="J-TILDE-001"></a>
+## Tilde expansion <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
+
+**Availability:** Available in the current development snapshot. Evidence: lexer and expansion tests for `~` and `~/` at word starts.
+
+An unquoted leading `~` alone or followed by `/` expands to the session's home directory: the session `HOME` when exported, else the per-process home at startup. Other forms (`~user`, `~+`, mid-word tildes) never expand and stay literal text.
+
+<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+
+```josh
+cd ~/Projects
+cfg = "~/config/app.toml"
+```

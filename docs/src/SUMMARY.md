@@ -27,6 +27,7 @@
   - [Capture and pipelines](language/capture-pipelines.md)
   - [Errors](language/errors.md)
   - [Functions, arrows, and UFCS](language/functions.md)
+  - [Prototypes and namespaces](language/prototypes-namespaces.md)
   - [Files, redirections, and globs](language/files.md)
   - [Control flow and jobs](language/control-flow-jobs.md)
   - [Modules and configuration](language/modules-configuration.md)
