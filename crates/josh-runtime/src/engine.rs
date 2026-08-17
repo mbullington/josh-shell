@@ -124,6 +124,13 @@ pub struct Engine {
     host: Box<dyn ExecutionHost>,
     context: ShellContext,
     frames: Vec<Arc<Frame>>,
+    /// Stack of `frames` indices where each active user-function call pushed
+    /// its [captures, locals] pair. Identifier resolution and assignment
+    /// floor at the current base so one function can neither see nor rewrite
+    /// bindings owned by an unrelated calling function. Frames below the
+    /// outermost base are ambient (the script/REPL level) and stay visible
+    /// as a fallback, which is how recursion finds its own global name.
+    call_bases: Vec<usize>,
     execution_cancellation: CancellationToken,
     prototypes: crate::natives::Prototypes,
     /// Canonical paths of `source` files currently being evaluated; a file
@@ -174,6 +181,7 @@ impl Engine {
             host: Box::new(host),
             context,
             frames: vec![Arc::new(root)],
+            call_bases: Vec::new(),
             execution_cancellation,
             prototypes,
             source_stack: Vec::new(),
@@ -649,7 +657,7 @@ impl Engine {
             Some("text") => StreamShape::Text,
             Some("json" | "lines" | "jsonl" | "chunks") => StreamShape::BytesToValues,
             Some(name) if parse_chunks_name(name).is_some() => StreamShape::BytesToValues,
-            Some("map" | "filter") => StreamShape::Function,
+            Some("map" | "filter") => StreamShape::Map,
             Some("take" | "takeLast" | "first" | "collect") => StreamShape::Values,
             Some(name) if matches!(self.resolve_lexical(name), Some(Value::Function(_))) => {
                 StreamShape::Function
@@ -1449,9 +1457,11 @@ impl Engine {
                 body,
                 captures,
             } => {
+                let call_base = self.frames.len();
                 self.frames.push(Arc::clone(captures));
                 self.frames
                     .push(Arc::new(Frame::with_capacity(params.len())));
+                self.call_bases.push(call_base);
                 if let Some(name) = name {
                     let already_bound = self
                         .frames
@@ -1477,6 +1487,7 @@ impl Engine {
                 });
                 self.frames.pop();
                 self.frames.pop();
+                self.call_bases.pop();
                 match result {
                     Err(Unwind::Return(value)) => Ok(value),
                     Err(Unwind::Break) => Err(type_error("break cannot cross a function boundary")),
@@ -1743,10 +1754,22 @@ impl Engine {
     }
 
     fn resolve_lexical(&self, name: &str) -> Option<Value> {
-        self.frames
+        let base = self.call_bases.last().copied().unwrap_or(0);
+        self.frames[base..]
             .iter()
             .rev()
             .find_map(|frame| frame.get(name).cloned())
+            .or_else(|| {
+                let ceiling = self
+                    .call_bases
+                    .first()
+                    .copied()
+                    .unwrap_or(self.frames.len());
+                self.frames[..ceiling]
+                    .iter()
+                    .rev()
+                    .find_map(|frame| frame.get(name).cloned())
+            })
     }
 
     fn resolve_variable(&self, name: &str) -> EvalResult<Value> {
@@ -1778,11 +1801,22 @@ impl Engine {
     }
 
     fn assign(&mut self, name: &str, value: Value) {
-        if let Some(index) = self
-            .frames
+        let base = self.call_bases.last().copied().unwrap_or(0);
+        let existing = self.frames[base..]
             .iter()
             .rposition(|frame| frame.contains_key(name))
-        {
+            .map(|position| base + position)
+            .or_else(|| {
+                let ceiling = self
+                    .call_bases
+                    .first()
+                    .copied()
+                    .unwrap_or(self.frames.len());
+                self.frames[..ceiling]
+                    .iter()
+                    .rposition(|frame| frame.contains_key(name))
+            });
+        if let Some(index) = existing {
             Arc::make_mut(&mut self.frames[index]).insert(name.to_owned(), value);
         } else {
             self.current_frame().insert(name.to_owned(), value);
@@ -1861,6 +1895,7 @@ enum StreamShape {
     Text,
     BytesToValues,
     Function,
+    Map,
     Values,
 }
 
@@ -1873,7 +1908,8 @@ fn stream_shape(stage: &StreamStage) -> StreamShape {
         | StreamStage::Lines
         | StreamStage::JsonLines
         | StreamStage::Chunks(_) => StreamShape::BytesToValues,
-        StreamStage::Function(_) | StreamStage::Map(_) => StreamShape::Function,
+        StreamStage::Function(_) => StreamShape::Function,
+        StreamStage::Map(_) => StreamShape::Map,
         StreamStage::Filter(_)
         | StreamStage::Take(_)
         | StreamStage::TakeLast(_)
@@ -1912,7 +1948,18 @@ fn validate_stream_shapes(shapes: impl IntoIterator<Item = StreamShape>) -> Eval
                 }
                 StreamPort::Values
             }
+            // A bare function stage accepts a value stream (one call per
+            // item) or a byte stream (collects every byte into one Bytes
+            // argument and is called once after upstream closes).
             StreamShape::Function => {
+                if port.is_none() {
+                    return Err(type_error(format!(
+                        "pipeline stage {index} function requires an input stream"
+                    )));
+                }
+                StreamPort::Values
+            }
+            StreamShape::Map => {
                 if port == Some(StreamPort::Bytes) {
                     return Err(type_error(format!(
                         "pipeline stage {index} cannot apply a function to bytes; add `lines`, `jsonl`, `json`, `text`, or `chunks(n)` first"

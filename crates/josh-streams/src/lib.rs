@@ -169,6 +169,7 @@ enum Stage {
     Lines,
     JsonLines,
     Chunks(usize),
+    BytesToFunction(Arc<FunctionValue>),
     Function(Arc<FunctionValue>),
     Map(Arc<FunctionValue>),
     Filter(Arc<FunctionValue>),
@@ -627,10 +628,14 @@ fn resolve(
                 cardinality = Cardinality::Many;
                 (Stage::Chunks(size), Port::Values)
             }
-            PlannedStage::Function(function) => {
-                require_values(index, port)?;
-                (Stage::Function(function), Port::Values)
-            }
+            PlannedStage::Function(function) => match port {
+                Some(Port::Bytes) => {
+                    cardinality = Cardinality::One;
+                    (Stage::BytesToFunction(function), Port::Values)
+                }
+                Some(Port::Values) => (Stage::Function(function), Port::Values),
+                None => return Err(transition_error(index, "stage requires a value stream")),
+            },
             PlannedStage::Map(function) => {
                 require_values(index, port)?;
                 (Stage::Map(function), Port::Values)
@@ -901,6 +906,13 @@ fn run_worker(
                     break;
                 }
             }
+            Ok(())
+        }
+        (Stage::BytesToFunction(function), Input::Bytes(mut input), Output::Values(output)) => {
+            let bytes = read_bounded(&mut input, "function stage input", limits.bytes)?;
+            let value = run_function(function, Value::Bytes(Arc::from(bytes)))
+                .map_err(|error| error.to_string())?;
+            let _ = send_value(&output, value, cancellation, early);
             Ok(())
         }
         (

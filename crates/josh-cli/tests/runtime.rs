@@ -546,7 +546,7 @@ fn value_pipeline_parse_and_eval_errors_are_focused() {
     assert!(
         error
             .to_string()
-            .contains("pipeline stage 0 function requires a value stream"),
+            .contains("pipeline stage 0 function requires an input stream"),
         "{error}"
     );
     let error = engine.run_source("v = [1] | (5)").unwrap_err();
@@ -984,7 +984,7 @@ fn common_methods_conversions_and_typeof_have_stable_nonmutating_results() {
           \"Ab\".toUpperCase(), \"Ab\".toLowerCase(), \
           xs.map(x => x * 2).join(\",\"), xs.filter(x => x > 1).join(\",\"), \
           xs.reduce((sum, x) => sum + x, 0), [1, [2, [3]]].flat(2).join(\"-\"), \
-          xs.slice(1, -1).join(\",\"), xs.includes(2), xs.join(\",\"), \
+          xs[1..-1].join(\",\"), xs.includes(2), xs.join(\",\"), \
           Object.entries({b: 2, a: 1}).length, {\"0\": \"zero\"}[0], xs[-1], \
           typeof {a: 1}, String(2), Number(\"3\"), Number(2.5), Boolean(0)]",
     );
@@ -1051,24 +1051,99 @@ fn typed_unwinding_handles_loops_returns_throws_and_runtime_errors() {
 }
 
 #[test]
-fn structured_graph_validation_precedes_spawn_and_byte_functions_have_a_transformer_hint() {
-    let temp = tempdir().unwrap();
-    let marker = temp.path().join("spawned");
+fn function_scopes_do_not_leak_across_call_frames() {
+    // Regression contract: assignment and identifier reads stop at the current
+    // function boundary. A callee may neither rewrite a caller's parameter (even
+    // over a thrown value) nor read a binding the caller owns, while recursion and
+    // late-bound global functions keep working through the ambient frame window.
     let mut engine = Engine::new(ProcessHost::default());
-    let direct_function = format!(
-        "sh -c 'touch {}; printf value' | (x => x)",
-        marker.display()
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            "fn inner() { kind = \"tainted\"; throw {kind: \"csv\"} }; \
+             fn outer() { return inner() }; \
+             fn holder(f, kind) { caught = try { f(); null } catch (e) { e }; \
+                 return kind + \"/\" + caught.kind }; \
+             [holder(outer, \"clean\")]",
+        ),
+        Value::array(vec![string("clean/csv")])
     );
+    assert!(matches!(
+        engine.run_source(
+            "fn reader() { return caller_only }; \
+             fn supplier() { caller_only = 7; return reader() }; \
+             supplier()"
+        ),
+        Err(EngineError::Undefined { .. })
+    ));
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            "fn fact(n) { if (n <= 1) { return 1 } else { return n * fact(n - 1) } }; \
+             f1 = () => f2(); f2 = () => 39; [fact(5), f1()]",
+        ),
+        Value::array(vec![Value::Int(120), Value::Int(39)])
+    );
+}
+
+#[test]
+fn bytes_to_function_collects_one_bytes_value() {
+    // Contract: a bare function stage with byte input receives every byte as
+    // one Bytes value after upstream closes, always Bytes (never text-fused),
+    // and the pipeline captures exactly the function's return value.
+    let mut engine = Engine::new(ProcessHost::default());
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            "fn seen(input) { return [typeof(input), input.length] }; \
+             [$(printf 'hello\n' | seen), $(printf '' | seen), $(printf '\\377' | seen)]",
+        ),
+        Value::array(vec![
+            Value::array(vec![string("bytes"), Value::Int(6)]),
+            Value::array(vec![string("bytes"), Value::Int(0)]),
+            Value::array(vec![string("bytes"), Value::Int(1)]),
+        ])
+    );
+
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            "fn parse(input) { return {rows: input.length} }; \
+             card = $(printf 'a,b\n1,2\n' | parse); [typeof(card), card.rows]",
+        ),
+        Value::array(vec![string("object"), Value::Int(8)])
+    );
+
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            "fn trim_it(input) { return String(input).trim() }; \
+             down = $(printf 'abc\n' | trim_it | map (s => s + \"!\")); [down]",
+        ),
+        Value::array(vec![string("abc!")])
+    );
+
     let error = engine
-        .run_source(direct_function)
-        .expect_err("bytes to function");
+        .run_source("fn bad(input) { throw 42 }; printf x | bad")
+        .expect_err("throwing function fails the graph");
+    assert!(error.to_string().contains("42"), "{error}");
+
+    let error = engine
+        .run_source("printf x | map (x => x)")
+        .expect_err("map over bytes keeps the transformer hint");
     assert!(
         error
             .to_string()
-            .contains("add `lines`, `jsonl`, `json`, `text`, or `chunks(n)`")
+            .contains("add `lines`, `jsonl`, `json`, `text`, or `chunks(n)`"),
+        "{error}"
     );
-    assert!(!marker.exists());
+}
 
+#[test]
+fn structured_graph_validation_precedes_spawn() {
+    let temp = tempdir().unwrap();
+    let marker = temp.path().join("spawned");
+    let mut engine = Engine::new(ProcessHost::default());
     let invalid_transition = format!(
         "sh -c 'touch {}; printf value' | lines | json",
         marker.display()

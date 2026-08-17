@@ -159,10 +159,6 @@ pub(crate) fn install(frame: &mut Frame) -> Prototypes {
                 native("Array.prototype.join", array_join),
             ),
             (
-                Arc::from("slice"),
-                native("Array.prototype.slice", array_slice),
-            ),
-            (
                 Arc::from("push"),
                 native("Array.prototype.push", array_push),
             ),
@@ -641,40 +637,6 @@ fn array_join(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
         .collect::<EvalResult<Vec<_>>>()?
         .join(separator);
     Ok(Value::String(JoshStr::from(text)))
-}
-
-fn array_slice(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
-    expect_arity("Array.prototype.slice", &args, 1, 3)?;
-    let Value::Array(receiver) = &args[0] else {
-        return Err(type_error(format!(
-            "Array.prototype.slice receiver must be an array, got {}",
-            args[0].type_name()
-        )));
-    };
-    let len =
-        i64::try_from(receiver.len()).map_err(|_| type_error("array is too large to index"))?;
-    let start = args.get(1).map_or(Ok(0), expect_int)?;
-    let end = args.get(2).map_or(Ok(len), expect_int)?;
-    let negative_start = start.clamp(-len, len);
-    let negative_end = end.clamp(-len, len);
-    let start = if negative_start < 0 {
-        negative_start + len
-    } else {
-        negative_start
-    };
-    let end = if negative_end < 0 {
-        negative_end + len
-    } else {
-        negative_end
-    };
-    if start >= end {
-        return Ok(Value::array(Vec::new()));
-    }
-    let (start, end) = (usize::try_from(start), usize::try_from(end));
-    let (Ok(start), Ok(end)) = (start, end) else {
-        return Err(type_error("array is too large to index"));
-    };
-    Ok(Value::array(receiver.slice_range(start, end)))
 }
 
 /// Sort comparator key for the all-numbers arm (total order, NaN pinned).
