@@ -1,0 +1,202 @@
+# ============================================================================
+# csv.josh v0.1 — RFC 4180 CSV parsing in pure Josh
+# purpose:   csv(text) → Array of Objects keyed by the header record;
+#            csvRecords(text) → Array of Arrays (no header handling)
+# usage:     source share/csv.josh
+#            rows = csv($(cat data.csv))    # capture, then call
+#            cat data.csv | text | csv      # explicit pipeline boundary
+#            cat data.csv | csv             # bytes→function collect (current josh)
+# deps:      (library core: none;  csv_selftest: assert.josh)
+# license:   MIT-0 / public domain — no attribution required
+# caveat:    no stability promises; copy this file into your project (stb model)
+#            whole-document parser aimed at REPL-scale inputs; it walks one
+#            String, so very large files want an external tool instead
+# selftest:  csv_selftest() returns true or throws
+# ============================================================================
+#
+# Dialect (RFC 4180):
+# - comma separator only; no delimiter option
+# - "quoted" fields; "" inside quotes is a literal quote; commas and record
+#   separators inside quotes are content
+# - CR, LF, and CRLF all end a record outside quotes
+# - a " is only special at the start of a field; a bare quote in the middle of
+#   an unquoted field is literal text, but any character other than , CR LF or
+#   end-of-input after a field's closing quote is an error
+# - every field value stays a String; callers convert with Number() explicitly
+# - the empty document parses to zero records; a trailing record separator
+#   does not create a phantom record
+# - csv() additionally requires every data record to carry exactly the header
+#   field count (record numbers in errors are 1-based; the header is record 1)
+# - malformed input throws {kind: "csv", message}; Bytes input is decoded with
+#   String() and invalid UTF-8 becomes the same kind
+
+csv_DQ = '"'
+csv_LF = "
+"
+csv_CR = $(printf '\r')
+
+fn csv_text(input) {
+    kind = typeof(input)
+    if (kind === "bytes") {
+        try {
+            return String(input)
+        } catch (problem) {
+            throw {kind: "csv", message: "input is not valid UTF-8"}
+        }
+    }
+    if (kind !== "string") {
+        throw {kind: "csv", message: "csv input must be a string or bytes, got " + kind}
+    }
+    return input
+}
+
+# One record at a time; every record is an Array of String fields.
+fn csv_parse(text) {
+    records = []
+    row = []
+    field = ""
+    inQuotes = false
+    quoted = false
+    quoteStart = 1
+    i = 0
+    n = text.length
+    while (i < n) {
+        ch = text.at(i)
+        if (inQuotes) {
+            if (ch === csv_DQ) {
+                if (text.at(i + 1) === csv_DQ) {
+                    field = field + csv_DQ
+                    i += 2
+                } else {
+                    inQuotes = false
+                    i += 1
+                }
+            } else {
+                field = field + ch
+                i += 1
+            }
+            continue
+        }
+        if (quoted && ch !== "," && ch !== csv_CR && ch !== csv_LF) {
+            throw {kind: "csv", message: "record " + String(records.length + 1) + ": unexpected character after closing quote"}
+        }
+        if (ch === ",") {
+            row.push(field)
+            field = ""
+            quoted = false
+            i += 1
+            continue
+        }
+        if (ch === csv_CR || ch === csv_LF) {
+            row.push(field)
+            records.push(row)
+            row = []
+            field = ""
+            quoted = false
+            i += 1
+            if (ch === csv_CR && text.at(i) === csv_LF) {
+                i += 1
+            }
+            continue
+        }
+        if (ch === csv_DQ && field === "") {
+            inQuotes = true
+            quoted = true
+            quoteStart = records.length + 1
+            i += 1
+            continue
+        }
+        field = field + ch
+        i += 1
+    }
+    if (inQuotes) {
+        throw {kind: "csv", message: "record " + String(quoteStart) + ": unterminated quoted field"}
+    }
+    if (quoted || field !== "" || row.length > 0) {
+        row.push(field)
+        records.push(row)
+    }
+    return records
+}
+
+fn csv(input) {
+    records = csv_parse(csv_text(input))
+    if (records.length === 0) {
+        return []
+    }
+    headers = records[0]
+    result = []
+    r = 1
+    while (r < records.length) {
+        fields = records[r]
+        if (fields.length !== headers.length) {
+            throw {kind: "csv", message: "record " + String(r + 1) + ": expected " + String(headers.length) + " fields, got " + String(fields.length)}
+        }
+        row = {}
+        c = 0
+        while (c < headers.length) {
+            row[headers[c]] = fields[c]
+            c += 1
+        }
+        result.push(row)
+        r += 1
+    }
+    return result
+}
+
+fn csvRecords(input) {
+    return csv_parse(csv_text(input))
+}
+
+fn csv_selftest() {
+    # basics and values-stay-strings
+    rows = csv("name,age
+Ada,36
+Grace,85
+")
+    assert_eq(2, rows.length, "csv rows")
+    assert_eq("Ada", rows[0].name, "csv first name")
+    assert_eq("85", rows[1].age, "csv values never coerce")
+    assert_eq("string", typeof(rows[1].age), "csv value type")
+
+    # quoting: commas, doubled quotes, embedded separators are content
+    q = csvRecords('k
+"x,y","say ""hi""","a
+b"')
+    assert_eq("x,y", q[1][0], "quoted comma")
+    assert_eq('say "hi"', q[1][1], "doubled quote")
+    assert_eq("a
+b", q[1][2], "embedded separator")
+
+    # CR, LF, and CRLF record ends; trailing separator emits no phantom record
+    crlf = csvRecords("a,b" + csv_CR + csv_LF + "1,2" + csv_CR + csv_LF + "tail" + csv_CR + "last")
+    assert_eq(4, crlf.length, "CR/LF record count")
+    assert_eq("tail", crlf[2][0], "CR-only record end")
+    assert_eq("last", crlf[3][0], "unterminated final record")
+
+    # a bare quote mid-field is literal text
+    bare = csvRecords('a"b,c')
+    assert_eq('a"b', bare[0][0], "bare mid-field quote")
+
+    # csv() keyed objects and field-count discipline
+    assert_throws(() => csv("a,b
+1"), "csv", "ragged record errors")
+    assert_throws(() => csv("a
+\"open"), "csv", "unterminated quote errors")
+    assert_throws(() => csvRecords("a
+\"x\"y"), "csv", "junk after closing quote errors")
+
+    # Bytes input decodes; invalid UTF-8 is a csv-kinded error
+    ok = csv($(printf 'x\n1\n'))
+    assert_eq("1", ok[0].x, "bytes input parses")
+    assert_throws(() => csv($(printf '\377')), "csv", "invalid UTF-8 errors")
+
+    # empty input is zero records, not one empty record
+    assert_eq(0, csv("").length, "empty csv")
+    assert_eq(0, csvRecords("").length, "empty csvRecords")
+
+    # dispatch on typeof, like any bytes→function stage consumer
+    assert_throws(() => csv(42), "csv", "non-text input errors")
+
+    return true
+}

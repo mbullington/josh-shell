@@ -11,7 +11,7 @@ if [ ! -x "$JOSH" ]; then
 fi
 
 # Dependency order matters: selftests may rely on earlier libraries.
-libs="assert regex"
+libs="assert regex csv colors"
 for lib in $libs; do
     echo "selftest $lib"
     "$JOSH" --no-config -c "source share/assert.josh; source share/$lib.josh; ${lib}_selftest(); echo \"ok $lib\""

@@ -1,0 +1,146 @@
+# ============================================================================
+# colors.josh v0.1 — ANSI colors and styles as plain Josh values
+# purpose:   wrap text in SGR escape sequences; strip them back off
+# usage:     source share/colors.josh
+#            printf '%s\n' (colors.red("error: ") + colors.bold("disk full"))
+#            printf '%s\n' (colors.fg(196, "256-color")) (colors.rgb(255, 128, 0, "truecolor"))
+#            colors.enabled = false          # obey your users
+# deps:      (library core: none;  colors_selftest: assert.josh)
+# license:   MIT-0 / public domain — no attribution required
+# caveat:    no stability promises; copy this file into your project (stb model)
+#            Decoration applies at call time: set colors.enabled or NO_COLOR
+#            before composing strings. No TTY detection on purpose — josh
+#            scripts run under scripts, CI, and pipes as often as terminals,
+#            so the default is on and the switches are explicit:
+#            NO_COLOR (any non-empty value) or colors.enabled = false.
+#            Decorated strings contain '['; like other computed strings in
+#            josh, pass them to commands quoted (assign first, use "$var")
+#            so glob expansion does not mistake the sequence for a pattern.
+# selftest:  colors_selftest() returns true or throws
+# ============================================================================
+#
+# Members (all non-mutating, one string in, one string out):
+#   colors.reset                       the SGR reset sequence as data
+#   colors.<color>(text)               black red green yellow blue magenta cyan white
+#   colors.bold(text) colors.dim(text) colors.italic(text) colors.underline(text)
+#   colors.fg(n, text) colors.bg(n, text)  256-palette foreground/background
+#   colors.rgb(r, g, b, text)              truecolor foreground
+#   colors.strip(text)                remove ANSI CSI styling sequences
+#   colors.enabled                    master switch (true until set false)
+#
+# Styles compose by nesting: colors.red(colors.bold("hot")). Decorators accept
+# any value; non-strings convert with String(). strip() only removes CSI
+# sequences (ESC [ ... final-byte); a lone ESC or other escape families pass
+# through unchanged.
+
+colors_esc = $(printf '\033')
+
+# Dynamic by design: reads env and colors.enabled at call time, so disabling
+# works even for strings composed by lexically captured closures.
+fn colors_on() {
+    no_color = env.NO_COLOR
+    if (no_color !== null && no_color !== "") {
+        return false
+    }
+    return colors.enabled
+}
+
+fn colors_sgr(code, text) {
+    if (colors_on()) {
+        return colors_esc + "[" + String(code) + "m" + String(text) + colors.reset
+    }
+    return String(text)
+}
+
+fn colors_strip(text) {
+    text = String(text)
+    if (!text.contains(colors_esc)) {
+        return text
+    }
+    out = ""
+    skipping = false
+    i = 0
+    n = text.length
+    while (i < n) {
+        ch = text.at(i)
+        if (skipping) {
+            # CSI final bytes live in "@..~"; anything else keeps the scan going
+            if (ch >= "@" && ch <= "~") {
+                skipping = false
+            }
+            i += 1
+            continue
+        }
+        if (ch === colors_esc && text.at(i + 1) === "[") {
+            skipping = true
+            i += 2
+            continue
+        }
+        out = out + ch
+        i += 1
+    }
+    return out
+}
+
+colors = {
+    reset: colors_esc + "[0m",
+
+    black:   text => colors_sgr(30, text),
+    red:     text => colors_sgr(31, text),
+    green:   text => colors_sgr(32, text),
+    yellow:  text => colors_sgr(33, text),
+    blue:    text => colors_sgr(34, text),
+    magenta: text => colors_sgr(35, text),
+    cyan:    text => colors_sgr(36, text),
+    white:   text => colors_sgr(37, text),
+
+    bold:      text => colors_sgr(1, text),
+    dim:       text => colors_sgr(2, text),
+    italic:    text => colors_sgr(3, text),
+    underline: text => colors_sgr(4, text),
+
+    fg: (n, text) => colors_sgr("38;5;" + String(n), text),
+    bg: (n, text) => colors_sgr("48;5;" + String(n), text),
+    rgb: (r, g, b, text) => colors_sgr("38;2;" + String(r) + ";" + String(g) + ";" + String(b), text),
+
+    strip: text => colors_strip(text),
+
+    enabled: true,
+}
+
+fn colors_selftest() {
+    esc = colors_esc
+    reset = colors.reset
+
+    # happy: named colors, styles, and structured codes
+    assert_eq(esc + "[31m" + "x" + reset, colors.red("x"), "red wraps")
+    assert_eq(esc + "[1m" + "x" + reset, colors.bold("x"), "bold wraps")
+    assert_eq(esc + "[38;5;196m" + "x" + reset, colors.fg(196, "x"), "256-color fg")
+    assert_eq(esc + "[48;5;17m" + "x" + reset, colors.bg(17, "x"), "256-color bg")
+    assert_eq(esc + "[38;2;255;128;0m" + "x" + reset, colors.rgb(255, 128, 0, "x"), "truecolor fg")
+
+    # composition is just nesting; decorators accept non-strings via String()
+    assert_eq(esc + "[31m" + esc + "[1m" + "hot" + reset + reset, colors.red(colors.bold("hot")), "nesting composes")
+    assert_eq(esc + "[32m" + "42" + reset, colors.green(42), "non-string converts")
+
+    # strip round-trips decoration away and leaves plain text alone
+    assert_eq("hot", colors.strip(colors.red(colors.bold("hot"))), "strip nested")
+    assert_eq("plain", colors.strip("plain"), "strip is identity on clean text")
+    lone = "a" + esc + "b"
+    assert_eq(lone, colors.strip(lone), "lone ESC passes through")
+
+    # disable: master switch wins at call time and restores
+    colors.enabled = false
+    assert_eq("x", colors.red("x"), "disabled colors are plain")
+    assert_eq("x", colors.rgb(1, 2, 3, "x"), "disabled rgb is plain")
+    colors.enabled = true
+    assert_eq(esc + "[31m" + "x" + reset, colors.red("x"), "re-enable restores")
+
+    # NO_COLOR (non-empty) wins; empty does not
+    env.NO_COLOR = "1"
+    assert_eq("x", colors.red("x"), "NO_COLOR disables")
+    env.NO_COLOR = ""
+    assert_eq(esc + "[31m" + "x" + reset, colors.red("x"), "empty NO_COLOR ignored")
+
+    return true
+}

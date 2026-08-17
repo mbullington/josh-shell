@@ -20,3 +20,5 @@ They follow https://github.com/nothings/stb conventions adapted to Josh:
 |---|---|
 | `assert.josh` | Assertion helpers with assert-kinded errors: `assert`, `assert_eq`, `assert_ne`, `assert_throws`, and friends. |
 | `regex.josh` | RE2-syntax-subset regular expressions (Thompson NFA / Pike VM) in pure Josh: `regex("a+").test("saa")`. Also the dialect's performance benchmark; its golden output is checked in CI. |
+| `csv.josh` | RFC 4180 CSV into Josh values, comma-only: `csv` (header-keyed objects) and `csvRecords` (array of arrays). Accepts String or Bytes, works as a bare pipeline stage (`cat data.csv | csv`). |
+| `colors.josh` | ANSI colors/styles as plain string-returning functions on a `colors` object; call-time `colors.enabled` switch and NO_COLOR support, plus `colors.strip`. |
