@@ -5,6 +5,11 @@
   "version": "0.1.0",
   "publisher": "josh",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mbullington/josh-shell",
+    "directory": "editors/vscode"
+  },
   "private": true,
   "engines": {
     "vscode": "^1.85.0"

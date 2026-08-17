@@ -5,9 +5,11 @@
 
 **Host command**
 ```sh
-cd /Users/mbullington/Projects/agent-terminal
-scripts/josh-e2e.sh target/debug/agent-terminal /Users/mbullington/Projects/josh-shell/target/debug/josh
+cd agent-terminal
+scripts/josh-e2e.sh target/debug/agent-terminal "$(command -v josh)"
 ```
+
+`agent-terminal` comes from the companion repository (crate `agent-terminal-cli`, binary `agent-terminal`); the scenario accepts any pair of `agent-terminal` and `josh` binaries, from a build tree or `PATH`.
 
 The script creates isolated HOME, XDG config, PATH, runtime, and file roots. `env.josh` and `init.josh` establish shared lexical state and `cfg:env-init>` as the prompt. The 80×24 session exercises:
 

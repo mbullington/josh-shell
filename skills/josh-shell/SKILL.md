@@ -5,7 +5,7 @@ description: Write, edit, and debug Josh scripts (.josh), including share/*.josh
 
 # Josh: the JavaScript Object Shell
 
-Josh is a Unix-first shell with a capable scripting language: tree-walking interpreter in Rust (`crates/josh-*`), documented by the mdBook manual in `docs/src` (rendered HTML committed in `docs/book`, capability ledger `docs/src/status/matrix.md`). The manual is the source of truth; this skill is the fast path. **When code and docs disagree, run the code and believe the run.**
+Josh is a Unix-first shell with a capable scripting language: tree-walking interpreter in Rust (`crates/josh-*`), documented by the mdBook manual in `docs/src` (rendered HTML committed in `docs/book`; planned/unresolved work lives in `docs/src/roadmap/`). The manual is the source of truth; this skill is the fast path. **When code and docs disagree, run the code and believe the run.**
 
 ## Ground rules
 

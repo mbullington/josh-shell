@@ -7,7 +7,8 @@ The repository vendors Ghostty as a git submodule. `build.rs` refuses a missing 
 
 **Host command**
 ```sh
-cd /Users/mbullington/Projects/agent-terminal
+git clone https://github.com/mbullington/agent-terminal
+cd agent-terminal
 git submodule update --init --recursive
 test "$(nix develop -c zig version)" = 0.16.0
 nix develop -c cargo build --locked

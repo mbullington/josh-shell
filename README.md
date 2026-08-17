@@ -41,7 +41,6 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --all-targets
 cargo build --workspace --all-targets
 python3 docs/tools/check-manual.py
-```
 ./scripts/check-share.sh
 ```
 
@@ -49,4 +48,4 @@ python3 docs/tools/check-manual.py
 
 `share/` holds [stb-style](https://github.com/nothings/stb) single-file Josh libraries — public domain (MIT-0), no stability promises, intended to be copied into your own config or project. It ships `assert` (assertion helpers) and `regex` (an RE2-syntax-subset engine in pure Josh, also the language's canonical performance benchmark). See [share/README.md](share/README.md); `scripts/check-share.sh` runs the selftests and the golden-output gate; `scripts/regex-bench.josh` is the repeatable performance harness.
 
-The cross-project proof is `../agent-terminal/scripts/josh-e2e.sh`; it uses an isolated XDG config and fixed 80×24 grid, exercises the implemented language/stream/file surfaces, records semantic JSON and a deterministic PNG, rejects excluded jobs/modules, exits, and proves process/socket/runtime cleanup.
+The cross-project proof lives in the companion [agent-terminal](https://github.com/mbullington/agent-terminal) repository (`scripts/josh-e2e.sh`, expects `agent-terminal` and `josh` binaries); it uses an isolated XDG config and fixed 80×24 grid, exercises the implemented language/stream/file surfaces, records semantic JSON and a deterministic PNG, rejects excluded jobs/modules, exits, and proves process/socket/runtime cleanup.

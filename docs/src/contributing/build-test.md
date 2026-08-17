@@ -6,7 +6,8 @@ Use separate Cargo target directories to run independent checks concurrently. Ot
 
 **Host command**
 ```sh
-cd /Users/mbullington/Projects/josh-shell
+git clone https://github.com/mbullington/josh-shell
+cd josh-shell
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --all-targets
@@ -22,13 +23,14 @@ Ghostty is pinned to revision `d760ee96e54657416eb427b793c7e839f003df7d`, tree `
 
 **Host command**
 ```sh
-cd /Users/mbullington/Projects/agent-terminal
+git clone https://github.com/mbullington/agent-terminal
+cd agent-terminal
 nix develop --no-write-lock-file -c cargo fmt --all -- --check
 nix develop --no-write-lock-file -c cargo clippy --locked --all-targets -- -D warnings
 nix develop --no-write-lock-file -c cargo test --locked --all-targets
 nix develop --no-write-lock-file -c cargo build --locked --all-targets
 scripts/smoke.sh target/debug/agent-terminal
-scripts/josh-e2e.sh target/debug/agent-terminal /Users/mbullington/Projects/josh-shell/target/debug/josh
+scripts/josh-e2e.sh target/debug/agent-terminal "$(command -v josh)"
 ```
 
 The 2026-08-15 verification passed Nix-shell format, warnings-denied Clippy, locked all-target build, 12 unit tests, 4 CLI integration tests, smoke, and the Josh scenario twice. Tests assert linked Ghostty identity, protocol/lifecycle/security boundaries, schema-v2 render facts and malformed-state rejection, response-budget maxima, exact renderer pixels and dimensions, all font faces/cursor variants, OSC 4/10/11/12 colors, DECSCUSR states, omitted screenshot paths, metadata-free encoding, and repeated bytes. The reviewed 128×32 feature fixture has PNG SHA-256 `b1aa287227011a11a50b57dde51d785deac5eaf827cff6a15349a4bc98240c96`. Both Josh runs produced byte-identical repeated renders and the same retained 640×384 RGBA SHA-256 `5956b699529a9d8e3167078e8682339c811c80e7f56cb4d8a69c67abd50d9428`.
@@ -41,12 +43,12 @@ The 2026-08-15 verification passed Nix-shell format, warnings-denied Clippy, loc
 
 **Host command**
 ```sh
-cd /Users/mbullington/Projects/josh-shell
+cd josh-shell
 python3 docs/tools/check-manual.py
 mdbook build docs
 ```
 
-The checker builds a temporary mdBook (when mdbook is on PATH) and inspects all source and generated pages for SUMMARY reachability, links/fragments, fence labeling, literal fences, duplicate IDs, source-to-HTML code-block preservation, extracted runnable examples, and table shape. The persistent build is `docs/book/index.html`; review the retained PNG at `../agent-terminal/target/josh-e2e/screenshot.png`.
+The checker builds a temporary mdBook (when mdbook is on PATH) and inspects all source and generated pages for SUMMARY reachability, links/fragments, fence labeling, literal fences, duplicate IDs, source-to-HTML code-block preservation, extracted runnable examples, and table shape. The persistent build is `docs/book/index.html`; review the retained PNG under `target/josh-e2e/` in the agent-terminal checkout.
 
 Man pages live in `docs/man/*.scd` (scdoc) with the generated roff committed; `scripts/build-man.sh` regenerates and soft-validates them. Keep the man page a summary — the manual remains the language reference.
 

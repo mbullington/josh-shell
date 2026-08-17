@@ -2,3 +2,7 @@
 /.josh_history
 *.swp
 .bb
+
+# Local caches left behind by Nix tooling
+/nix/eval-cache-*
+/nix/fetcher-cache-*
