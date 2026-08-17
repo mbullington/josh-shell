@@ -1463,8 +1463,9 @@ impl Engine {
                             .insert(name.to_string(), Value::Function(Arc::clone(&function)));
                     }
                 }
-                let binding_result = params.iter().enumerate().try_for_each(|(index, pattern)| {
-                    self.bind_pattern(pattern, args.get(index).cloned().unwrap_or(Value::Null))
+                let mut args = args.into_iter();
+                let binding_result = params.iter().try_for_each(|pattern| {
+                    self.bind_pattern(pattern, args.next().unwrap_or(Value::Null))
                 });
                 let result = binding_result.and_then(|()| match &**body {
                     FunctionBody::Expression(expr) => self.eval_expr(expr),
