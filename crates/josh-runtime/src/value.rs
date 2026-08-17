@@ -250,6 +250,14 @@ impl ArrayValue {
             .cloned()
     }
 
+    /// Clone `items[lo..hi]` under a single read lock; bounds must already
+    /// be clamped to the array length.
+    #[must_use]
+    pub fn slice_range(&self, lo: usize, hi: usize) -> Vec<Value> {
+        let items = self.items.read().unwrap_or_else(|error| error.into_inner());
+        items[lo..hi.min(items.len()).max(lo)].to_vec()
+    }
+
     /// Signed-index access (`a[-1]` counts from the end) under one lock.
     #[must_use]
     pub fn get_indexed(&self, index: i64) -> Option<Value> {

@@ -644,7 +644,13 @@ fn array_join(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
 }
 
 fn array_slice(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
-    let receiver = array_receiver("Array.prototype.slice", &args, 0, 2)?;
+    expect_arity("Array.prototype.slice", &args, 1, 3)?;
+    let Value::Array(receiver) = &args[0] else {
+        return Err(type_error(format!(
+            "Array.prototype.slice receiver must be an array, got {}",
+            args[0].type_name()
+        )));
+    };
     let len =
         i64::try_from(receiver.len()).map_err(|_| type_error("array is too large to index"))?;
     let start = args.get(1).map_or(Ok(0), expect_int)?;
@@ -668,7 +674,7 @@ fn array_slice(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
     let (Ok(start), Ok(end)) = (start, end) else {
         return Err(type_error("array is too large to index"));
     };
-    Ok(Value::array(receiver[start..end].to_vec()))
+    Ok(Value::array(receiver.slice_range(start, end)))
 }
 
 /// Sort comparator key for the all-numbers arm (total order, NaN pinned).

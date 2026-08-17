@@ -1579,7 +1579,7 @@ impl Engine {
             }
             Value::Array(items) => {
                 let (lo, hi) = self.eval_slice_bounds(start, end, items.len() as i64)?;
-                Ok(Value::array(items.snapshot()[lo..hi].to_vec()))
+                Ok(Value::array(items.slice_range(lo, hi)))
             }
             Value::Null => Err(type_error("cannot slice null")),
             _ => Err(type_error(format!("cannot slice {}", object.type_name()))),
