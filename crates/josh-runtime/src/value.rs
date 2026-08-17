@@ -4,6 +4,10 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+/// String payload: inline for short strings (no allocation), heap-shared
+/// beyond the inline threshold.
+pub use compact_str::CompactString as JoshStr;
+
 use josh_syntax::{BindingPattern, FunctionBody};
 
 use crate::host::StageOutcome;
@@ -89,7 +93,7 @@ pub enum Value {
     Bool(bool),
     Int(i64),
     Float(f64),
-    String(Arc<str>),
+    String(JoshStr),
     Bytes(Arc<[u8]>),
     Array(Arc<ArrayValue>),
     Object(Arc<ObjectValue>),

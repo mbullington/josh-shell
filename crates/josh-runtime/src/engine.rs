@@ -22,7 +22,9 @@ use crate::{
         CancellationToken, Captured, CommandSpec, ExecutionError, ExecutionHost, ExecutionResult,
         RedirectionSpec, StreamStage,
     },
-    value::{ErrorValue, Frame, FunctionKind, FunctionValue, ObjectValue, StatusValue, Value},
+    value::{
+        ErrorValue, Frame, FunctionKind, FunctionValue, JoshStr, ObjectValue, StatusValue, Value,
+    },
 };
 
 #[derive(Debug, Error)]
@@ -812,7 +814,9 @@ impl Engine {
             Value::Array(values) => values.snapshot(),
             Value::Object(object) => object
                 .iter()
-                .map(|(key, value)| Value::array(vec![Value::String(key), value.clone()]))
+                .map(|(key, value)| {
+                    Value::array(vec![Value::String(JoshStr::from(&*key)), value.clone()])
+                })
                 .collect(),
             value => vec![value],
         };
@@ -952,7 +956,7 @@ impl Engine {
             let args = argv[1..]
                 .iter()
                 .map(|value| match String::from_utf8(value.clone()) {
-                    Ok(text) => Value::String(Arc::from(text)),
+                    Ok(text) => Value::String(JoshStr::from(text)),
                     Err(error) => Value::Bytes(Arc::from(error.into_bytes())),
                 })
                 .collect();
@@ -1186,7 +1190,7 @@ impl Engine {
             Expr::Bool(value, _) => Ok(Value::Bool(*value)),
             Expr::Int(value, _) => Ok(Value::Int(*value)),
             Expr::Float(value, _) => Ok(Value::Float(*value)),
-            Expr::String(value, _) => Ok(Value::String(Arc::from(value.as_str()))),
+            Expr::String(value, _) => Ok(Value::String(JoshStr::from(value.as_str()))),
             Expr::Identifier(name, _) => {
                 self.resolve_expression(name).ok_or_else(|| undefined(name))
             }
@@ -1234,7 +1238,7 @@ impl Engine {
                         .map(Value::Int)
                         .ok_or_else(|| type_error("integer negation overflow")),
                     (UnaryOp::Negate, Value::Float(value)) => Ok(Value::Float(-value)),
-                    (UnaryOp::Typeof, value) => Ok(Value::String(Arc::from(value.type_name()))),
+                    (UnaryOp::Typeof, value) => Ok(Value::String(JoshStr::from(value.type_name()))),
                     (UnaryOp::Negate, _) => Err(type_error("unary `-` requires a number")),
                 }
             }
@@ -1520,8 +1524,8 @@ impl Engine {
             }
             Value::Error(error) => {
                 return Ok(match name {
-                    "kind" => Value::String(Arc::from(error.kind())),
-                    "message" => Value::String(Arc::from(error.message())),
+                    "kind" => Value::String(JoshStr::from(error.kind())),
+                    "message" => Value::String(JoshStr::from(error.message())),
                     "status" => error.status().map_or(Value::Null, |status| {
                         Value::Status(Arc::new(status.clone()))
                     }),
@@ -1582,7 +1586,7 @@ impl Engine {
                 else {
                     return Err(type_error("slice bounds are out of range"));
                 };
-                Ok(Value::String(Arc::from(&text[lo..hi])))
+                Ok(Value::String(JoshStr::from(&text[lo..hi])))
             }
             Value::Array(items) => {
                 let (lo, hi) = self.eval_slice_bounds(start, end, items.len() as i64)?;
@@ -1669,7 +1673,7 @@ impl Engine {
                 Ok(Value::Float(left / right))
             }
             (Value::String(left), BinaryOp::Add, Value::String(right)) => {
-                Ok(Value::String(Arc::from(format!("{left}{right}"))))
+                Ok(Value::String(JoshStr::from(format!("{left}{right}"))))
             }
             (left, BinaryOp::Equal, right) => Ok(Value::Bool(left == right)),
             (left, BinaryOp::NotEqual, right) => Ok(Value::Bool(left != right)),
@@ -1934,7 +1938,7 @@ fn validate_stream_shapes(shapes: impl IntoIterator<Item = StreamShape>) -> Eval
 
 fn completion_from_result(result: ExecutionResult) -> Completion {
     let value = match result.captured {
-        Some(Captured::String(value)) => Value::String(value),
+        Some(Captured::String(value)) => Value::String(JoshStr::from(&*value)),
         Some(Captured::Bytes(value)) => Value::Bytes(value),
         Some(Captured::Value(value)) => value,
         None => Value::Null,
@@ -1966,7 +1970,7 @@ fn status_outcomes_value(status: &StatusValue) -> Value {
                     (Arc::from("stage"), Value::Int(outcome.stage as i64)),
                     (
                         Arc::from("command"),
-                        Value::String(Arc::from(outcome.rendered.as_str())),
+                        Value::String(JoshStr::from(outcome.rendered.as_str())),
                     ),
                     (
                         Arc::from("code"),
@@ -2065,7 +2069,7 @@ fn environment_scalar_os_string(value: &Value) -> EvalResult<OsString> {
         Value::Bool(value) => Ok(value.to_string().into()),
         Value::Int(value) => Ok(value.to_string().into()),
         Value::Float(value) => Ok(value.to_string().into()),
-        Value::String(value) => Ok(OsString::from(value.as_ref())),
+        Value::String(value) => Ok(OsString::from(value.as_str())),
         Value::Bytes(value) => os_string_from_bytes(value.to_vec()).map_err(type_error),
         _ => Err(type_error(format!(
             "{} cannot be exported; expected String, Bytes, Int, Float, Bool, or null",
@@ -2076,7 +2080,7 @@ fn environment_scalar_os_string(value: &Value) -> EvalResult<OsString> {
 
 fn environment_scalar_value(value: OsString) -> Value {
     match value.into_string() {
-        Ok(value) => Value::String(Arc::from(value)),
+        Ok(value) => Value::String(JoshStr::from(value)),
         Err(value) => {
             os_string_bytes(value).map_or(Value::Null, |value| Value::Bytes(Arc::from(value)))
         }
@@ -2175,7 +2179,7 @@ fn append_glob_literal(output: &mut Vec<u8>, value: &[u8]) {
 
 pub(crate) fn bytes_to_value(bytes: Vec<u8>) -> Value {
     match String::from_utf8(bytes) {
-        Ok(text) => Value::String(Arc::from(text)),
+        Ok(text) => Value::String(JoshStr::from(text)),
         Err(error) => Value::Bytes(Arc::from(error.into_bytes())),
     }
 }
@@ -2289,7 +2293,7 @@ pub(crate) fn string_at(value: &str, index: i64) -> Value {
     utf16_floor_byte(value, index as usize)
         .and_then(|byte| value[byte..].chars().next())
         .map_or(Value::Null, |character| {
-            Value::String(Arc::from(character.to_string()))
+            Value::String(JoshStr::from(character.to_string()))
         })
 }
 

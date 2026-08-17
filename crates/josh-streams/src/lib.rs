@@ -19,7 +19,7 @@ use std::{
 
 use josh_runtime::{
     BoundedBytes, CancellationToken, Captured, EngineError, ExecutionError, ExecutionResult,
-    FunctionValue, MAX_CHUNK_SIZE, MAX_MATERIALIZED_BYTES, MAX_MATERIALIZED_ITEMS,
+    FunctionValue, JoshStr, MAX_CHUNK_SIZE, MAX_MATERIALIZED_BYTES, MAX_MATERIALIZED_ITEMS,
     MaterializationLimit, ObjectValue, ShellContext, ShellSnapshot, StageOutcome, Value,
     materialization_limit, read_bounded, value_materialized_bytes, value_materialized_items,
 };
@@ -800,7 +800,7 @@ fn run_worker(
         (Stage::BytesToText, Input::Bytes(mut input), Output::Values(output)) => {
             let bytes = read_bounded(&mut input, "`text` input", limits.bytes)?;
             let value = match String::from_utf8(bytes) {
-                Ok(text) => Value::String(Arc::from(text)),
+                Ok(text) => Value::String(JoshStr::from(text)),
                 Err(error) => Value::Bytes(Arc::from(error.into_bytes())),
             };
             let _ = send_value(&output, value, cancellation, early);
@@ -857,7 +857,7 @@ fn run_worker(
             limits.bytes,
             |line, number| {
                 String::from_utf8(line)
-                    .map(|text| Value::String(Arc::from(text)))
+                    .map(|text| Value::String(JoshStr::from(text)))
                     .map_err(|error| format!("line {number} is not valid UTF-8: {error}"))
             },
         ),
@@ -1312,7 +1312,7 @@ fn from_json(value: JsonValue) -> Result<Value, String> {
                     .map(Value::Float)
             })
             .ok_or_else(|| format!("JSON number {value} is outside Josh's numeric range")),
-        JsonValue::String(value) => Ok(Value::String(Arc::from(value))),
+        JsonValue::String(value) => Ok(Value::String(JoshStr::from(value))),
         JsonValue::Array(values) => {
             let mut converted = Vec::new();
             for value in values {
@@ -1489,7 +1489,7 @@ mod tests {
     };
 
     use josh_runtime::{
-        CancellationToken, Captured, EngineError, ExecutionError, FunctionValue,
+        CancellationToken, Captured, EngineError, ExecutionError, FunctionValue, JoshStr,
         MaterializationLimit, Value,
     };
     use tempfile::tempdir;
@@ -1534,7 +1534,7 @@ mod tests {
             .expect("exact text input");
         assert_eq!(
             text.captured,
-            Some(Captured::Value(Value::String(Arc::from("1234"))))
+            Some(Captured::Value(Value::String(JoshStr::from("1234"))))
         );
         let text_error = run_limited(vec![external("printf 12345"), PlannedStage::Text], 4, 10)
             .expect_err("oversized text input");
@@ -1594,7 +1594,7 @@ mod tests {
         assert_eq!(
             jsonl.captured,
             Some(Captured::Value(Value::array(vec![Value::String(
-                Arc::from("ab")
+                JoshStr::from("ab")
             ),])))
         );
         let jsonl_error = run_limited(
@@ -1613,8 +1613,8 @@ mod tests {
 
         let limits = MaterializationLimits { bytes: 4, items: 2 };
         let mut values = ValueAccumulator::new("values", limits);
-        values.push(Value::String(Arc::from("12"))).unwrap();
-        values.push(Value::String(Arc::from("34"))).unwrap();
+        values.push(Value::String(JoshStr::from("12"))).unwrap();
+        values.push(Value::String(JoshStr::from("34"))).unwrap();
         assert!(matches!(
             values.push(Value::Null),
             Err(ExecutionError::MaterializationLimit {
@@ -1637,7 +1637,7 @@ mod tests {
 
         let mut bytes = ValueAccumulator::new("values", limits);
         assert!(matches!(
-            bytes.push(Value::String(Arc::from("12345"))),
+            bytes.push(Value::String(JoshStr::from("12345"))),
             Err(ExecutionError::MaterializationLimit {
                 boundary: "values",
                 limit: MaterializationLimit::Bytes(4)
@@ -1660,8 +1660,8 @@ mod tests {
         assert_eq!(
             collected.captured,
             Some(Captured::Value(Value::array(vec![
-                Value::String(Arc::from("a")),
-                Value::String(Arc::from("b")),
+                Value::String(JoshStr::from("a")),
+                Value::String(JoshStr::from("b")),
             ])))
         );
         let collect_error = run_limited(
@@ -1696,7 +1696,7 @@ mod tests {
             }
         ));
 
-        let value = Value::array(vec![Value::String(Arc::from("ab"))]);
+        let value = Value::array(vec![Value::String(JoshStr::from("ab"))]);
         assert_eq!(text_bytes(&value, 6).unwrap(), br#"["ab"]"#);
         assert!(matches!(
             text_bytes(&value, 5),

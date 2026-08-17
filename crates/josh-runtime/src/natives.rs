@@ -12,7 +12,7 @@ use crate::engine::{
     Engine, EvalResult, bytes_to_value, expect_arity, expect_int, expect_string, flatten,
     scalar_to_string, sequence_at, string_at, type_error, usize_value,
 };
-use crate::value::{ErrorValue, Frame, FunctionValue, NativeFn, ObjectValue, Value};
+use crate::value::{ErrorValue, Frame, FunctionValue, JoshStr, NativeFn, ObjectValue, Value};
 
 /// Per-engine type prototype values, terminal-rooted at `Object.prototype`.
 pub(crate) struct Prototypes {
@@ -405,7 +405,7 @@ fn string_split(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
     Ok(Value::array(
         parts
             .into_iter()
-            .map(|part| Value::String(Arc::from(part)))
+            .map(|part| Value::String(JoshStr::from(part)))
             .collect(),
     ))
 }
@@ -414,29 +414,29 @@ fn string_replace(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
     let receiver = string_receiver("String.prototype.replace", &args, 2, 2)?;
     let from = expect_string(&args[1])?;
     let to = expect_string(&args[2])?;
-    Ok(Value::String(Arc::from(receiver.replacen(from, to, 1))))
+    Ok(Value::String(JoshStr::from(receiver.replacen(from, to, 1))))
 }
 
 fn string_replace_all(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
     let receiver = string_receiver("String.prototype.replaceAll", &args, 2, 2)?;
     let from = expect_string(&args[1])?;
     let to = expect_string(&args[2])?;
-    Ok(Value::String(Arc::from(receiver.replace(from, to))))
+    Ok(Value::String(JoshStr::from(receiver.replace(from, to))))
 }
 
 fn string_trim(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
     let receiver = string_receiver("String.prototype.trim", &args, 0, 0)?;
-    Ok(Value::String(Arc::from(receiver.trim())))
+    Ok(Value::String(JoshStr::from(receiver.trim())))
 }
 
 fn string_to_upper(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
     let receiver = string_receiver("String.prototype.toUpperCase", &args, 0, 0)?;
-    Ok(Value::String(Arc::from(receiver.to_uppercase())))
+    Ok(Value::String(JoshStr::from(receiver.to_uppercase())))
 }
 
 fn string_to_lower(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
     let receiver = string_receiver("String.prototype.toLowerCase", &args, 0, 0)?;
-    Ok(Value::String(Arc::from(receiver.to_lowercase())))
+    Ok(Value::String(JoshStr::from(receiver.to_lowercase())))
 }
 
 fn string_at_method(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
@@ -640,7 +640,7 @@ fn array_join(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
         .map(scalar_to_string)
         .collect::<EvalResult<Vec<_>>>()?
         .join(separator);
-    Ok(Value::String(Arc::from(text)))
+    Ok(Value::String(JoshStr::from(text)))
 }
 
 fn array_slice(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
@@ -763,7 +763,7 @@ fn object_keys(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
         object
             .snapshot()
             .into_iter()
-            .map(|(key, _)| Value::String(key))
+            .map(|(key, _)| Value::String(JoshStr::from(&*key)))
             .collect(),
     ))
 }
@@ -785,7 +785,7 @@ fn object_entries(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
         object
             .snapshot()
             .into_iter()
-            .map(|(key, value)| Value::array(vec![Value::String(key), value]))
+            .map(|(key, value)| Value::array(vec![Value::String(JoshStr::from(&*key)), value]))
             .collect(),
     ))
 }
@@ -831,7 +831,7 @@ fn object_from_entries(engine: &mut Engine, args: Vec<Value>) -> EvalResult<Valu
         let Value::String(key) = key else {
             return Err(type_error("Object.fromEntries keys must be strings"));
         };
-        object.insert(Arc::clone(key), value.clone());
+        object.insert(Arc::from(key.as_str()), value.clone());
     }
     object.set_prototype(Some(engine.type_prototypes().root.clone()));
     Ok(Value::Object(Arc::new(object)))
@@ -946,7 +946,7 @@ fn file_stat(engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
             Arc::from("size"),
             Value::Int(i64::try_from(metadata.len()).unwrap_or(i64::MAX)),
         ),
-        (Arc::from("kind"), Value::String(Arc::from(kind))),
+        (Arc::from("kind"), Value::String(JoshStr::from(kind))),
         (
             Arc::from("readonly"),
             Value::Bool(metadata.permissions().readonly()),
@@ -978,7 +978,7 @@ fn date_to_locale_string(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<V
     let timestamp = jiff::Timestamp::from_millisecond(milliseconds)
         .map_err(|error| type_error(format!("Date.toLocaleString: {error}")))?;
     let zoned = timestamp.to_zoned(jiff::tz::TimeZone::system());
-    Ok(Value::String(Arc::from(
+    Ok(Value::String(JoshStr::from(
         zoned.strftime("%-m/%-d/%Y, %I:%M:%S %p").to_string(),
     )))
 }

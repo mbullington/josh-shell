@@ -196,6 +196,7 @@ mod tests {
     use crate::{ExecutionError, MaterializationLimit, Value};
 
     use super::{read_bounded, value_materialized_bytes, value_materialized_items};
+    use crate::value::JoshStr;
 
     #[test]
     fn bounded_read_accepts_exact_limit_and_rejects_one_more_byte() {
@@ -218,7 +219,7 @@ mod tests {
     #[test]
     fn value_measurement_stops_at_the_same_exact_byte_boundary() {
         let value = Value::array(vec![
-            Value::String(Arc::from("12")),
+            Value::String(JoshStr::from("12")),
             Value::Bytes(Arc::from(&b"34"[..])),
         ]);
         assert_eq!(value_materialized_bytes(&value, 4), Some(4));

@@ -13,8 +13,8 @@ use std::{
 use josh_exec::{ProcessHost, plan, run};
 use josh_runtime::{
     CancellationToken, Captured, CommandSpec, Engine, EngineError, ExecutionError, ExecutionHost,
-    ExecutionResult, MaterializationLimit, RunResult, ShellContext, ShellContextError, StreamStage,
-    Value,
+    ExecutionResult, JoshStr, MaterializationLimit, RunResult, ShellContext, ShellContextError,
+    StreamStage, Value,
 };
 use tempfile::tempdir;
 
@@ -101,12 +101,15 @@ fn planning_resolves_every_stage_before_side_effects() {
 fn engine_capture_commits_only_on_success() {
     let mut engine = Engine::new(ProcessHost::default());
     let value = engine.run_source("x = $(printf 'hello\n\n')").unwrap();
-    assert_eq!(value, RunResult::Value(Value::String(Arc::from("hello"))));
+    assert_eq!(
+        value,
+        RunResult::Value(Value::String(JoshStr::from("hello")))
+    );
     assert_eq!(
         engine
             .run_source("x = $(printf left |\nprintf right)")
             .unwrap(),
-        RunResult::Value(Value::String(Arc::from("right")))
+        RunResult::Value(Value::String(JoshStr::from("right")))
     );
     let error = engine
         .run_source("y = $(sh -c 'exit 9')")
@@ -172,7 +175,7 @@ fn materialization_overflow_discards_the_capture_assignment() {
     assert!(!engine.variable_names().contains(&"partial".to_owned()));
     assert_eq!(
         engine.run_source("(kept)").unwrap(),
-        RunResult::Value(Value::String(Arc::from("before")))
+        RunResult::Value(Value::String(JoshStr::from("before")))
     );
 }
 
@@ -272,7 +275,7 @@ fn evaluated(engine: &mut Engine, source: &str) -> Value {
 }
 
 fn string(value: &str) -> Value {
-    Value::String(Arc::from(value))
+    Value::String(JoshStr::from(value))
 }
 
 #[test]
@@ -1594,7 +1597,7 @@ fn source_evaluates_in_current_frame_and_guards_cycles() {
     );
     assert_eq!(
         evaluated(&mut engine, "(greeting)"),
-        Value::String(Arc::from("from lib"))
+        Value::String(JoshStr::from("from lib"))
     );
     // Cycles fail instead of recursing forever.
     let Err(EngineError::Type(message)) = engine.run_source("source a.josh") else {
