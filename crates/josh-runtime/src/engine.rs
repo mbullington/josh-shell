@@ -1673,7 +1673,9 @@ impl Engine {
                 Ok(Value::Float(left / right))
             }
             (Value::String(left), BinaryOp::Add, Value::String(right)) => {
-                Ok(Value::String(JoshStr::from(format!("{left}{right}"))))
+                let mut joined = left;
+                joined.push_str(&right);
+                Ok(Value::String(joined))
             }
             (left, BinaryOp::Equal, right) => Ok(Value::Bool(left == right)),
             (left, BinaryOp::NotEqual, right) => Ok(Value::Bool(left != right)),
