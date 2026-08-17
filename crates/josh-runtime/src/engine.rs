@@ -1443,8 +1443,19 @@ impl Engine {
                 self.frames.push(Arc::clone(captures));
                 self.frames.push(Arc::new(Frame::new()));
                 if let Some(name) = name {
-                    self.current_frame()
-                        .insert(name.to_string(), Value::Function(Arc::clone(&function)));
+                    let already_bound = self
+                        .frames
+                        .iter()
+                        .rev()
+                        .find_map(|frame| frame.get(name))
+                        .is_some_and(|binding| match binding {
+                            Value::Function(bound) => Arc::ptr_eq(bound, &function),
+                            _ => false,
+                        });
+                    if !already_bound {
+                        self.current_frame()
+                            .insert(name.to_string(), Value::Function(Arc::clone(&function)));
+                    }
                 }
                 let binding_result = params.iter().enumerate().try_for_each(|(index, pattern)| {
                     self.bind_pattern(pattern, args.get(index).cloned().unwrap_or(Value::Null))
