@@ -1768,7 +1768,11 @@ impl Engine {
     fn snapshot(&self) -> Frame {
         let mut snapshot = Frame::new();
         for frame in &self.frames {
-            snapshot.extend((**frame).clone());
+            snapshot.extend(
+                frame
+                    .iter()
+                    .map(|(name, value)| (name.clone(), value.clone())),
+            );
         }
         snapshot
     }

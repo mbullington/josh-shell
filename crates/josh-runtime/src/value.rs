@@ -8,7 +8,76 @@ use josh_syntax::{BindingPattern, FunctionBody};
 
 use crate::host::StageOutcome;
 
-pub(crate) type Frame = BTreeMap<String, Value>;
+const FRAME_SPILL: usize = 8;
+
+/// Binding frame: linear-scanned pair list until it outgrows `FRAME_SPILL`,
+/// then spills into an ordered map. Most frames (call args, block scopes)
+/// hold only a few names.
+#[derive(Clone)]
+pub(crate) enum Frame {
+    Small(Vec<(String, Value)>),
+    Map(BTreeMap<String, Value>),
+}
+
+impl Frame {
+    pub(crate) fn new() -> Self {
+        Self::Small(Vec::new())
+    }
+
+    pub(crate) fn get(&self, name: &str) -> Option<&Value> {
+        match self {
+            Self::Small(entries) => entries
+                .iter()
+                .rev()
+                .find(|(key, _)| key == name)
+                .map(|(_, value)| value),
+            Self::Map(entries) => entries.get(name),
+        }
+    }
+
+    pub(crate) fn contains_key(&self, name: &str) -> bool {
+        self.get(name).is_some()
+    }
+
+    pub(crate) fn insert(&mut self, name: String, value: Value) {
+        match self {
+            Self::Small(entries) => {
+                if let Some(slot) = entries.iter_mut().rev().find(|(key, _)| *key == name) {
+                    slot.1 = value;
+                } else if entries.len() >= FRAME_SPILL {
+                    let mut map = BTreeMap::from_iter(entries.drain(..));
+                    map.insert(name, value);
+                    *self = Self::Map(map);
+                } else {
+                    entries.push((name, value));
+                }
+            }
+            Self::Map(entries) => {
+                entries.insert(name, value);
+            }
+        }
+    }
+
+    pub(crate) fn extend(&mut self, bindings: impl IntoIterator<Item = (String, Value)>) {
+        for (name, value) in bindings {
+            self.insert(name, value);
+        }
+    }
+
+    pub(crate) fn keys(&self) -> Box<dyn Iterator<Item = &String> + '_> {
+        match self {
+            Self::Small(entries) => Box::new(entries.iter().map(|(name, _)| name)),
+            Self::Map(entries) => Box::new(entries.keys()),
+        }
+    }
+
+    pub(crate) fn iter(&self) -> Box<dyn Iterator<Item = (&String, &Value)> + '_> {
+        match self {
+            Self::Small(entries) => Box::new(entries.iter().map(|(name, value)| (name, value))),
+            Self::Map(entries) => Box::new(entries.iter()),
+        }
+    }
+}
 
 #[derive(Clone)]
 pub enum Value {
