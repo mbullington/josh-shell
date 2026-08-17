@@ -635,7 +635,6 @@ version = "0.1.0"
 dependencies = [
  "josh-exec",
  "josh-interactive",
- "josh-lsp",
  "josh-runtime",
  "mimalloc",
  "nix",

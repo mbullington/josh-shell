@@ -44,6 +44,6 @@ for editor integrations (see editors/vscode/).
 | `josh -V`, `josh --version` | Print `josh 0.1.0`, exit 0 without loading config |
 | `josh lsp` | Serve the errors-only language server over stdin/stdout |
 
-`josh lsp` starts no REPL session, creates no `ProcessHost`, and loads no startup files: stdout carries only Language Server Protocol frames. The server is stateless (full-document sync, parse diagnostics only, no file I/O); closing stdin exits it. The VSCode extension in `editors/vscode/` spawns this subcommand by default.
+`josh lsp` execs the sibling `josh-lsp` binary (found next to the `josh` binary first, then on `PATH`) before any REPL session, `ProcessHost`, or startup file: stdout carries only Language Server Protocol frames. The server is stateless (full-document sync, parse diagnostics only, no file I/O); closing stdin exits it. It is a separate binary because the editor protocol stack's dependencies measurably slow the shell when linked in. The VSCode extension in `editors/vscode/` spawns this subcommand by default.
 
 `-c` accepts no trailing argument. Script mode accepts no positional arguments. Usage/read/startup errors exit 2; parse/runtime errors exit 1; `exit N` returns N within the process exit-code range.

@@ -1,4 +1,6 @@
-use std::{env, ffi::OsString, fs, io, path::PathBuf, process::ExitCode, sync::Arc};
+use std::{
+    env, ffi::OsString, fs, io, path::PathBuf, process::Command, process::ExitCode, sync::Arc,
+};
 
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
@@ -37,12 +39,17 @@ fn run() -> Result<i32, String> {
             println!("josh {}", env!("CARGO_PKG_VERSION"));
             return Ok(0);
         }
-        // The LSP server runs before terminal/ProcessHost setup and startup
-        // files: stdout must carry nothing but protocol frames.
+        // The LSP server is a separate binary so the editor stack's
+        // dependencies never link into the shell (see workspace Cargo.toml).
+        // `josh lsp` execs it for identical UX, before terminal/ProcessHost
+        // setup and startup files: stdout must carry only protocol frames.
         Mode::Lsp => {
-            return josh_lsp::run()
-                .map(|()| 0)
-                .map_err(|error| format!("lsp server failed: {error}"));
+            return exec_lsp_server().map_err(|error| {
+                format!(
+                    "failed to launch the josh-lsp server binary \
+                     (install it next to josh or on PATH): {error}"
+                )
+            });
         }
         _ => {}
     }
@@ -70,6 +77,31 @@ fn run() -> Result<i32, String> {
             run_noninteractive(&mut engine, Arc::<str>::from(source))
         }
         Mode::Help | Mode::Version | Mode::Lsp => unreachable!("handled before startup"),
+    }
+}
+
+/// Run the LSP server binary. It ships as a sibling executable so the
+/// editor protocol stack (tower-lsp/tokio) never links into josh: the shell
+/// binary is layout-sensitive enough that the extra cold code measurably
+/// slows the interpreter hot paths. Prefer the `josh-lsp` binary next to the
+/// current executable (guarantees a version-matched install), then PATH.
+fn exec_lsp_server() -> io::Result<i32> {
+    let program: OsString = env::current_exe()
+        .ok()
+        .and_then(|exe| exe.canonicalize().ok())
+        .map(|exe| exe.with_file_name(format!("josh-lsp{}", env::consts::EXE_SUFFIX)))
+        .filter(|sibling| sibling.is_file())
+        .map(PathBuf::into_os_string)
+        .unwrap_or_else(|| OsString::from("josh-lsp"));
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        Err(Command::new(program).exec())
+    }
+    #[cfg(not(unix))]
+    {
+        let status = Command::new(program).status()?;
+        Ok(status.code().unwrap_or(1))
     }
 }
 

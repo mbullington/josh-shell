@@ -13,8 +13,10 @@ itself (`josh lsp`), so the editor always agrees with the shell.
 
 ## Requirements
 
-The `josh` binary must be on your `PATH` (build it with `cargo build --release`
-in the Josh repo and install or link it somewhere on `PATH`).
+Both `josh` and `josh-lsp` binaries must be on your `PATH` (or `josh-lsp` must
+sit next to `josh`): build both with `cargo build --release --workspace` in
+the Josh repo and install or link them somewhere on `PATH`. `josh lsp` resolves
+the server binary relative to `josh` first, then via `PATH`.
 
 To override how the server starts, set `josh.server.command` to an argv array,
 e.g. `["josh", "lsp"]` (the default) or an absolute path such as

@@ -11,6 +11,11 @@ members = [
 default-members = ["crates/josh-cli"]
 resolver = "3"
 
+# josh-lsp stays a separate binary on purpose: the tower-lsp/tokio/ICU
+# dependency stack adds ~1.6MB of cold code, and linking it into the josh
+# binary erases the PGO layout win (~285ms -> ~395ms bench_total, measured
+# 2026-08-17). `josh lsp` execs the sibling josh-lsp binary instead.
+
 [workspace.package]
 version = "0.1.0"
 edition = "2024"

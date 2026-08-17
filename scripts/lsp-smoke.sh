@@ -5,6 +5,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# `josh lsp` execs the sibling josh-lsp binary; `cargo test` does not prebuild
+# it (no integration test references that bin), so build both explicitly.
+cargo build --quiet -p josh-cli -p josh-lsp
+
 JOSH="${JOSH:-target/debug/josh}"
 if [ ! -x "$JOSH" ]; then
     echo "lsp-smoke: $JOSH not found; run \`cargo build\` first (or set JOSH=/path/to/josh)" >&2

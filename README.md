@@ -11,11 +11,13 @@ cargo run -- script.josh
 cargo run
 ```
 
+The editor language server is a separate binary: `cargo install --path crates/josh-cli` installs `josh`, `cargo install --path crates/josh-lsp` installs `josh-lsp`, and `josh lsp` looks for the server next to the `josh` binary first, then on `PATH`.
+
 Use `--no-config` for reproducible automation. Otherwise Josh runs `$XDG_CONFIG_HOME/josh/env.josh` (or `~/.config/josh/env.josh`) for every session and `init.josh` for interactive sessions. A zero-argument `prompt` function may return the prompt string. `JOSH_HISTORY` selects the history file.
 
 ## Implemented
 
-- Seven-crate workspace: syntax, runtime, process execution, structured streams, interactive editing, errors-only LSP server (`josh lsp`), and CLI composition.
+- Seven-crate workspace: syntax, runtime, process execution, structured streams, interactive editing, errors-only LSP server (separate `josh-lsp` binary, launched via `josh lsp`), and CLI composition.
 - Lossless tolerant parser with strict policy, spans, diagnostics, and Complete/Incomplete/Invalid classification.
 - Null, bool, int, float, string, bytes, array, insertion-ordered object, function, error, and status values.
 - Lexical frames; snapshot closures; declarations/arrows; direct recursion; destructured/rest parameters; calls, members, indexes, spread, finite methods, and lexical UFCS.

@@ -12,7 +12,6 @@ path = "src/main.rs"
 [dependencies]
 josh-exec.workspace = true
 josh-interactive.workspace = true
-josh-lsp.workspace = true
 josh-runtime.workspace = true
 mimalloc = "0.1"
 

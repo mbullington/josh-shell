@@ -12,3 +12,7 @@ tower-lsp = "0.20"
 
 [lints]
 workspace = true
+
+[[bin]]
+name = "josh-lsp"
+path = "src/main.rs"
