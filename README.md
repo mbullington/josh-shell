@@ -15,7 +15,7 @@ Use `--no-config` for reproducible automation. Otherwise Josh runs `$XDG_CONFIG_
 
 ## Implemented
 
-- Six-crate workspace: syntax, runtime, process execution, structured streams, interactive editing, and CLI composition.
+- Seven-crate workspace: syntax, runtime, process execution, structured streams, interactive editing, errors-only LSP server (`josh lsp`), and CLI composition.
 - Lossless tolerant parser with strict policy, spans, diagnostics, and Complete/Incomplete/Invalid classification.
 - Null, bool, int, float, string, bytes, array, insertion-ordered object, function, error, and status values.
 - Lexical frames; snapshot closures; declarations/arrows; direct recursion; destructured/rest parameters; calls, members, indexes, spread, finite methods, and lexical UFCS.
@@ -23,6 +23,7 @@ Use `--no-config` for reproducible automation. Otherwise Josh runs `$XDG_CONFIG_
 - External commands, PATH planning, OS byte pipes, pipefail, capture, redirections, and sorted quote-aware glob expansion.
 - Explicit `text`, `json`, `lines`, `jsonl`, `chunks(n)`, function, `map`, `filter`, `take`, `first`, and `collect` stages with bounded channels and stable capture cardinality.
 - Reedline REPL with continuation, highlighting, completion, hints, history, and configured prompts.
+- VSCode extension (`editors/vscode/`): TextMate highlighting plus live parser diagnostics from `josh lsp`; `npm run package` builds a local `.vsix`.
 
 ## Excluded
 

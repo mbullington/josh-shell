@@ -3,6 +3,7 @@ members = [
     "crates/josh-cli",
     "crates/josh-exec",
     "crates/josh-interactive",
+    "crates/josh-lsp",
     "crates/josh-runtime",
     "crates/josh-streams",
     "crates/josh-syntax",
@@ -18,6 +19,7 @@ license = "MIT"
 [workspace.dependencies]
 josh-exec = { path = "crates/josh-exec" }
 josh-interactive = { path = "crates/josh-interactive" }
+josh-lsp = { path = "crates/josh-lsp" }
 josh-runtime = { path = "crates/josh-runtime" }
 josh-streams = { path = "crates/josh-streams" }
 josh-syntax = { path = "crates/josh-syntax" }
