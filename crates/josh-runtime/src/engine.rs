@@ -1,5 +1,4 @@
 use std::{
-    collections::BTreeMap,
     env,
     ffi::{OsStr, OsString},
     path::PathBuf,
@@ -122,7 +121,7 @@ pub const MAX_CHUNK_SIZE: usize = 64 * 1024;
 pub struct Engine {
     host: Box<dyn ExecutionHost>,
     context: ShellContext,
-    frames: Vec<Frame>,
+    frames: Vec<Arc<Frame>>,
     execution_cancellation: CancellationToken,
     prototypes: crate::natives::Prototypes,
     /// Canonical paths of `source` files currently being evaluated; a file
@@ -172,7 +171,7 @@ impl Engine {
         Self {
             host: Box::new(host),
             context,
-            frames: vec![root],
+            frames: vec![Arc::new(root)],
             execution_cancellation,
             prototypes,
             source_stack: Vec::new(),
@@ -237,7 +236,7 @@ impl Engine {
         let mut names = self
             .frames
             .iter()
-            .flat_map(BTreeMap::keys)
+            .flat_map(|frame| frame.keys())
             .cloned()
             .collect::<Vec<_>>();
         names.extend(self.context.environment_names());
@@ -539,7 +538,7 @@ impl Engine {
     }
 
     fn eval_block(&mut self, program: &Program) -> EvalResult<Value> {
-        self.frames.push(Frame::new());
+        self.frames.push(Arc::new(Frame::new()));
         let result = self.eval_program(program);
         self.frames.pop();
         result
@@ -551,7 +550,7 @@ impl Engine {
         body: &Program,
         value: Value,
     ) -> EvalResult<Value> {
-        self.frames.push(Frame::new());
+        self.frames.push(Arc::new(Frame::new()));
         let result = self
             .bind_pattern(pattern, value)
             .and_then(|()| self.eval_program(body));
@@ -1441,11 +1440,12 @@ impl Engine {
                 body,
                 captures,
             } => {
-                let mut frame = (**captures).clone();
+                self.frames.push(Arc::clone(captures));
+                self.frames.push(Arc::new(Frame::new()));
                 if let Some(name) = name {
-                    frame.insert(name.to_string(), Value::Function(Arc::clone(&function)));
+                    self.current_frame()
+                        .insert(name.to_string(), Value::Function(Arc::clone(&function)));
                 }
-                self.frames.push(frame);
                 let binding_result = params.iter().enumerate().try_for_each(|(index, pattern)| {
                     self.bind_pattern(pattern, args.get(index).cloned().unwrap_or(Value::Null))
                 });
@@ -1453,6 +1453,7 @@ impl Engine {
                     FunctionBody::Expression(expr) => self.eval_expr(expr),
                     FunctionBody::Block(program) => self.eval_program(program),
                 });
+                self.frames.pop();
                 self.frames.pop();
                 match result {
                     Err(Unwind::Return(value)) => Ok(value),
@@ -1749,13 +1750,12 @@ impl Engine {
     }
 
     fn assign(&mut self, name: &str, value: Value) {
-        if let Some(frame) = self
+        if let Some(index) = self
             .frames
-            .iter_mut()
-            .rev()
-            .find(|frame| frame.contains_key(name))
+            .iter()
+            .rposition(|frame| frame.contains_key(name))
         {
-            frame.insert(name.to_owned(), value);
+            Arc::make_mut(&mut self.frames[index]).insert(name.to_owned(), value);
         } else {
             self.current_frame().insert(name.to_owned(), value);
         }
@@ -1764,15 +1764,17 @@ impl Engine {
     fn snapshot(&self) -> Frame {
         let mut snapshot = Frame::new();
         for frame in &self.frames {
-            snapshot.extend(frame.clone());
+            snapshot.extend((**frame).clone());
         }
         snapshot
     }
 
     fn current_frame(&mut self) -> &mut Frame {
-        self.frames
-            .last_mut()
-            .expect("an engine always has a global frame")
+        Arc::make_mut(
+            self.frames
+                .last_mut()
+                .expect("an engine always has a global frame"),
+        )
     }
 }
 
