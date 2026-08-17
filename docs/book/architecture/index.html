@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,10 +175,6 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="architecture-and-security"><a class="header" href="#architecture-and-security">Architecture and security</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-PARSE-001">J-PARSE-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-RUN-003">J-RUN-003</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#AT-PTY-001">AT-PTY-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#AT-SEC-001">AT-SEC-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p>Josh is a six-crate Rust workspace organized by ownership: syntax, runtime/evaluation, process planning, structured streams, Reedline integration, and CLI composition. REPL, <code>-c</code>, scripts, and startup files converge on <code>Engine::run_source</code>; the runtime depends on an execution-host contract rather than OS details.</p>
 <p>agent-terminal is a separate source tree. Each session owns one daemon, PTY master, direct child, and pinned Ghostty terminal. A current-thread event loop serializes terminal access. The typed local protocol returns copied semantic state; the invoking client owns deterministic PNG rendering and file output.</p>
 <p>Security boundaries follow ownership. Josh executes commands with the user’s authority. agent-terminal launches arbitrary local commands and trusts same-user socket clients. Neither product is a sandbox. Planned modules, remote dependencies, background jobs, and network exposure require separate threat-model review.</p>

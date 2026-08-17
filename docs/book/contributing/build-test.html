@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,14 +175,11 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="build-and-test"><a class="header" href="#build-and-test">Build and test</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-CLI-001">J-CLI-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#AT-BUILD-001">AT-BUILD-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p>Use separate Cargo target directories to run independent checks concurrently. Otherwise serialize Cargo commands that share <code>target</code>, and always serialize terminal scripts that own sockets or process lifecycles.</p>
 <h2 id="josh-evidence"><a class="header" href="#josh-evidence">Josh evidence</a></h2>
 <p><strong>Host command</strong></p>
-<pre><code class="language-sh">cd /Users/mbullington/Projects/josh-shell
+<pre><code class="language-sh">git clone https://github.com/mbullington/josh-shell
+cd josh-shell
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --all-targets
@@ -194,24 +190,25 @@ cargo build --workspace --all-targets
 <h2 id="agent-terminal-evidence"><a class="header" href="#agent-terminal-evidence">agent-terminal evidence</a></h2>
 <p>Ghostty is pinned to revision <code>d760ee96e54657416eb427b793c7e839f003df7d</code>, tree <code>6f245f6c192857e1ee69503c20158e9abf583cee</code>, and Zig 0.16.0. The flake supplies matching Cargo, Clippy, and rustfmt packages.</p>
 <p><strong>Host command</strong></p>
-<pre><code class="language-sh">cd /Users/mbullington/Projects/agent-terminal
+<pre><code class="language-sh">git clone https://github.com/mbullington/agent-terminal
+cd agent-terminal
 nix develop --no-write-lock-file -c cargo fmt --all -- --check
 nix develop --no-write-lock-file -c cargo clippy --locked --all-targets -- -D warnings
 nix develop --no-write-lock-file -c cargo test --locked --all-targets
 nix develop --no-write-lock-file -c cargo build --locked --all-targets
 scripts/smoke.sh target/debug/agent-terminal
-scripts/josh-e2e.sh target/debug/agent-terminal /Users/mbullington/Projects/josh-shell/target/debug/josh
+scripts/josh-e2e.sh target/debug/agent-terminal "$(command -v josh)"
 </code></pre>
 <p>The 2026-08-15 verification passed Nix-shell format, warnings-denied Clippy, locked all-target build, 12 unit tests, 4 CLI integration tests, smoke, and the Josh scenario twice. Tests assert linked Ghostty identity, protocol/lifecycle/security boundaries, schema-v2 render facts and malformed-state rejection, response-budget maxima, exact renderer pixels and dimensions, all font faces/cursor variants, OSC 4/10/11/12 colors, DECSCUSR states, omitted screenshot paths, metadata-free encoding, and repeated bytes. The reviewed 128×32 feature fixture has PNG SHA-256 <code>b1aa287227011a11a50b57dde51d785deac5eaf827cff6a15349a4bc98240c96</code>. Both Josh runs produced byte-identical repeated renders and the same retained 640×384 RGBA SHA-256 <code>5956b699529a9d8e3167078e8682339c811c80e7f56cb4d8a69c67abd50d9428</code>.</p>
 <h2 id="cross-product-evidence"><a class="header" href="#cross-product-evidence">Cross-product evidence</a></h2>
 <p><code>scripts/josh-e2e.sh</code> builds an isolated HOME/XDG/PATH/runtime/root and launches Josh at 80×24. Each command must reach a later terminal revision ending at the configured prompt. Side effects distinguish taken command-chain branches from echoed input; exact byte comparisons cover every structured cardinality class, value serialization, all redirections, and complete ordered wildcard/bracket/recursive glob results. The script also checks language/functions/UFCS, semantic styles, deterministic PNG output, and explicit rejection of <code>&amp;</code>, <code>jobs</code>, <code>fg</code>, <code>bg</code>, <code>import</code>, <code>export</code>, and remote import. Final assertions require <code>sessions=[]</code>, no control sockets or temporary runtime, and no producer, external child, Josh, or daemon PID.</p>
 <h2 id="manual-evidence"><a class="header" href="#manual-evidence">Manual evidence</a></h2>
 <p><strong>Host command</strong></p>
-<pre><code class="language-sh">cd /Users/mbullington/Projects/josh-shell
+<pre><code class="language-sh">cd josh-shell
 python3 docs/tools/check-manual.py
 mdbook build docs
 </code></pre>
-<p>The checker builds a temporary mdBook and inspects all source and generated pages for SUMMARY reachability, links/fragments, literal fences, duplicate IDs, source-to-HTML code-block preservation, extracted runnable examples, capability/status drift, matrix provenance, table shape, and status-color contrast. The 2026-08-15 run passed 66 pages and 42 capabilities and extracted 26 runnable fences. The persistent build is <code>docs/book/index.html</code>; review the retained PNG at <code>../agent-terminal/target/josh-e2e/screenshot.png</code>.</p>
+<p>The checker builds a temporary mdBook (when mdbook is on PATH) and inspects all source and generated pages for SUMMARY reachability, links/fragments, fence labeling, literal fences, duplicate IDs, source-to-HTML code-block preservation, extracted runnable examples, and table shape. The persistent build is <code>docs/book/index.html</code>; review the retained PNG under <code>target/josh-e2e/</code> in the agent-terminal checkout.</p>
 <p>Man pages live in <code>docs/man/*.scd</code> (scdoc) with the generated roff committed; <code>scripts/build-man.sh</code> regenerates and soft-validates them. Keep the man page a summary — the manual remains the language reference.</p>
 <p><code>scripts/check-share.sh</code> runs the <code>share/*.josh</code> selftests and the regex golden-output gate; <code>scripts/regex-bench.josh</code> prints the fixed-corpus performance table used by interpreter-optimization work (timings vary; the <code>hits</code> checksum column must not).</p>
 

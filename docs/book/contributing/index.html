@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,15 +175,10 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="contributor-guide"><a class="header" href="#contributor-guide">Contributor guide</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> This page makes no product-availability claims. Contributor procedures preserve capability statuses and evidence.</p>
-</div>
-
 <p>Contributors work across two source trees and one manual:</p>
 <ul>
-<li><code>/Users/mbullington/Projects/josh-shell</code>: Josh Rust source, tests, and <code>docs/</code>.</li>
-<li><code>/Users/mbullington/Projects/agent-terminal</code>: separate PTY/VT automation source.</li>
-<li><code>docs/src/status/matrix.md</code>: authoritative capability ledger.</li>
+<li><a href="https://github.com/mbullington/josh-shell"><code>josh-shell</code></a> (this repository): Josh Rust source, tests, and <code>docs/</code>.</li>
+<li><a href="https://github.com/mbullington/agent-terminal"><code>agent-terminal</code></a>: separate PTY/VT automation source. Its <code>agent-terminal-cli</code> crate provides the <code>agent-terminal</code> binary.</li>
 </ul>
 <p>Do not edit Rust while performing documentation-only work. Before promoting a capability, exercise its closest real entry point. A build or source review is not runtime evidence.</p>
 

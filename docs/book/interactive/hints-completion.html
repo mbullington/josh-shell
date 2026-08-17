@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,20 +175,14 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="hints-history-and-completion"><a class="header" href="#hints-history-and-completion">Hints, history, and completion</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-REPL-003">J-REPL-003</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-REPL-004">J-REPL-004</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p><a id="J-REPL-003"></a></p>
-<h2 id="completion-implemented"><a class="header" href="#completion-implemented">Completion <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: UTF-8-safe completion-context tests and Reedline adapter construction.</p>
+<h2 id="completion"><a class="header" href="#completion">Completion</a></h2>
 <p>At a statement or post-pipe command head, completion searches builtins and executable names indexed from the session’s <code>env.PATH</code> — including entries relative to the session cwd — so <code>cd</code> and PATH edits apply on the very next Tab. After <code>$</code>, it searches Josh bindings and inherited environment names. Elsewhere, it lists matching files and appends <code>/</code> to directories. Results are prefix-based, sorted where file traversal permits, capped at 200, and never evaluate source.</p>
 <p>The replacement span uses UTF-8 byte offsets. Command/file completions request trailing whitespace; variable completions do not.</p>
 <h3 id="command-specific-completion-via-carapace"><a class="header" href="#command-specific-completion-via-carapace">Command-specific completion via carapace</a></h3>
 <p>When an external <code>carapace</code> binary resolves on PATH, argument completion for an external command asks <code>carapace &lt;name&gt; export &lt;name&gt; &lt;args…current-word&gt;</code> and uses its JSON values (with descriptions, and <code>nospace</code> suffixes suppressing the trailing space). Every failure — the binary is absent, a spec for the command does not exist, the call errors, or the answer is empty — falls back silently to native file completion; there are no diagnostics. <code>JOSH_CARAPACE=0</code> disables the bridge entirely, and <code>JOSH_CARAPACE=/path/to/carapace</code> pins a specific binary. First words that are paths, <code>$variables</code>, or assignments never reach carapace.</p>
 <p><a id="J-REPL-004"></a></p>
-<h2 id="hints-and-history-implemented"><a class="header" href="#hints-and-history-implemented">Hints and history <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: Reedline is configured with <code>FileBackedHistory</code> and <code>DefaultHinter</code>.</p>
+<h2 id="hints-and-history"><a class="header" href="#hints-and-history">Hints and history</a></h2>
 <p>Prefix hints come from up to 1,000 plain file-backed history entries. Set <code>JOSH_HISTORY</code> to select a path. Otherwise Josh uses <code>$HOME/.josh_history</code>, falling back to <code>.josh_history</code> in the current directory when HOME is absent.</p>
 <p>There is no SQLite database, remote sync, history schema, or semantic ranking in this slice. Treat the history file as sensitive because commands may contain paths or literal data.</p>
 

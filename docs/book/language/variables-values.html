@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,31 +175,24 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="variables-environment-and-values"><a class="header" href="#variables-environment-and-values">Variables, environment, and values</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-RUN-005">J-RUN-005</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-ENV-001">J-ENV-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-ENV-002">J-ENV-002</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p><a id="J-RUN-005"></a></p>
-<h2 id="bindings-and-assignment-implemented"><a class="header" href="#bindings-and-assignment-implemented">Bindings and assignment <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: lexical-frame, destructuring, assignment, closure, and capture-commit tests.</p>
+<h2 id="bindings-and-assignment"><a class="header" href="#bindings-and-assignment">Bindings and assignment</a></h2>
 <p><code>let</code> binds in the current lexical frame. Plain assignment updates the nearest visible binding or creates one in the current frame. <code>+=</code> and <code>-=</code> apply the corresponding checked operator. Blocks create child frames. A failed right-hand capture does not commit assignment.</p>
 <p>Array/object destructuring is available in <code>let</code> and function parameters, including nested and trailing rest patterns. Destructuring assignment is not implemented.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">let {name, ...rest} = {name: "Josh", version: 1}
 let [first, ...tail] = [1, 2, 3]
 </code></pre>
 <p><a id="J-ENV-001"></a></p>
-<h2 id="environment-fallback-implemented"><a class="header" href="#environment-fallback-implemented">Environment fallback <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: interpolation resolves lexical bindings before inherited environment variables.</p>
+<h2 id="environment-fallback"><a class="header" href="#environment-fallback">Environment fallback</a></h2>
 <p><a id="environment-boundary"></a>
 In <code>$NAME</code> command/string interpolation, Josh checks lexical bindings, then the session environment (the inherited process environment plus any <code>env</code> mutations). Plain assignment does not export.</p>
 <p><a id="J-ENV-002"></a></p>
-<h2 id="the-env-namespace-implemented"><a class="header" href="#the-env-namespace-implemented">The <code>env</code> namespace <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: <code>environment_namespace_is_dynamic_exported_and_scalar_canonical</code>, <code>environment_bytes_path_views_and_validation_preserve_os_values</code>, and <code>startup_environment_mutation_persists_for_path_lookup_and_children</code>.</p>
+<h2 id="the-env-namespace"><a class="header" href="#the-env-namespace">The <code>env</code> namespace</a></h2>
 <p><code>env.NAME</code> reads and writes the session environment; writes stay scoped to the shell’s snapshot (no process-global <code>setenv</code>), and child pipeline processes inherit the member state at spawn. Values are text-centric: reads decode lossy, invalid UTF-8 preserved through the bytes view. Closures read <code>env</code> dynamically, so a later write is visible inside previously created functions. <code>env</code> cannot be shadowed by lexical bindings of the same name.</p>
 <p>PATH is first-class: <code>env.PATH</code> reads the PATH string; <code>env.PATH</code> exposes an array view of one entry per path segment when assigned an array (and PATH lookups, completion, and <code>cd</code> all follow it). Startup <code>env.josh</code> mutations (for example <code>env.PATH = env.PATH + [someDir]</code>, <code>env.EDITOR = ...</code>) persist for both command resolution and child processes. Plain <code>let</code>/assignment never exports.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">env.FOO = "visible to children"
 </code></pre>

@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,24 +175,19 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="change-grammar-or-runtime-behavior"><a class="header" href="#change-grammar-or-runtime-behavior">Change grammar or runtime behavior</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> This page makes no product-availability claims. It defines review procedure for status-bearing code changes.</p>
-</div>
-
 <h2 id="grammar-changes"><a class="header" href="#grammar-changes">Grammar changes</a></h2>
 <p>Start with the source distinction the grammar must preserve. Update token kinds/modes, AST variants, parser production, recovery ownership, completeness, diagnostics, and statement-head goldens together. Verify token spans still partition Unicode source and strict policy still returns the tolerant parse’s storage.</p>
 <p>Add a test only for a concrete regression: ambiguity, delimiter ownership, EOF classification, stable diagnostic, or lossless span invariant. Do not add a second tokenizer or runtime-dependent parse fallback.</p>
 <h2 id="runtime-and-pipeline-changes"><a class="header" href="#runtime-and-pipeline-changes">Runtime and pipeline changes</a></h2>
 <p>Define value shape, ownership, and process boundary before execution logic. Planning must reject unsupported stage classes and resolve every external executable before spawning. Preserve ordered outcomes and terminate/reap partial starts.</p>
-<p>For structured streams, define each byte/value transition and capture cardinality explicitly. Split the capability row when a transition can be delivered or verified independently; do not fake a transformer by JSON-detecting behind unrelated syntax.</p>
+<p>For structured streams, define each byte/value transition and capture cardinality explicitly; do not fake a transformer by JSON-detecting behind unrelated syntax.</p>
 <h2 id="documentation-co-change-points"><a class="header" href="#documentation-co-change-points">Documentation co-change points</a></h2>
-<p>A status transition changes exactly these linked facts:</p>
+<p>A behavior change updates the linked facts in one pass:</p>
 <ol>
-<li>one matrix row, including revision and evidence;</li>
-<li>one anchored capability block and availability sentence;</li>
-<li>adjacent example/evidence;</li>
-<li>roadmap view when the old/new status appears there;</li>
-<li>affected SUMMARY placement only when reader navigation changes.</li>
+<li>the affected manual section and its prose;</li>
+<li>adjacent examples, re-run against the build;</li>
+<li>roadmap views when the capability appears there;</li>
+<li>SUMMARY placement only when reader navigation changes.</li>
 </ol>
 <p>Run the checker after any heading, anchor, link, or code-fence edit.</p>
 

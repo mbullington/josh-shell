@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,10 +175,6 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="verified-010-scope"><a class="header" href="#verified-010-scope">Verified 0.1.0 scope</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-CLI-001">J-CLI-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-STRUCT-001">J-STRUCT-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-FILES-001">J-FILES-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-CF-001">J-CF-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-FUNC-001">J-FUNC-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-CONFIG-001">J-CONFIG-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#AT-PNG-001">AT-PNG-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p>Josh 0.1.0 now verifies the six-crate workspace end to end: one lossless parser across tolerant interaction and strict execution; lexical data/functions and UFCS; typed non-job control flow; planned external execution; explicit byte/value streams with stable cardinality and bounded cancellation; redirections and sorted globs; dedicated startup scripts; and Reedline interaction.</p>
 <p>agent-terminal 0.1.0 verifies a detached daemon per session, real PTY, pinned static <code>libghostty-vt</code>, typed NDJSON protocol, semantic schema, input/wait/resize/lifecycle operations, and deterministic client-side PNG rendering from copied semantic state. The isolated-XDG 80×24 scenario drives the complete Josh capability set, checks excluded surfaces, compares repeated 640×384 PNG bytes, exits, closes, and directly proves PID/socket/runtime cleanup.</p>
 <p>The canonical Nix development shell completed format, warnings-denied Clippy, locked tests, locked builds, smoke, and the complete scenario with matching Rust tooling. Remaining limits are deliberate: raw byte capture is whole-buffer; unsupported glyphs render as U+FFFD; lifecycle cleanup is not hostile-process containment; and Jobs, modules, and general source loading are unavailable.</p>

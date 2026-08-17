@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,13 +175,8 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="files-redirections-and-globs"><a class="header" href="#files-redirections-and-globs">Files, redirections, and globs</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-FILES-001">J-FILES-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-TILDE-001">J-TILDE-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p><a id="J-FILES-001"></a></p>
-<h2 id="redirections-and-glob-expansion-implemented"><a class="header" href="#redirections-and-glob-expansion-implemented">Redirections and glob expansion <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: descriptor-order, pre-spawn validation, glob policy, and cross-product tests.</p>
+<h2 id="redirections-and-glob-expansion"><a class="header" href="#redirections-and-glob-expansion">Redirections and glob expansion</a></h2>
 <p>Redirections attach to the external command stage they follow:</p>
 <div class="table-wrapper">
 <table>
@@ -203,14 +197,14 @@
 <p>Descriptor actions apply left to right, so <code>&gt; file 2&gt;&amp;1</code> sends both streams to the file while <code>2&gt;&amp;1 &gt; file</code> leaves stderr on the stdout destination that existed before the file redirect.</p>
 <p>Josh first evaluates every stage, expands argv/globs, and resolves every external executable. It then opens redirection files in stage and source order. Only after all preflight succeeds does any command spawn. Preflight is not a filesystem transaction: an earlier output may already be created or truncated when a later open fails.</p>
 <p>A target must evaluate to exactly one path. Array/object targets error. An unquoted glob target is allowed only when it matches exactly one path; zero matches is a glob error and multiple matches violate the one-path rule. Redirections on <code>cd</code>, <code>exit</code>, lexical functions, or in-shell transformer stages are unsupported.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">sh -c 'printf out; printf err &gt;&amp;2' &gt; output.txt 2&gt;&amp;1
 sh -c 'printf out; printf err &gt;&amp;2' 2&gt;&amp;1 &gt; stdout-only.txt
 </code></pre>
 <p>Unquoted command words expand <code>*</code>, <code>?</code>, bracket classes, and <code>**</code> before invocation. Matching is case-sensitive; path separators and leading dots must be matched literally. Results sort by path bytes, and each match becomes one argv item without word splitting. No match is an error. Quotes and backslash escapes suppress the quoted/escaped metacharacters while leaving other unquoted metacharacters active.</p>
 <p><code>glob(pattern)</code> accepts one String, applies the same matching, sorting, and no-match policy, and returns an Array of String paths on valid UTF-8 platforms or Bytes where a Unix path is not valid UTF-8.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">printf '%s\n' **/*.md
 printf '%s\n' '*.md'
@@ -218,10 +212,9 @@ files = glob("crates/**/*.rs")
 </code></pre>
 <p>REPL file completion and execution-time glob expansion are separate features.</p>
 <p><a id="J-TILDE-001"></a></p>
-<h2 id="tilde-expansion-implemented"><a class="header" href="#tilde-expansion-implemented">Tilde expansion <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in the current development snapshot. Evidence: lexer and expansion tests for <code>~</code> and <code>~/</code> at word starts.</p>
+<h2 id="tilde-expansion"><a class="header" href="#tilde-expansion">Tilde expansion</a></h2>
 <p>An unquoted leading <code>~</code> alone or followed by <code>/</code> expands to the session’s home directory: the session <code>HOME</code> when exported, else the per-process home at startup. Other forms (<code>~user</code>, <code>~+</code>, mid-word tildes) never expand and stay literal text.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">cd ~/Projects
 cfg = "~/config/app.toml"

@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,13 +175,8 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="agent-terminal-security"><a class="header" href="#agent-terminal-security">agent-terminal security</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#AT-SEC-001">AT-SEC-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#AT-LIFE-001">AT-LIFE-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p><a id="AT-SEC-001"></a></p>
-<h2 id="local-trust-boundary-implemented"><a class="header" href="#local-trust-boundary-implemented">Local trust boundary <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in agent-terminal 0.1.0. Evidence: the real CLI smoke test asserts owner-only runtime/session directories and control sockets.</p>
+<h2 id="local-trust-boundary"><a class="header" href="#local-trust-boundary">Local trust boundary</a></h2>
 <p>Launching a command grants ordinary local code-execution authority. agent-terminal is not a sandbox. Never expose its control socket through TCP, a web service, or an untrusted same-user boundary.</p>
 <p>The runtime directory comes from explicit <code>AGENT_TERMINAL_RUNTIME_DIR</code>, then <code>$XDG_RUNTIME_DIR/agent-terminal</code>, then a short <code>$TMPDIR/agent-terminal-$UID</code> path. Runtime and session directories must be real owner-owned 0700 directories, not symlinks; sockets and metadata are 0600. Socket paths are length-checked.</p>
 <p>Protocol versioning prevents accidental schema confusion but does not authenticate beyond filesystem permissions. Requests are capped at 1 MiB and responses at 16 MiB. Grids are capped at 300 columns, 200 rows, and 20,000 cells; style tables at 1,024 unique entries; hyperlinked cells at 1,024; graphemes at 256 bytes; hyperlinks at 2,048 bytes; formatter text at 256 KiB; and all snapshot strings at 512 KiB aggregate. These limits fit the response budget by construction. Borrowed Ghostty data is copied before mutation or await. Clients validate request IDs, handshake session/Ghostty identity, snapshot session/schema, complete row-major coverage, cursor and wide-cell invariants, and all bounds before allocating at most 10,240,000 raw RGBA bytes. Malformed state is rejected rather than clamped or painted.</p>

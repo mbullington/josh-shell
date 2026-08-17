@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,12 +175,8 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="commands-and-expressions"><a class="header" href="#commands-and-expressions">Commands and expressions</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-PARSE-002">J-PARSE-002</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-EXPR-001">J-EXPR-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-CF-001">J-CF-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p>At statement position, <code>printf hello</code> is a command: every bare word is argv text. <code>(20 + 22)</code> begins an expression. Assignment also selects expression mode for its right-hand side.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">josh&gt; total = 20 + 22
 42
@@ -191,7 +186,7 @@ josh&gt; printf '%s\n' (total * 2)
 <p>Whitespace matters in the second command. A parenthesized expression preceded by whitespace supplies one command argument. By contrast, <code>name(1)</code> is an implemented function call because the parenthesis is adjacent.</p>
 <p>Expression mode evaluates Null, booleans, numbers, strings, arrays, objects, functions, member/index access, calls, spread, ternary expressions, unary <code>!</code> and <code>-</code>, arithmetic, ordering, strict equality, and short-circuit <code>&amp;&amp;</code>/<code>||</code>. Expression <code>&amp;&amp;</code> and <code>||</code> return one operand according to truthiness.</p>
 <p>At command level, <code>&amp;&amp;</code> and <code>||</code> form a status chain rather than argv. They run the right pipeline after success or failure respectively. A completed nonzero status is handled by the chain; lookup, interpolation, spawn, and type errors still propagate.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">josh&gt; sh -c 'exit 7' || printf 'recovered\n'
 recovered

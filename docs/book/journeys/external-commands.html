@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,15 +175,10 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="run-external-programs"><a class="header" href="#run-external-programs">Run external programs</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-RUN-001">J-RUN-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-ARGV-001">J-ARGV-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p><a id="J-RUN-001"></a></p>
-<h2 id="external-command-execution-implemented"><a class="header" href="#external-command-execution-implemented">External command execution <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: <code>command_and_script_modes_share_observable_behavior</code> and process planner tests.</p>
+<h2 id="external-command-execution"><a class="header" href="#external-command-execution">External command execution</a></h2>
 <p>A command name containing a path separator resolves directly and must name an executable file. Other names search inherited <code>PATH</code> in order. Josh resolves all stages before starting a pipeline.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">josh&gt; /usr/bin/printf '%s\n' direct
 direct

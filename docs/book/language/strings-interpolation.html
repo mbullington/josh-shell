@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,12 +175,8 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="strings-interpolation-and-splicing"><a class="header" href="#strings-interpolation-and-splicing">Strings, interpolation, and splicing</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-ARGV-001">J-ARGV-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-UNICODE-001">J-UNICODE-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p>Single quotes are literal command words. In double quotes, a backslash removes itself and makes the next Unicode scalar literal. Expression double-quoted strings and quoted Object keys use the same decoding. Double-quoted command words also support variable, expression, and capture parts. Unquoted <code>$name</code> splices a value; <code>${...}</code> is available inside double quotes, not as a general command-mode delimiter.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">josh&gt; n = 6
 6

@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,13 +175,8 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="agent-terminal-daemon"><a class="header" href="#agent-terminal-daemon">agent-terminal daemon</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#AT-PTY-001">AT-PTY-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#AT-PROTO-001">AT-PROTO-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#AT-LIFE-001">AT-LIFE-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p><a id="AT-PTY-001"></a></p>
-<h2 id="pty-and-ghostty-ownership-implemented"><a class="header" href="#pty-and-ghostty-ownership-implemented">PTY and Ghostty ownership <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in agent-terminal 0.1.0. Evidence: linked-library identity tests plus real PTY, semantic snapshot, input, resize, and lifecycle smoke checks.</p>
+<h2 id="pty-and-ghostty-ownership"><a class="header" href="#pty-and-ghostty-ownership">PTY and Ghostty ownership</a></h2>
 <p>The child receives three duplicated PTY slave descriptors. Pre-exec creates a session, sets the controlling terminal, and establishes the child process group. Environment preserves caller entries while setting conservative terminal identity variables and fixed initial dimensions.</p>
 <p>PTY reads are drained in bounded batches and fed directly to <code>ghostty_terminal_vt_write</code>. Ghostty effects append bytes to a pending queue during the synchronous call; the event loop flushes them afterward to avoid callback reentrancy. Grid references, render colors, and borrowed strings never survive an await or terminal mutation.</p>
 <p>Snapshot code uses the pinned formatter, viewport grid/cell/style APIs, and narrow render-state APIs for active colors and cursor facts. Key encoding updates from current terminal modes before each event. Resize applies PTY winsize and Ghostty grid state within one serialized command.</p>

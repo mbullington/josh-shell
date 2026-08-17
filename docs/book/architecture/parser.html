@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,13 +175,8 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="parser-and-parse-result"><a class="header" href="#parser-and-parse-result">Parser and parse result</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-PARSE-001">J-PARSE-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-PARSE-004">J-PARSE-004</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p><a id="J-PARSE-001"></a></p>
-<h2 id="one-lossless-tolerant-parse-implemented"><a class="header" href="#one-lossless-tolerant-parse-implemented">One lossless tolerant parse <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: source reconstruction, UTF-8 boundary, AST-shape, diagnostics, and strict-policy tests.</p>
+<h2 id="one-lossless-tolerant-parse"><a class="header" href="#one-lossless-tolerant-parse">One lossless tolerant parse</a></h2>
 <p>The public operation returns <code>Parse { source, tokens, program, diagnostics, completeness }</code>. Source is shared <code>Arc&lt;str&gt;</code>. Concrete tokens include trivia, lexical mode, and UTF-8 byte span; token slices partition source exactly. Semantic AST nodes have spans and can represent zero-width Missing or source-covering Error nodes.</p>
 <p>One lexer and recursive-descent/Pratt parser serve tolerant callers and strict execution. Statement-head lookahead inspects the same token sequence. The parser commits each consumed token’s mode as productions choose Command, Expression, SingleQuote, or DoubleQuote.</p>
 <p>Recovery preserves owning delimiters. EOF-only appendable errors classify Incomplete; a hard error makes the whole parse Invalid. Diagnostics encode stable code, severity, expected set, primary/secondary labels, and whether EOF caused the error.</p>

@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,13 +175,8 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="deterministic-png-screenshots"><a class="header" href="#deterministic-png-screenshots">Deterministic PNG screenshots</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#AT-PNG-001">AT-PNG-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#AT-SNAP-001">AT-SNAP-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p><a id="AT-PNG-001"></a></p>
-<h2 id="pixel-renderer-implemented"><a class="header" href="#pixel-renderer-implemented">Pixel renderer <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in agent-terminal 0.1.0. Evidence: reviewed exact-pixel and fixed-digest fixtures, real Ghostty OSC/DECSCUSR and CLI tests, and repeated byte comparisons in <code>scripts/josh-e2e.sh</code>.</p>
+<h2 id="pixel-renderer"><a class="header" href="#pixel-renderer">Pixel renderer</a></h2>
 <p><code>agent-terminal screenshot [SESSION] [PATH] [--json]</code> requests schema-v2 semantic state from the selected live daemon, copies it into the client, validates the complete response, and renders there. It does not parse ANSI or scrape formatter text. Omitting PATH writes the platform temporary directory’s <code>agent-terminal-SESSION.png</code>. Relative paths use the client’s working directory. The write truncates an existing file; parent directories are not created.</p>
 <p>Default output is the written path. <code>--json</code> emits <code>path</code>, <code>session_id</code>, semantic <code>revision</code>, <code>width</code>, <code>height</code>, encoded <code>bytes</code>, <code>dpi</code>, <code>cell_width</code>, and <code>cell_height</code>. Taking a screenshot does not advance the revision.</p>
 <div class="table-wrapper">
@@ -207,7 +201,7 @@
 </div>
 <p>Before allocating or painting, the client validates response/request IDs, handshake session and pinned Ghostty identity, snapshot session/schema, dimensions, exact row and row-major cell coverage, unique bounded styles, cursor facts, wide head/tail/spacer consistency, the 256-entry palette, and per-field/aggregate strings. It rejects malformed state instead of clamping. The protocol permits at most 300 columns, 200 rows, 20,000 cells, 1,024 styles, 1,024 hyperlinked cells, and 512 KiB of aggregate snapshot strings. These advertised maxima serialize below the 16 MiB response cap and bound raw RGBA to 10,240,000 bytes.</p>
 <p>Determinism means identical semantic state, binary, lockfile, embedded font bytes, and frozen visible blink phase produce identical PNG bytes. A changing terminal revision, captured color/palette/cursor state, cursor location, grid, or build input may produce a different image. Wait for stability before comparing a live session.</p>
-<p class="example-label example-label--implemented"><strong>Implemented CLI sequence · Runnable with agent-terminal 0.1.0</strong></p>
+<p class="example-label"><strong>CLI sequence · runnable with agent-terminal 0.1.0</strong></p>
 
 <pre><code class="language-sh">agent-terminal wait "$id" --stable 200ms --timeout 5s
 agent-terminal screenshot "$id" terminal.png

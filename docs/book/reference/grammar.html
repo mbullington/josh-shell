@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,12 +175,8 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="lexical-modes-and-grammar"><a class="header" href="#lexical-modes-and-grammar">Lexical modes and grammar</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-PARSE-001">J-PARSE-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-PARSE-002">J-PARSE-002</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-PARSE-004">J-PARSE-004</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p>This descriptive EBNF summarizes the implemented slice; the hand-written parser is authoritative. Newline separates command statements and is trivia where expression parsing permits it.</p>
-<p class="example-label example-label--implemented"><strong>Implemented grammar summary · Runnable forms only where runtime capability also exists</strong></p>
+<p class="example-label"><strong>Grammar summary</strong></p>
 
 <pre><code class="language-text">program       = { separator | statement } ;
 statement     = let | assignment | function | if | while | loop | try
@@ -199,8 +194,7 @@ postfix       = adjacent-call | adjacent-member | adjacent-index ;
 <p>Expression precedence, low to high: ternary; <code>||</code>; <code>&amp;&amp;</code>; equality; ordering; <code>+</code>/<code>-</code>; <code>*</code>/<code>/</code>/<code>//</code>/<code>%</code>; unary; adjacent call/member/index. Arrow parsing applies at the lowest expression level.</p>
 <p><code>for</code>, jobs, modules, and <code>source</code> are not productions. Reserved/excluded forms produce diagnostics rather than argv.</p>
 <p><a id="J-PARSE-004"></a></p>
-<h2 id="completeness-and-strict-policy-implemented"><a class="header" href="#completeness-and-strict-policy-implemented">Completeness and strict policy <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: EOF-classification and strict/tolerant identity tests.</p>
+<h2 id="completeness-and-strict-policy"><a class="header" href="#completeness-and-strict-policy">Completeness and strict policy</a></h2>
 <p><code>Complete</code> means no error diagnostics. <code>Incomplete</code> means every error is caused by EOF after appendable missing syntax. Any hard error makes the result <code>Invalid</code>. <code>Parse::strict_program()</code> accepts only Complete/no-error parses and returns references to the same AST or diagnostics; it never reparses.</p>
 
                     </main>

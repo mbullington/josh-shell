@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,15 +175,10 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="editing-and-multiline-input"><a class="header" href="#editing-and-multiline-input">Editing and multiline input</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-REPL-001">J-REPL-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p><a id="J-REPL-001"></a></p>
-<h2 id="parser-driven-editing-implemented"><a class="header" href="#parser-driven-editing-implemented">Parser-driven editing <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: Reedline validator tests and PTY multiline probes.</p>
+<h2 id="parser-driven-editing"><a class="header" href="#parser-driven-editing">Parser-driven editing</a></h2>
 <p>The main prompt is <code>josh&gt; </code> and the continuation prompt is <code>...&gt; </code>. Reedline handles cursor movement and ordinary editing. On validation, Josh parses the whole buffer once and requests continuation only for <code>Completeness::Incomplete</code>.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">josh&gt; (1 +
 ...&gt; 2)

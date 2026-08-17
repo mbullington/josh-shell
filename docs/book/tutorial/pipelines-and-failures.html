@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,15 +175,10 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="pipelines-and-failures"><a class="header" href="#pipelines-and-failures">Pipelines and failures</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-RUN-003">J-RUN-003</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-ERR-001">J-ERR-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-STRUCT-001">J-STRUCT-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-FILES-001">J-FILES-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p><a id="J-RUN-003"></a></p>
-<h2 id="external-byte-pipelines-implemented"><a class="header" href="#external-byte-pipelines-implemented">External byte pipelines <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: CLI pipeline smoke checks and runtime pipefail tests.</p>
+<h2 id="external-byte-pipelines"><a class="header" href="#external-byte-pipelines">External byte pipelines</a></h2>
 <p>Adjacent external stages use kernel pipes. Josh evaluates command words and resolves every executable before spawning any stage. A missing later executable therefore cannot leave an earlier side-effecting stage running.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">josh&gt; printf hello | tr a-z A-Z
 HELLO
@@ -192,7 +186,7 @@ HELLO
 <p>Pipeline status uses pipefail: any failed stage fails the pipeline. SIGPIPE from a non-final stage is ignored when a downstream command closes normally, so <code>yes | head -n 1</code> succeeds. A final signal or any downstream nonzero exit still fails.</p>
 <p>In batch mode, an uncaught pipeline error prints to stderr and exits 1. In the REPL, Josh prints the same structured error and returns to the prompt.</p>
 <p>Add an explicit transformer before applying functions to command output. Streaming terminals capture as Arrays even when they emit zero or one item.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">josh&gt; doubled = $(printf '1\n2\n' | lines | map (x =&gt; Number(x) * 2) | collect)
 [2, 4]
@@ -200,7 +194,7 @@ josh&gt; doubled.join(",")
 2,4
 </code></pre>
 <p>Redirections belong to the external stage before them and are planned before spawn. The two descriptor orders below differ.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">sh -c 'printf out; printf err &gt;&amp;2' &gt; combined.txt 2&gt;&amp;1
 sh -c 'printf out; printf err &gt;&amp;2' 2&gt;&amp;1 &gt; stdout-only.txt

@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,15 +175,10 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="prototypes-and-namespaces"><a class="header" href="#prototypes-and-namespaces">Prototypes and namespaces</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-OBJ-001">J-OBJ-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p><a id="J-OBJ-001"></a></p>
-<h2 id="prototypal-method-lookup-and-builtin-namespaces-implemented"><a class="header" href="#prototypal-method-lookup-and-builtin-namespaces-implemented">Prototypal method lookup and builtin namespaces <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in the current development snapshot. Evidence: prototype namespace, conversion, member assignment, and cycle-rejection tests.</p>
+<h2 id="prototypal-method-lookup-and-builtin-namespaces"><a class="header" href="#prototypal-method-lookup-and-builtin-namespaces">Prototypal method lookup and builtin namespaces</a></h2>
 <p>Josh has no classes or implicit <code>this</code>. Objects are ordered key/value maps with an optional prototype link, and method lookup walks: the object’s own fields → the object’s prototype chain → the value’s <em>type prototype</em>. A method found on a prototype is called with the receiver passed as the first argument.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">Animal = { legs: 4 }
 Animal.speak = (this) =&gt; "legs:" + String(this.legs)
@@ -219,7 +213,7 @@ cat.speak()                    # "legs:4" — receiver travels as `this`
 <li><code>Object.setPrototype</code> refuses cycles; <code>Object.seal</code> prevents adding new keys to that object while existing keys stay writable.</li>
 <li><code>o.name = value</code> and <code>o[key] = value</code> mutate objects in place anywhere an expression position was already a statement; assignments target objects only.</li>
 </ul>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">cfg = { retries: 0 }
 cfg.retries = 3

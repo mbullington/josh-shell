@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,13 +175,8 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="highlighting"><a class="header" href="#highlighting">Highlighting</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-REPL-002">J-REPL-002</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p><a id="J-REPL-002"></a></p>
-<h2 id="lossless-token-highlighting-implemented"><a class="header" href="#lossless-token-highlighting-implemented">Lossless token highlighting <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: the Reedline highlighter consumes the public lossless parse and completion snapshot.</p>
+<h2 id="lossless-token-highlighting"><a class="header" href="#lossless-token-highlighting">Lossless token highlighting</a></h2>
 <p>Josh styles exact token slices, preserving all whitespace and comments. Comments, strings, values, variables, keywords, unsupported tokens, and expression-mode punctuation receive distinct styles. The first literal command is green when the immutable PATH/builtin snapshot knows it and red otherwise.</p>
 <p>Highlighting never executes code. It may be stale until the next accepted line if PATH changes during an edit. Nested interpolation semantics are preserved in the AST, but a double-quoted source region remains one concrete token in this slice, so its inner pieces do not receive full independent token colors.</p>
 <p>Color is advisory. Parse mode and diagnostics remain authoritative, and no documented distinction depends only on terminal color.</p>

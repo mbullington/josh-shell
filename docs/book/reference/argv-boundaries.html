@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,13 +175,8 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="argv-and-pipeline-boundaries"><a class="header" href="#argv-and-pipeline-boundaries">argv and pipeline boundaries</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-ARGV-001">J-ARGV-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-RUN-003">J-RUN-003</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-STRUCT-001">J-STRUCT-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p><a id="J-ARGV-001"></a></p>
-<h2 id="command-word-conversion-implemented"><a class="header" href="#command-word-conversion-implemented">Command-word conversion <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: argv, glob, tilde, structured-stream, and invalid-UTF-8 tests.</p>
+<h2 id="command-word-conversion"><a class="header" href="#command-word-conversion">Command-word conversion</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -213,7 +207,8 @@
 <tr><td>bytes → <code>text</code></td><td>One String, or Bytes for invalid UTF-8</td></tr>
 <tr><td>bytes → <code>json</code></td><td>One parsed JSON value</td></tr>
 <tr><td>bytes → <code>lines</code>/<code>jsonl</code>/<code>chunks</code></td><td>Streaming values with many cardinality</td></tr>
-<tr><td>bytes → function/<code>map</code></td><td>Pre-spawn planning error with an explicit-transformer hint</td></tr>
+<tr><td>bytes → function</td><td>Bounded collect into one Bytes value; the function runs once after upstream closes. Byte streams never decode implicitly — the function chooses <code>String(bytes)</code> or byte-level work</td></tr>
+<tr><td>bytes → <code>map fn</code></td><td>Pre-spawn planning error with an explicit-transformer hint</td></tr>
 <tr><td>values → function/<code>map</code>/<code>filter</code></td><td>One call per item; map emits return values and filter emits retained input values</td></tr>
 <tr><td>values → <code>take</code>/<code>first</code></td><td>Bounded output and upstream cancellation</td></tr>
 <tr><td>values → <code>collect</code></td><td>One Array value</td></tr>

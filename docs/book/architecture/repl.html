@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,10 +175,6 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="reedline-integration"><a class="header" href="#reedline-integration">Reedline integration</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-REPL-001">J-REPL-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-REPL-002">J-REPL-002</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-REPL-003">J-REPL-003</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-REPL-004">J-REPL-004</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <h2 id="reedline-ownership"><a class="header" href="#reedline-ownership">Reedline ownership</a></h2>
 <p>The REPL adapter is outside parser and runtime modules. <code>ReplAnalyzer</code> exposes parse and completion-context operations. Validator maps only Incomplete to continuation. Highlighter and completer independently parse immutable buffers and use UTF-8 byte spans.</p>
 <p>A completion snapshot owns sorted command and variable sets. It combines builtins, PATH directory entries, lexical engine names, and inherited environment names. Reedline helpers borrow an <code>Arc</code> snapshot behind a short read lock; the main loop replaces it only after accepted input. Callbacks do not evaluate or mutate the engine.</p>

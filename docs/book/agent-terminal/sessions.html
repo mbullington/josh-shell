@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,13 +175,8 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="sessions-and-process-lifecycle"><a class="header" href="#sessions-and-process-lifecycle">Sessions and process lifecycle</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#AT-LIFE-001">AT-LIFE-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#AT-PTY-001">AT-PTY-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p><a id="AT-LIFE-001"></a></p>
-<h2 id="one-daemon-per-session-implemented"><a class="header" href="#one-daemon-per-session-implemented">One daemon per session <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in agent-terminal 0.1.0. Evidence: cross-invocation smoke and Josh scenarios launch, inspect, close, and directly verify daemon and child reaping.</p>
+<h2 id="one-daemon-per-session"><a class="header" href="#one-daemon-per-session">One daemon per session</a></h2>
 <p><code>launch</code> starts the same executable in hidden daemon mode under <code>setsid()</code>, waits up to five seconds for a protocol handshake, then sends argv, cwd, dimensions, and inherited environment. It executes argv directly; no shell expansion occurs unless the caller explicitly launches a shell.</p>
 <p><code>list</code> handshakes with sockets instead of trusting metadata PIDs. It reports starting, running, exited, incompatible, or unhealthy. Stale unreachable directories older than the startup grace period may be removed, but metadata alone never authorizes a signal.</p>
 <p><code>close</code> targets the PTY foreground and child leader process groups with HUP, then TERM and KILL after bounded waits, closes the PTY, waits for the direct child, removes socket/metadata, and ends the daemon. Natural child exit leaves final terminal state available until close or idle expiry.</p>

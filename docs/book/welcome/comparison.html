@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,10 +175,6 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="josh-compared-with-other-shells"><a class="header" href="#josh-compared-with-other-shells">Josh compared with other shells</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> This page makes no product-availability claims. It compares design boundaries; use the <a href="../status/matrix.html">capability matrix</a> for availability.</p>
-</div>
-
 <p>Josh borrows familiar command invocation, pipelines, redirections, globbing, status chains, and functions from Unix shells, but it does not claim POSIX compatibility. The grammar and expansion rules differ, and background job control is unavailable, so POSIX shell scripts do not automatically run in Josh.</p>
 <p>Its expression surface looks JavaScript-shaped, but Josh has no JavaScript event loop, Promise, <code>async</code>/<code>await</code>, npm, prototypes, classes, <code>this</code>, or coercive <code>==</code>. Strict equality uses <code>===</code> and <code>!==</code>. Runtime semantics are designed for deterministic shell data rather than browser or Node.js objects.</p>
 <p>Compared with data-oriented shells, Josh plans explicit byte/value boundaries. It does not inspect output and guess JSON. External-to-external pipelines stay kernel byte pipes; <code>text</code>, <code>json</code>, <code>lines</code>, <code>jsonl</code>, <code>chunks</code>, functions, and collection stages opt into documented value transitions and cardinality.</p>

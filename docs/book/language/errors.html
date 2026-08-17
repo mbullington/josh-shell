@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,10 +175,6 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="errors"><a class="header" href="#errors">Errors</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-ERR-001">J-ERR-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-CF-001">J-CF-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p>Josh is error-first. A completed nonzero external command raises a structured Error by default. Pipelines use pipefail. Batch execution stops and exits nonzero; interactive execution prints the error and returns to the prompt.</p>
 <p>Errors cover parsing, undefined identifiers, type failures, excluded capabilities, command lookup, spawn, command/pipeline status, stream decode/JSON, redirection planning, glob no-match, capture, and <code>cd</code>. Process failures retain ordered stage outcomes.</p>
 <p><code>try/catch</code> consumes thrown values and evaluator/process errors inside its already-parsed body; a parse error rejects the whole source before <code>try</code> can run. Caught Error values expose <code>kind</code>, <code>message</code>, and optional Status-valued <code>status</code>.</p>

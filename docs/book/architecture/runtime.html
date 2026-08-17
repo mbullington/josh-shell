@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,10 +175,6 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="runtime-and-pipelines"><a class="header" href="#runtime-and-pipelines">Runtime and pipelines</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-RUN-001">J-RUN-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-RUN-003">J-RUN-003</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-RUN-004">J-RUN-004</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-STRUCT-001">J-STRUCT-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p>The workspace separates syntax, runtime values/evaluation, process execution, structured streams, interactive editing, and CLI composition. <code>josh-runtime</code> owns the consumer-facing <code>ExecutionHost</code> contract; <code>josh-exec</code> implements it without a dependency cycle.</p>
 <p><code>Engine</code> owns lexical frames, closures, and typed control-flow unwinding. It parses once, applies strict policy, evaluates statements in order, and stops on uncaught errors or explicit exit. Ordinary compound values are Arc-backed; resource execution state stays outside Value.</p>
 <p>Pipeline planning resolves stage variants, transitions, argv, globs, redirections, and external paths before any stage spawns. Adjacent external stages use OS pipes. Structured boundaries use bounded channels and joined worker threads. Downstream close cancels workers and external producers. Partial spawn failure kills and reaps started children.</p>

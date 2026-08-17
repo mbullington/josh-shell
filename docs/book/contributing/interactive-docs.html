@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,22 +175,14 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="interactive-tests-and-documentation"><a class="header" href="#interactive-tests-and-documentation">Interactive tests and documentation</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-REPL-001">J-REPL-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#AT-JOSH-001">AT-JOSH-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p>Unit checks should pin parser-to-Reedline policy: only Incomplete continues; Invalid submits; spans are UTF-8-safe; completion context selects command, file, or variable without evaluation.</p>
 <p>PTY checks should wait for semantic output rather than sleep when a terminal harness is available. Fix dimensions, match prompts, send exact text/key events, and inspect final terminal state. Test Ctrl-C on both partial editing and a bounded foreground child. Always close the session and inspect processes directly.</p>
-<h2 id="write-status-safe-documentation"><a class="header" href="#write-status-safe-documentation">Write status-safe documentation</a></h2>
+<h2 id="write-behavior-first-documentation"><a class="header" href="#write-behavior-first-documentation">Write behavior-first documentation</a></h2>
 <ul>
-<li>Put a Status coverage panel near every title.</li>
-<li>Give each product capability one stable ID and one status heading.</li>
-<li>Include the required availability sentence and explicit exclusions.</li>
-<li>Label every behavioral fence immediately before the fence.</li>
-<li>Call only Implemented examples runnable.</li>
-<li>Keep Specified, Planned, and Unresolved snippets explicitly unavailable.</li>
+<li>Label every behavioral fence immediately before the fence (<code>Runnable example</code> versus <code>**Host command**</code>).</li>
+<li>Only examples exercised against the current build carry the <code>Runnable example</code> label; keep planned or hypothetical snippets out of runnable fences.</li>
 <li>Never call semantic terminal text a screenshot.</li>
-<li>Do not promote a source-defined agent-terminal command until the pinned binary executes.</li>
+<li>Do not document a source-defined agent-terminal command until the pinned binary executes it.</li>
 </ul>
 <p>The deterministic checker validates structure, but reviewers must still check claims against behavior.</p>
 

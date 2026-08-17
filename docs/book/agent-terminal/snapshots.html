@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,13 +175,8 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="semantic-snapshots"><a class="header" href="#semantic-snapshots">Semantic snapshots</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#AT-SNAP-001">AT-SNAP-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#AT-PNG-001">AT-PNG-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p><a id="AT-SNAP-001"></a></p>
-<h2 id="visible-semantic-state-implemented"><a class="header" href="#visible-semantic-state-implemented">Visible semantic state <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in agent-terminal 0.1.0. Evidence: real CLI tests assert Ghostty title, text, fixed grids, row/cell/style facts, wide cells, and background-only cells.</p>
+<h2 id="visible-semantic-state"><a class="header" href="#visible-semantic-state">Visible semantic state</a></h2>
 <p>Default <code>snapshot</code> output starts with session, grid, cursor, revision, and process metadata, followed by Ghostty-formatted visible plain text. <code>--json</code> emits semantic schema v2.</p>
 <p>Rows include wrapping, prompt semantics, and text. Cells include grapheme, wide state, semantic content, protection, hyperlink, optional background-only color, and style ID. The deduplicated style table carries colors and text attributes. Render facts include Ghostty’s effective foreground/background, active 256-color palette, and optional cursor color plus cursor style, blink, viewport, and wide-tail state. OSC 4/10/11/12 updates therefore remain authoritative in later screenshots.</p>
 <p>Revision is monotonic within a live session. Each nonempty PTY batch and resize advances it; snapshots and screenshots do not. It is not a clock or cross-session sequence.</p>

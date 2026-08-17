@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,13 +175,8 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="josh-command-line-interface"><a class="header" href="#josh-command-line-interface">Josh command-line interface</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-CLI-001">J-CLI-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-CONFIG-001">J-CONFIG-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p><a id="J-CLI-001"></a></p>
-<h2 id="cli-entry-points-implemented"><a class="header" href="#cli-entry-points-implemented">CLI entry points <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: help/version, command/script, config, error, and exit-policy tests.</p>
+<h2 id="cli-entry-points"><a class="header" href="#cli-entry-points">CLI entry points</a></h2>
 <p><strong>Host command</strong></p>
 <pre><code class="language-text">Josh — JavaScript Object Shell
 
@@ -190,6 +184,7 @@ Usage:
   josh [--no-config]
   josh [--no-config] -c &lt;source&gt;
   josh [--no-config] &lt;script.josh&gt;
+  josh lsp
 
 Options:
   --no-config  Skip env.josh and interactive init.josh startup files
@@ -199,6 +194,9 @@ Options:
 
 Josh supports external commands and structured pipelines, redirections and globs,
 variables, functions/closures/UFCS, and non-job control flow. Jobs and modules are unavailable.
+
+The lsp subcommand serves the errors-only language server over stdin/stdout
+for editor integrations (see editors/vscode/).
 </code></pre>
 <div class="table-wrapper">
 <table>
@@ -212,9 +210,11 @@ variables, functions/closures/UFCS, and non-job control flow. Jobs and modules a
 <tr><td><code>josh --no-config ...</code></td><td>Skip both startup files</td></tr>
 <tr><td><code>josh -h</code>, <code>josh --help</code></td><td>Print help, exit 0 without loading config</td></tr>
 <tr><td><code>josh -V</code>, <code>josh --version</code></td><td>Print <code>josh 0.1.0</code>, exit 0 without loading config</td></tr>
+<tr><td><code>josh lsp</code></td><td>Serve the errors-only language server over stdin/stdout</td></tr>
 </tbody>
 </table>
 </div>
+<p><code>josh lsp</code> execs the sibling <code>josh-lsp</code> binary (found next to the <code>josh</code> binary first, then on <code>PATH</code>) before any REPL session, <code>ProcessHost</code>, or startup file: stdout carries only Language Server Protocol frames. The server is stateless (full-document sync, parse diagnostics only, no file I/O); closing stdin exits it. It is a separate binary because the editor protocol stack’s dependencies measurably slow the shell when linked in. The VSCode extension in <code>editors/vscode/</code> spawns this subcommand by default.</p>
 <p><code>-c</code> accepts no trailing argument. Script mode accepts no positional arguments. Usage/read/startup errors exit 2; parse/runtime errors exit 1; <code>exit N</code> returns N within the process exit-code range.</p>
 
                     </main>

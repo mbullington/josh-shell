@@ -9,7 +9,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -29,7 +29,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -37,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-39e943a2.js"></script>
+        <script src="toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,47 +176,18 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="welcome-to-josh"><a class="header" href="#welcome-to-josh">Welcome to Josh</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-CLI-001-1">J-CLI-001</a> — <strong>Implemented</strong>; <a href="#AT-CLI-001-1">AT-CLI-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p>Josh is a Unix-first JavaScript Object Shell. It combines external commands with lexical objects/functions, explicit structured pipelines, redirections/globs, non-job control flow, startup scripts, and a Reedline REPL. It is not JavaScript, a JavaScript runtime, POSIX shell, or compatibility layer.</p>
 <p><code>agent-terminal</code> is a separate Unix automation harness. Its cross-process CLI uses a real PTY and pinned <code>libghostty-vt</code>, exposes semantic snapshots, and renders deterministic PNG screenshots with pinned assets.</p>
-<p>Background jobs and <code>import</code>/<code>export</code> modules remain Planned and are rejected; <code>source</code> is the implemented include mechanism. The <a href="#capability-status">capability matrix</a> is the availability authority.</p>
+<p>Background jobs and <code>import</code>/<code>export</code> modules do not exist yet and are rejected with diagnostics; <code>source</code> is the implemented include mechanism. The <a href="#roadmap">roadmap</a> lists what is planned.</p>
 <h2 id="choose-a-path"><a class="header" href="#choose-a-path">Choose a path</a></h2>
 <ul>
 <li>New to Josh: <a href="#your-first-session">Your first session</a>.</li>
 <li>Exact syntax: <a href="#reference">Reference</a>.</li>
 <li>Terminal automation: <a href="#agent-terminal">agent-terminal</a>.</li>
-<li>Availability: <a href="#capability-status">Capability matrix</a>.</li>
 <li>Implementation work: <a href="#contributor-guide">Contributor guide</a>.</li>
 </ul>
-<p>The manual does not rely on badge color, icons, or code-fence language to communicate availability.</p>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="status-conventions"><a class="header" href="#status-conventions">Status conventions</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> This page makes no product-availability claims. It defines how to read availability claims in this manual.</p>
-</div>
-
-<p>Status applies to an atomic capability, not to a whole page. A mixed page lists each capability separately.</p>
-<ul>
-<li><strong>Implemented</strong> means runnable in the named version and backed by executable evidence.</li>
-<li><strong>Specified</strong> means the contract is accepted but not available in the current verified build.</li>
-<li><strong>Planned</strong> records direction. Syntax and behavior may change.</li>
-<li><strong>Unresolved</strong> records an open question. No syntax or behavior is promised.</li>
-</ul>
-<p>A feature cannot carry two statuses. Partial delivery becomes multiple capability rows. For example, semantic snapshots and PNG rendering have separate Implemented rows.</p>
-<h2 id="reading-examples"><a class="header" href="#reading-examples">Reading examples</a></h2>
-<p>Every behavioral fence has a nearby text label. Only <strong>Runnable example · Implemented</strong> asks you to execute Josh syntax. <strong>Specified syntax · Not implemented</strong>, <strong>Illustrative syntax · Planned · Not runnable</strong>, and <strong>Design alternative · Unresolved · Not runnable</strong> prevent copied snippets from becoming accidental promises. <strong>Host command</strong> marks commands for a Unix shell rather than Josh language input.</p>
-<p>The <a href="#capability-status">capability matrix</a> is authoritative. Its stable IDs link to detailed blocks, identify exact exclusions, and name evidence or a specification. Roadmap pages are views of those IDs, not independent status lists.</p>
-<h2 id="promotion-rule"><a class="header" href="#promotion-rule">Promotion rule</a></h2>
-<p>Source code, an architecture proposal, or successful compilation alone does not prove a capability Implemented. Promotion requires the closest executable evidence: a real CLI invocation, parser/runtime test, PTY scenario, or deterministic artifact inspection. If a blocker prevents that evidence, the manual preserves the contract as Specified and reports the blocker.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="install-and-build"><a class="header" href="#install-and-build">Install and build</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-CLI-001-1">J-CLI-001</a> — <strong>Implemented</strong>; <a href="#AT-BUILD-001-1">AT-BUILD-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p>Josh is a six-crate Rust workspace with one <code>josh</code> binary. The repository lockfile pins Rust dependencies.</p>
 <p><a id="J-CLI-001-install"></a></p>
 <h2 id="build-josh"><a class="header" href="#build-josh">Build Josh</a></h2>
@@ -232,10 +202,6 @@ cargo test --locked --workspace --all-targets
 <p>agent-terminal has a separate pinned Nix/Zig build. Follow <a href="#install-agent-terminal">Install agent-terminal</a>; do not substitute another VT parser or Zig version when provisioning fails.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="joshs-model"><a class="header" href="#joshs-model">Josh’s model</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-PARSE-002-1">J-PARSE-002</a> — <strong>Implemented</strong>; <a href="#J-STRUCT-001-1">J-STRUCT-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p>Josh classifies each statement as command mode or expression mode from source shape, tokens, and adjacency—not runtime values. A bare command head such as <code>git</code> starts command mode. Assignment or an adjacent call/member/index continuation starts expression mode.</p>
 <p>Command mode treats words as argv. Expression mode gives operators arithmetic or logical meaning. Parentheses preceded by whitespace insert one evaluated expression into a command argument list.</p>
 <p>External commands exchange bytes through OS pipes. Values cross that boundary only through explicit stages: <code>text</code>, <code>json</code>, <code>lines</code>, <code>jsonl</code>, <code>chunks(n)</code>, function/map/filter/take/first, and <code>collect</code>. JSON-looking bytes are never inferred as JSON.</p>
@@ -251,34 +217,22 @@ cargo test --locked --workspace --all-targets
 <p>Read <a href="#command-mode-and-expression-mode">Command mode and expression mode</a> and <a href="#argv-and-pipeline-boundaries">argv and pipeline boundaries</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="josh-compared-with-other-shells"><a class="header" href="#josh-compared-with-other-shells">Josh compared with other shells</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> This page makes no product-availability claims. It compares design boundaries; use the <a href="#capability-status">capability matrix</a> for availability.</p>
-</div>
-
 <p>Josh borrows familiar command invocation, pipelines, redirections, globbing, status chains, and functions from Unix shells, but it does not claim POSIX compatibility. The grammar and expansion rules differ, and background job control is unavailable, so POSIX shell scripts do not automatically run in Josh.</p>
 <p>Its expression surface looks JavaScript-shaped, but Josh has no JavaScript event loop, Promise, <code>async</code>/<code>await</code>, npm, prototypes, classes, <code>this</code>, or coercive <code>==</code>. Strict equality uses <code>===</code> and <code>!==</code>. Runtime semantics are designed for deterministic shell data rather than browser or Node.js objects.</p>
 <p>Compared with data-oriented shells, Josh plans explicit byte/value boundaries. It does not inspect output and guess JSON. External-to-external pipelines stay kernel byte pipes; <code>text</code>, <code>json</code>, <code>lines</code>, <code>jsonl</code>, <code>chunks</code>, functions, and collection stages opt into documented value transitions and cardinality.</p>
 <p>Compared with terminal screen scraping, agent-terminal treats a parsed semantic terminal grid as its automation surface. Schema-v2 snapshots remain authoritative structured state. The separate <code>screenshot</code> command deterministically renders that copied state to pixels with pinned fonts, metrics, colors, rasterizer, and encoder.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="josh-tutorial"><a class="header" href="#josh-tutorial">Josh tutorial</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> This page makes no product-availability claims. Tutorial examples link to atomic statuses and the <a href="#capability-status">capability matrix</a>.</p>
-</div>
-
 <p>This tutorial follows the current vertical slice. It starts at the interactive prompt, separates commands from expressions, moves values into argv, captures output, builds pipelines, and ends with a script.</p>
-<p>Only examples labeled <strong>Runnable example · Implemented</strong> are instructions. Later language chapters show specified or planned forms for context, but the tutorial does not ask you to run unavailable syntax.</p>
+<p>Only examples labeled <strong>Runnable example</strong> are instructions; each one runs against the current build. The tutorial does not ask you to run syntax Josh does not have.</p>
 <p>Before starting, build Josh using <a href="#install-and-build">Install and build</a>. Commands use common Unix programs such as <code>printf</code>, <code>tr</code>, and <code>sh</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="your-first-session"><a class="header" href="#your-first-session">Your first session</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-REPL-001-1">J-REPL-001</a> — <strong>Implemented</strong>; <a href="#J-RUN-002-1">J-RUN-002</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p>Start the shell from the repository. Josh shows <code>josh&gt; </code> for a complete input and <code>...&gt; </code> when the parser needs more source.</p>
 <p><strong>Host command</strong></p>
 <pre><code class="language-sh">./target/debug/josh
 </code></pre>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">josh&gt; printf 'hello\n'
 hello
@@ -287,10 +241,9 @@ josh&gt; (1 + 2)
 </code></pre>
 <p>The first line is a command. The second starts with an expression delimiter, so Josh evaluates arithmetic and prints the resulting non-null value.</p>
 <p><a id="J-RUN-002"></a></p>
-<h2 id="standalone-builtins-implemented"><a class="header" href="#standalone-builtins-implemented">Standalone builtins <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: <code>builtins_are_dispatched_from_evaluated_argv_and_validate_arity</code> and CLI exit-status tests.</p>
+<h2 id="standalone-builtins"><a class="header" href="#standalone-builtins">Standalone builtins</a></h2>
 <p><code>cd [path]</code> changes Josh’s process directory; without a path it uses <code>HOME</code>, then <code>.</code>. <code>exit [status]</code> leaves the REPL or returns that status from batch mode. Both must be standalone. A pipeline or capture containing either builtin returns an unsupported-feature error.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">josh&gt; cd /tmp
 josh&gt; pwd
@@ -300,12 +253,8 @@ josh&gt; exit 0
 <p>Ctrl-D on an empty edit also exits with status 0. Ctrl-C clears a partial edit rather than terminating Josh.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="commands-and-expressions"><a class="header" href="#commands-and-expressions">Commands and expressions</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-PARSE-002-1">J-PARSE-002</a> — <strong>Implemented</strong>; <a href="#J-EXPR-001-1">J-EXPR-001</a> — <strong>Implemented</strong>; <a href="#J-CF-001-1">J-CF-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p>At statement position, <code>printf hello</code> is a command: every bare word is argv text. <code>(20 + 22)</code> begins an expression. Assignment also selects expression mode for its right-hand side.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">josh&gt; total = 20 + 22
 42
@@ -315,7 +264,7 @@ josh&gt; printf '%s\n' (total * 2)
 <p>Whitespace matters in the second command. A parenthesized expression preceded by whitespace supplies one command argument. By contrast, <code>name(1)</code> is an implemented function call because the parenthesis is adjacent.</p>
 <p>Expression mode evaluates Null, booleans, numbers, strings, arrays, objects, functions, member/index access, calls, spread, ternary expressions, unary <code>!</code> and <code>-</code>, arithmetic, ordering, strict equality, and short-circuit <code>&amp;&amp;</code>/<code>||</code>. Expression <code>&amp;&amp;</code> and <code>||</code> return one operand according to truthiness.</p>
 <p>At command level, <code>&amp;&amp;</code> and <code>||</code> form a status chain rather than argv. They run the right pipeline after success or failure respectively. A completed nonzero status is handled by the chain; lookup, interpolation, spawn, and type errors still propagate.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">josh&gt; sh -c 'exit 7' || printf 'recovered\n'
 recovered
@@ -325,12 +274,8 @@ continued
 <p>Use parentheses when arithmetic at statement position could look like a command. <code>x - 1</code> invokes command <code>x</code> with two arguments; <code>(x - 1)</code> performs subtraction after resolving expression variable <code>x</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="interpolation-splicing-and-capture"><a class="header" href="#interpolation-splicing-and-capture">Interpolation, splicing, and capture</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-ARGV-001-1">J-ARGV-001</a> — <strong>Implemented</strong>; <a href="#J-RUN-004-1">J-RUN-004</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p>A command word can combine literals, quotes, variables, captures, and an evaluated expression. Josh concatenates parts into one argv entry; it never performs implicit word splitting.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">josh&gt; who = "Josh"
 Josh
@@ -340,7 +285,7 @@ josh&gt; printf '%s\n' "user=${who}"
 user=Josh
 </code></pre>
 <p>An array expands to several argv entries only when a sole unquoted <code>$variable</code> forms the entire word. Inside double quotes, array elements join with spaces. As part of another unquoted word, an array is a type error.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">josh&gt; names = ["Ada", "Lin"]
 [Ada, Lin]
@@ -351,7 +296,7 @@ josh&gt; printf '%s\n' "names=$names"
 names=Ada Lin
 </code></pre>
 <p>Capture runs a pipeline synchronously. It removes every terminal LF and an immediately preceding CR, returns a string for valid UTF-8, and otherwise preserves bytes. It never parses JSON automatically.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">josh&gt; loud = $(printf hello | tr a-z A-Z)
 HELLO
@@ -360,15 +305,10 @@ josh&gt; printf '[%s]\n' $loud
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="pipelines-and-failures"><a class="header" href="#pipelines-and-failures">Pipelines and failures</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-RUN-003-1">J-RUN-003</a> — <strong>Implemented</strong>; <a href="#J-ERR-001-1">J-ERR-001</a> — <strong>Implemented</strong>; <a href="#J-STRUCT-001-1">J-STRUCT-001</a> — <strong>Implemented</strong>; <a href="#J-FILES-001-1">J-FILES-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="J-RUN-003"></a></p>
-<h2 id="external-byte-pipelines-implemented"><a class="header" href="#external-byte-pipelines-implemented">External byte pipelines <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: CLI pipeline smoke checks and runtime pipefail tests.</p>
+<h2 id="external-byte-pipelines"><a class="header" href="#external-byte-pipelines">External byte pipelines</a></h2>
 <p>Adjacent external stages use kernel pipes. Josh evaluates command words and resolves every executable before spawning any stage. A missing later executable therefore cannot leave an earlier side-effecting stage running.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">josh&gt; printf hello | tr a-z A-Z
 HELLO
@@ -376,7 +316,7 @@ HELLO
 <p>Pipeline status uses pipefail: any failed stage fails the pipeline. SIGPIPE from a non-final stage is ignored when a downstream command closes normally, so <code>yes | head -n 1</code> succeeds. A final signal or any downstream nonzero exit still fails.</p>
 <p>In batch mode, an uncaught pipeline error prints to stderr and exits 1. In the REPL, Josh prints the same structured error and returns to the prompt.</p>
 <p>Add an explicit transformer before applying functions to command output. Streaming terminals capture as Arrays even when they emit zero or one item.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">josh&gt; doubled = $(printf '1\n2\n' | lines | map (x =&gt; Number(x) * 2) | collect)
 [2, 4]
@@ -384,7 +324,7 @@ josh&gt; doubled.join(",")
 2,4
 </code></pre>
 <p>Redirections belong to the external stage before them and are planned before spawn. The two descriptor orders below differ.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">sh -c 'printf out; printf err &gt;&amp;2' &gt; combined.txt 2&gt;&amp;1
 sh -c 'printf out; printf err &gt;&amp;2' 2&gt;&amp;1 &gt; stdout-only.txt
@@ -392,10 +332,6 @@ sh -c 'printf out; printf err &gt;&amp;2' 2&gt;&amp;1 &gt; stdout-only.txt
 <p>Background execution and builtins inside pipelines remain unavailable. Structured transitions and every documented redirection have explicit implemented paths; unsupported transitions report planning errors rather than becoming argv.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="write-and-run-a-script"><a class="header" href="#write-and-run-a-script">Write and run a script</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-CLI-001-1">J-CLI-001</a> — <strong>Implemented</strong>; <a href="#J-RUN-005-1">J-RUN-005</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p>Create a UTF-8 file. Scripts, <code>-c</code>, and accepted REPL lines all pass through <code>Engine::run_source</code>; they do not have separate parsers or evaluators.</p>
 <p><strong>Host command</strong></p>
 <pre><code class="language-sh">cat &gt; greeting.josh &lt;&lt;'JOSH'
@@ -410,10 +346,6 @@ JOSH
 <p>Use <a href="#diagnostics-and-exit-behavior">Diagnostics and exit behavior</a> when making scripts suitable for automation.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="user-journeys"><a class="header" href="#user-journeys">User journeys</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> This page makes no product-availability claims. Each journey links to the relevant capability status.</p>
-</div>
-
 <p>Journeys start from an outcome rather than a language construct:</p>
 <ul>
 <li><a href="#run-external-programs">Run external programs</a> explains resolution and argv.</li>
@@ -423,15 +355,10 @@ JOSH
 <p>For a sequential introduction, use the <a href="#josh-tutorial">tutorial</a>. For exact contracts, use <a href="#reference">Reference</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="run-external-programs"><a class="header" href="#run-external-programs">Run external programs</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-RUN-001-1">J-RUN-001</a> — <strong>Implemented</strong>; <a href="#J-ARGV-001-1">J-ARGV-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="J-RUN-001"></a></p>
-<h2 id="external-command-execution-implemented"><a class="header" href="#external-command-execution-implemented">External command execution <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: <code>command_and_script_modes_share_observable_behavior</code> and process planner tests.</p>
+<h2 id="external-command-execution"><a class="header" href="#external-command-execution">External command execution</a></h2>
 <p>A command name containing a path separator resolves directly and must name an executable file. Other names search inherited <code>PATH</code> in order. Josh resolves all stages before starting a pipeline.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">josh&gt; /usr/bin/printf '%s\n' direct
 direct
@@ -440,10 +367,6 @@ direct
 <p>Use <code>sh -c '...'</code> only when you intentionally delegate a string to a POSIX shell. Josh passes that string as one argument; the child shell, not Josh, interprets it. This distinction matters for error reporting and security review.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="diagnose-a-failed-command"><a class="header" href="#diagnose-a-failed-command">Diagnose a failed command</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-ERR-001-1">J-ERR-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p>Read failures from the outside inward:</p>
 <ol>
 <li><strong>Parse diagnostics</strong> include a stable code, byte span, expected-token set when applicable, and an EOF-causation flag used by the REPL.</li>
@@ -451,7 +374,7 @@ direct
 <li><strong>Spawn errors</strong> identify the resolved stage that the operating system could not start.</li>
 <li><strong>Command/pipeline failures</strong> retain ordered stage outcomes with exit code or signal.</li>
 </ol>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">$ josh --no-config -c 'sh -c "exit 9"'
 error: uncaught value: command: command failed: `sh -c 'exit 9'` (exit 9)
@@ -460,10 +383,6 @@ error: uncaught value: command: command failed: `sh -c 'exit 9'` (exit 9)
 <p><code>let y = ls</code> resolves <code>ls</code> only as an expression identifier. If no binding exists, Josh reports <code>undefined identifier `ls`; use $(ls) to capture a command</code>. It does not consult PATH to change the parse after the fact.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="use-josh-noninteractively"><a class="header" href="#use-josh-noninteractively">Use Josh noninteractively</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-CLI-001-1">J-CLI-001</a> — <strong>Implemented</strong>; <a href="#J-ERR-001-1">J-ERR-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p>Use <code>-c</code> for one source argument and a path for a UTF-8 script. Both stop on the first error. Neither accepts trailing positional arguments in Josh 0.1.0.</p>
 <p><strong>Host command</strong></p>
 <pre><code class="language-sh">josh -c 'printf hello | tr a-z A-Z'
@@ -474,23 +393,14 @@ josh smoke.josh
 <p>For automation, treat stdout as program output and stderr as Josh diagnostics plus inherited child stderr. Capture redirects only the final pipeline stdout internally; child stderr remains inherited and visible.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="interactive-shell"><a class="header" href="#interactive-shell">Interactive shell</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-REPL-001-1">J-REPL-001</a> — <strong>Implemented</strong>; <a href="#J-REPL-002-1">J-REPL-002</a> — <strong>Implemented</strong>; <a href="#J-REPL-003-1">J-REPL-003</a> — <strong>Implemented</strong>; <a href="#J-REPL-004-1">J-REPL-004</a> — <strong>Implemented</strong>; <a href="#J-REPL-005-1">J-REPL-005</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p>Josh embeds Reedline for line editing. The parser, not a separate delimiter counter, drives continuation, highlighting, and completion context. A completion snapshot contains lexical names, inherited environment names, builtins, and a PATH index; it is replaced between accepted lines.</p>
 <p>The current surface includes a primary prompt, multiline prompt, token highlighting, file-backed history, prefix hints, command/file/variable completion, Ctrl-C recovery, and Ctrl-D exit. It does not include job control, SQLite history, rich output, or third-party completion specifications.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="editing-and-multiline-input"><a class="header" href="#editing-and-multiline-input">Editing and multiline input</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-REPL-001-1">J-REPL-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="J-REPL-001"></a></p>
-<h2 id="parser-driven-editing-implemented"><a class="header" href="#parser-driven-editing-implemented">Parser-driven editing <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: Reedline validator tests and PTY multiline probes.</p>
+<h2 id="parser-driven-editing"><a class="header" href="#parser-driven-editing">Parser-driven editing</a></h2>
 <p>The main prompt is <code>josh&gt; </code> and the continuation prompt is <code>...&gt; </code>. Reedline handles cursor movement and ordinary editing. On validation, Josh parses the whole buffer once and requests continuation only for <code>Completeness::Incomplete</code>.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">josh&gt; (1 +
 ...&gt; 2)
@@ -500,43 +410,27 @@ josh smoke.josh
 <p>Whole-buffer reparsing is intentional for short interactive buffers. Every span is a UTF-8 byte range, and completion floors an incoming cursor to a character boundary before constructing replacement spans.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="highlighting"><a class="header" href="#highlighting">Highlighting</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-REPL-002-1">J-REPL-002</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="J-REPL-002"></a></p>
-<h2 id="lossless-token-highlighting-implemented"><a class="header" href="#lossless-token-highlighting-implemented">Lossless token highlighting <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: the Reedline highlighter consumes the public lossless parse and completion snapshot.</p>
+<h2 id="lossless-token-highlighting"><a class="header" href="#lossless-token-highlighting">Lossless token highlighting</a></h2>
 <p>Josh styles exact token slices, preserving all whitespace and comments. Comments, strings, values, variables, keywords, unsupported tokens, and expression-mode punctuation receive distinct styles. The first literal command is green when the immutable PATH/builtin snapshot knows it and red otherwise.</p>
 <p>Highlighting never executes code. It may be stale until the next accepted line if PATH changes during an edit. Nested interpolation semantics are preserved in the AST, but a double-quoted source region remains one concrete token in this slice, so its inner pieces do not receive full independent token colors.</p>
 <p>Color is advisory. Parse mode and diagnostics remain authoritative, and no documented distinction depends only on terminal color.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="hints-history-and-completion"><a class="header" href="#hints-history-and-completion">Hints, history, and completion</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-REPL-003-1">J-REPL-003</a> — <strong>Implemented</strong>; <a href="#J-REPL-004-1">J-REPL-004</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="J-REPL-003"></a></p>
-<h2 id="completion-implemented"><a class="header" href="#completion-implemented">Completion <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: UTF-8-safe completion-context tests and Reedline adapter construction.</p>
+<h2 id="completion"><a class="header" href="#completion">Completion</a></h2>
 <p>At a statement or post-pipe command head, completion searches builtins and executable names indexed from the session’s <code>env.PATH</code> — including entries relative to the session cwd — so <code>cd</code> and PATH edits apply on the very next Tab. After <code>$</code>, it searches Josh bindings and inherited environment names. Elsewhere, it lists matching files and appends <code>/</code> to directories. Results are prefix-based, sorted where file traversal permits, capped at 200, and never evaluate source.</p>
 <p>The replacement span uses UTF-8 byte offsets. Command/file completions request trailing whitespace; variable completions do not.</p>
 <h3 id="command-specific-completion-via-carapace"><a class="header" href="#command-specific-completion-via-carapace">Command-specific completion via carapace</a></h3>
 <p>When an external <code>carapace</code> binary resolves on PATH, argument completion for an external command asks <code>carapace &lt;name&gt; export &lt;name&gt; &lt;args…current-word&gt;</code> and uses its JSON values (with descriptions, and <code>nospace</code> suffixes suppressing the trailing space). Every failure — the binary is absent, a spec for the command does not exist, the call errors, or the answer is empty — falls back silently to native file completion; there are no diagnostics. <code>JOSH_CARAPACE=0</code> disables the bridge entirely, and <code>JOSH_CARAPACE=/path/to/carapace</code> pins a specific binary. First words that are paths, <code>$variables</code>, or assignments never reach carapace.</p>
 <p><a id="J-REPL-004"></a></p>
-<h2 id="hints-and-history-implemented"><a class="header" href="#hints-and-history-implemented">Hints and history <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: Reedline is configured with <code>FileBackedHistory</code> and <code>DefaultHinter</code>.</p>
+<h2 id="hints-and-history"><a class="header" href="#hints-and-history">Hints and history</a></h2>
 <p>Prefix hints come from up to 1,000 plain file-backed history entries. Set <code>JOSH_HISTORY</code> to select a path. Otherwise Josh uses <code>$HOME/.josh_history</code>, falling back to <code>.josh_history</code> in the current directory when HOME is absent.</p>
 <p>There is no SQLite database, remote sync, history schema, or semantic ranking in this slice. Treat the history file as sensitive because commands may contain paths or literal data.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="signals-and-troubleshooting"><a class="header" href="#signals-and-troubleshooting">Signals and troubleshooting</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-REPL-005-1">J-REPL-005</a> — <strong>Implemented</strong>; <a href="#J-JOBS-001-1">J-JOBS-001</a> — <strong>Planned</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="J-REPL-005"></a></p>
-<h2 id="clean-interruption-implemented"><a class="header" href="#clean-interruption-implemented">Clean interruption <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: Ctrl-C PTY probes for partial input and a foreground child.</p>
+<h2 id="clean-interruption"><a class="header" href="#clean-interruption">Clean interruption</a></h2>
 <p>Ctrl-C while editing discards the current input and redraws a fresh prompt. Ctrl-D on an empty buffer exits. While a command or structured graph runs, Josh’s caught SIGINT marks that active execution as cancelled. Josh stops and joins in-shell workers, terminates and reaps external child process groups—including commands called by stream functions—and then returns to the prompt. The evaluator itself polls the same cancellation state at statement and loop boundaries, so Ctrl-C also unwinds pure-Josh computation (<code>loop {}</code>, long <code>while</code> runs) promptly instead of waiting for a subprocess to appear. Ctrl-Z on a foreground pipeline kills it and prints a ‘suspended jobs are not supported’ diagnostic; job control remains deliberately out of scope (J-JOBS-001).</p>
 <p>This is not full job control. Josh does not transfer terminal ownership among process groups, manage background jobs, or expose job tables.</p>
 <h2 id="troubleshooting-checklist"><a class="header" href="#troubleshooting-checklist">Troubleshooting checklist</a></h2>
@@ -549,62 +443,42 @@ josh smoke.josh
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="language-guide"><a class="header" href="#language-guide">Language guide</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> This page makes no product-availability claims. Each language capability is status-tagged in its chapter and in the <a href="#capability-status">matrix</a>.</p>
-</div>
-
 <p>The guide explains Josh’s model from lexical mode through values, functions, control flow, process boundaries, structured streams, files, and startup configuration. Jobs and modules remain explicitly unavailable.</p>
 <p>Josh is intentionally not JavaScript or POSIX shell. Do not infer a feature from visual similarity. Use the exact status block, exclusions, and reference tables.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="command-mode-and-expression-mode"><a class="header" href="#command-mode-and-expression-mode">Command mode and expression mode</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-PARSE-002-1">J-PARSE-002</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="J-PARSE-002"></a></p>
-<h2 id="deterministic-mode-selection-implemented"><a class="header" href="#deterministic-mode-selection-implemented">Deterministic mode selection <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: statement-shape goldens and lossless token-mode tests.</p>
+<h2 id="deterministic-mode-selection"><a class="header" href="#deterministic-mode-selection">Deterministic mode selection</a></h2>
 <p>At statement position, a shell word that is not exactly a JavaScript identifier starts a command. An identifier starts assignment when the next significant token is <code>=</code>, <code>+=</code>, or <code>-=</code>. It starts an expression for an adjacent <code>(</code>, <code>.</code>, or <code>[</code>, or for <code>=&gt;</code> with or without trivia. <code>let</code> and <code>if</code> route to dedicated productions. <code>for</code> is an ordinary command word, not a keyword.</p>
 <p>Command mode makes unquoted <code>|</code>, newline, and <code>;</code> structural even without spaces. Whitespace followed by <code>(</code> starts one evaluated expression argument. <code>$(</code> enters a nested command pipeline; single quotes are literal; double quotes support <code>$name</code>, <code>${expression}</code>, and <code>$(pipeline)</code>.</p>
 <p>Expression mode implements a strict JavaScript-shaped subset. <code>===</code> and <code>!==</code> exist; <code>==</code> is an Invalid parse with a suggestion to use <code>===</code>. Parsing depends only on source, token mode, and adjacency. Name lookup never changes the parse.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="variables-environment-and-values"><a class="header" href="#variables-environment-and-values">Variables, environment, and values</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-RUN-005-1">J-RUN-005</a> — <strong>Implemented</strong>; <a href="#J-ENV-001-1">J-ENV-001</a> — <strong>Implemented</strong>; <a href="#J-ENV-002-1">J-ENV-002</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="J-RUN-005"></a></p>
-<h2 id="bindings-and-assignment-implemented"><a class="header" href="#bindings-and-assignment-implemented">Bindings and assignment <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: lexical-frame, destructuring, assignment, closure, and capture-commit tests.</p>
+<h2 id="bindings-and-assignment"><a class="header" href="#bindings-and-assignment">Bindings and assignment</a></h2>
 <p><code>let</code> binds in the current lexical frame. Plain assignment updates the nearest visible binding or creates one in the current frame. <code>+=</code> and <code>-=</code> apply the corresponding checked operator. Blocks create child frames. A failed right-hand capture does not commit assignment.</p>
 <p>Array/object destructuring is available in <code>let</code> and function parameters, including nested and trailing rest patterns. Destructuring assignment is not implemented.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">let {name, ...rest} = {name: "Josh", version: 1}
 let [first, ...tail] = [1, 2, 3]
 </code></pre>
 <p><a id="J-ENV-001"></a></p>
-<h2 id="environment-fallback-implemented"><a class="header" href="#environment-fallback-implemented">Environment fallback <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: interpolation resolves lexical bindings before inherited environment variables.</p>
+<h2 id="environment-fallback"><a class="header" href="#environment-fallback">Environment fallback</a></h2>
 <p><a id="environment-boundary"></a>
 In <code>$NAME</code> command/string interpolation, Josh checks lexical bindings, then the session environment (the inherited process environment plus any <code>env</code> mutations). Plain assignment does not export.</p>
 <p><a id="J-ENV-002"></a></p>
-<h2 id="the-env-namespace-implemented"><a class="header" href="#the-env-namespace-implemented">The <code>env</code> namespace <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: <code>environment_namespace_is_dynamic_exported_and_scalar_canonical</code>, <code>environment_bytes_path_views_and_validation_preserve_os_values</code>, and <code>startup_environment_mutation_persists_for_path_lookup_and_children</code>.</p>
+<h2 id="the-env-namespace"><a class="header" href="#the-env-namespace">The <code>env</code> namespace</a></h2>
 <p><code>env.NAME</code> reads and writes the session environment; writes stay scoped to the shell’s snapshot (no process-global <code>setenv</code>), and child pipeline processes inherit the member state at spawn. Values are text-centric: reads decode lossy, invalid UTF-8 preserved through the bytes view. Closures read <code>env</code> dynamically, so a later write is visible inside previously created functions. <code>env</code> cannot be shadowed by lexical bindings of the same name.</p>
 <p>PATH is first-class: <code>env.PATH</code> reads the PATH string; <code>env.PATH</code> exposes an array view of one entry per path segment when assigned an array (and PATH lookups, completion, and <code>cd</code> all follow it). Startup <code>env.josh</code> mutations (for example <code>env.PATH = env.PATH + [someDir]</code>, <code>env.EDITOR = ...</code>) persist for both command resolution and child processes. Plain <code>let</code>/assignment never exports.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">env.FOO = "visible to children"
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="strings-interpolation-and-splicing"><a class="header" href="#strings-interpolation-and-splicing">Strings, interpolation, and splicing</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-ARGV-001-1">J-ARGV-001</a> — <strong>Implemented</strong>; <a href="#J-UNICODE-001-1">J-UNICODE-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p>Single quotes are literal command words. In double quotes, a backslash removes itself and makes the next Unicode scalar literal. Expression double-quoted strings and quoted Object keys use the same decoding. Double-quoted command words also support variable, expression, and capture parts. Unquoted <code>$name</code> splices a value; <code>${...}</code> is available inside double quotes, not as a general command-mode delimiter.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">josh&gt; n = 6
 6
@@ -616,21 +490,15 @@ value=42
 <p>String length, signed indexing, and <code>at</code> count UTF-16 code units (JavaScript semantics): <code>"😀".length</code> is 2. A position inside a surrogate pair resolves to the whole code point, since Josh strings cannot hold lone surrogates. See <a href="#J-UNICODE-001">String indexing unit</a> and <a href="#J-EXPR-004">Range slices</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="capture-and-pipelines"><a class="header" href="#capture-and-pipelines">Capture and pipelines</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-RUN-004-1">J-RUN-004</a> — <strong>Implemented</strong>; <a href="#J-RUN-003-1">J-RUN-003</a> — <strong>Implemented</strong>; <a href="#J-STRUCT-001-1">J-STRUCT-001</a> — <strong>Implemented</strong>; <a href="#J-STREAM-002-1">J-STREAM-002</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="J-RUN-004"></a></p>
-<h2 id="string-and-byte-capture-implemented"><a class="header" href="#string-and-byte-capture-implemented">String and byte capture <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: trailing-newline, invalid-UTF-8, stderr, and failed-assignment capture tests.</p>
+<h2 id="string-and-byte-capture"><a class="header" href="#string-and-byte-capture">String and byte capture</a></h2>
 <p>Without a terminal transformer, <code>$(pipeline)</code> collects final stdout, removes every trailing LF and an immediately preceding CR, returns valid UTF-8 as String, and preserves invalid UTF-8 as Bytes. Stderr stays inherited unless redirected. Capture does not inspect JSON-looking content and remains whole-buffer.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">text_value = $(printf '{"answer":42}\n')
 </code></pre>
 <p><a id="J-STRUCT-001"></a></p>
-<h2 id="structured-transformers-implemented"><a class="header" href="#structured-transformers-implemented">Structured transformers <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: graph-validation, capture-cardinality, bounded-termination, process-serialization, and cross-product tests.</p>
+<h2 id="structured-transformers"><a class="header" href="#structured-transformers">Structured transformers</a></h2>
 <p>Josh evaluates stages and validates the complete byte/value graph before spawning. Adjacent external commands retain direct OS byte pipes. Structured stages use bounded channels with capacity 256.</p>
 <div class="table-wrapper">
 <table>
@@ -643,7 +511,8 @@ value=42
 <tr><td>bytes → <code>lines</code></td><td>Stream UTF-8 String values; remove one LF and a preceding CR per line; invalid UTF-8 reports its line number</td></tr>
 <tr><td>bytes → <code>jsonl</code></td><td>Apply the <code>lines</code> boundary, then parse every line as one JSON value; blank or malformed lines error with a line number</td></tr>
 <tr><td>bytes → <code>chunks(n)</code> or <code>chunks n</code></td><td>Stream Bytes blocks up to positive Int <code>n</code>, with a planning-time maximum of 65,536 bytes; allocation is fallible and the final block may be shorter</td></tr>
-<tr><td>bytes → function/<code>map</code></td><td>Planning error with a hint to add <code>text</code>, <code>json</code>, <code>lines</code>, <code>jsonl</code>, or <code>chunks(n)</code></td></tr>
+<tr><td>bytes → function</td><td>Collect all bytes into one Bytes value; after upstream closes, call once and emit the return value. Materialization-limited, like <code>text</code>/<code>json</code>/<code>collect</code> — use <code>chunks(n)</code> for unbounded input. The function decides decoding (<code>String(bytes)</code> validates UTF-8) or byte-level work</td></tr>
+<tr><td>bytes → <code>map fn</code></td><td>Planning error with a hint to add <code>text</code>, <code>json</code>, <code>lines</code>, <code>jsonl</code>, or <code>chunks(n)</code> first</td></tr>
 <tr><td>values → function or <code>map fn</code></td><td>Call once per item and emit each return value</td></tr>
 <tr><td>values → <code>filter fn</code></td><td>Keep an item when the function result is truthy</td></tr>
 <tr><td>values → <code>take n</code></td><td>Emit at most nonnegative Int <code>n</code>, then cancel upstream</td></tr>
@@ -666,35 +535,31 @@ value=42
 <tr><td>external bytes or values → <code>text</code> → bytes</td><td>Raw String/Bytes capture with trailing newline trimming</td></tr>
 <tr><td><code>json</code> or bytes → <code>text</code></td><td>One value</td></tr>
 <tr><td><code>lines</code>, <code>jsonl</code>, <code>chunks</code>, <code>filter</code>, <code>take</code>, or <code>takeLast</code></td><td>Always Array, including zero or one item</td></tr>
-<tr><td>function or <code>map</code></td><td>Preserve upstream one/many cardinality</td></tr>
+<tr><td>function or <code>map</code></td><td>Values upstream preserves one/many cardinality; bytes upstream always returns the one return value</td></tr>
 <tr><td><code>first</code></td><td>First value, or Null for empty input</td></tr>
 <tr><td><code>collect</code></td><td>One Array, including an empty Array</td></tr>
 </tbody>
 </table>
 </div>
 <p>No content-based JSON inference or observed-item-count collapse occurs.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">values = $(printf '1\n2\n3\n' | lines | map (x =&gt; Number(x) * 2) | filter (x =&gt; x &gt; 2) | take 2)
 </code></pre>
 <p>A downstream close, including inherited stdout closing, is graceful for in-shell writers. <code>take</code> and <code>first</code> acknowledge each demanded item before allowing function workers to invoke again, then stop and join in-shell workers and external producers. Cancellation reaches external commands called by those functions. External outcomes remain ordered and use pipefail; only a proven non-final SIGPIPE caused by normal downstream close is treated as success. A deliberate SIGPIPE remains a failure.</p>
 <p><a id="J-STREAM-002"></a></p>
-<h2 id="pipelines-from-values-implemented"><a class="header" href="#pipelines-from-values-implemented">Pipelines from values <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in the current development snapshot. Evidence: value-pipeline parse, evaluation, and focused-error tests.</p>
+<h2 id="pipelines-from-values"><a class="header" href="#pipelines-from-values">Pipelines from values</a></h2>
 <p>An array, map-shaped object, or scalar can start a pipeline instead of a command. Each item streams through the usual structured stages, and a bare closure is a map stage: its parameter is the item and its return value is emitted. An object becomes one <code>{key, value}</code> record per entry in insertion order; any other scalar is a single item.</p>
 <p>A one-stage pipeline whose stage is a standalone expression — a literal, a variable, a member read, a call — evaluates directly to that value with no stream at all, so <code>$(shared.nested) | $((x + 1))</code>-style capture of a computed scalar works without ceremony.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
-<pre><code class="language-josh">doubled = $([1, 2, 3] | map (x =&gt; x * 2))
-joined = $(["a", "b"] | x =&gt; x + "!" | collect)
-count = $([10, 20, 30] | take 2)
+<pre><code class="language-josh">doubled = [1, 2, 3] | map (x =&gt; x * 2)
+joined = ["a", "b"] | x =&gt; x + "!" | collect
+count = [10, 20, 30] | take 2
+names = $((["one", "two", "three"]) | take 2).join(", ")
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="errors"><a class="header" href="#errors">Errors</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-ERR-001-1">J-ERR-001</a> — <strong>Implemented</strong>; <a href="#J-CF-001-1">J-CF-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p>Josh is error-first. A completed nonzero external command raises a structured Error by default. Pipelines use pipefail. Batch execution stops and exits nonzero; interactive execution prints the error and returns to the prompt.</p>
 <p>Errors cover parsing, undefined identifiers, type failures, excluded capabilities, command lookup, spawn, command/pipeline status, stream decode/JSON, redirection planning, glob no-match, capture, and <code>cd</code>. Process failures retain ordered stage outcomes.</p>
 <p><code>try/catch</code> consumes thrown values and evaluator/process errors inside its already-parsed body; a parse error rejects the whole source before <code>try</code> can run. Caught Error values expose <code>kind</code>, <code>message</code>, and optional Status-valued <code>status</code>.</p>
@@ -702,18 +567,12 @@ count = $([10, 20, 30] | take 2)
 <p>See <a href="#diagnostics-and-exit-behavior">Diagnostics and exit behavior</a> for stable parse codes and process exit policy.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="functions-arrows-and-ufcs"><a class="header" href="#functions-arrows-and-ufcs">Functions, arrows, and UFCS</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-EXPR-002-1">J-EXPR-002</a> — <strong>Implemented</strong>; <a href="#J-FUNC-001-1">J-FUNC-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="J-EXPR-002"></a></p>
-<h2 id="function-shaped-syntax-implemented"><a class="header" href="#function-shaped-syntax-implemented">Function-shaped syntax <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: AST and evaluator tests for calls, member/index access, arrows, declarations, spread, and destructuring.</p>
+<h2 id="function-shaped-syntax"><a class="header" href="#function-shaped-syntax">Function-shaped syntax</a></h2>
 <p>Calls require adjacency: <code>value(args)</code>, <code>value.member</code>, and <code>value[index]</code>. A space before <code>(</code> instead makes the parenthesized expression a command argument. Arrows accept one bare parameter or a parenthesized parameter list. Their body is one expression or a block.</p>
 <p><a id="J-FUNC-001"></a></p>
-<h2 id="function-execution-and-ufcs-implemented"><a class="header" href="#function-execution-and-ufcs-implemented">Function execution and UFCS <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: closure, recursion, method, command-position, and UFCS tests.</p>
-<p><code>fn name(params) { ... }</code> and arrow functions share one Function value. A closure copies all visible lexical bindings when it is created; later reassignment outside the closure does not change that snapshot. Named functions rebind themselves while called, so direct recursion works without cyclic ownership. Declarations are source-ordered, not hoisted, and mutual forward recursion is unavailable.</p>
+<h2 id="function-execution-and-ufcs"><a class="header" href="#function-execution-and-ufcs">Function execution and UFCS</a></h2>
+<p><code>fn name(params) { ... }</code> and arrow functions share one Function value. A closure copies all visible lexical bindings when it is created; later reassignment outside the closure does not change that snapshot. Named functions rebind themselves while called, so direct recursion works without cyclic ownership. Declarations are source-ordered, not hoisted, but calls resolve names when invoked, so functions defined later in the same script can call back into earlier ones (mutual recursion included). Scope is lexical: a running function sees its own parameters, its captured snapshot, and shared top-level bindings — it can neither see nor rewrite bindings owned by another active function.</p>
 <p>Parameters allow nested array/object destructuring and one trailing rest pattern. Missing arguments bind Null; extra arguments are ignored. <code>...array</code> expands a call argument list. Spreading any other value is a type error. <code>return</code> without a value returns Null. <code>break</code> and <code>continue</code> cannot cross a function boundary.</p>
 <p>A visible lexical function in command position runs before PATH lookup and receives evaluated command arguments. Member-call dispatch has this fixed order:</p>
 <ol>
@@ -722,7 +581,7 @@ count = $([10, 20, 30] | take 2)
 <li>a visible lexical function with the member name, called as <code>name(receiver, ...args)</code> (UFCS).</li>
 </ol>
 <p>A prototype method therefore wins over a same-named lexical function, and an own field wins over a prototype method. Josh has no <code>this</code>, classes, or hoisting; the builtin prototype tables are the only shared method registry, and prototype methods declare the receiver explicitly with first-argument parameters (for example <code>(this, ...)</code>).</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">x = 10
 snapshot = y =&gt; x + y
@@ -755,7 +614,6 @@ printf '%s %s\n' (snapshot(1)) ("ok".suffix("!"))
 <tr><td>Array</td><td><code>.reduce(fn[, initial])</code></td><td>Calls <code>fn(accumulator, item, index, array)</code>; an empty Array without <code>initial</code> errors</td></tr>
 <tr><td>Array</td><td><code>.flat([depth])</code></td><td>Flatten nested Arrays; default depth 1; depth must be a nonnegative Int</td></tr>
 <tr><td>Array</td><td><code>.join([separator])</code></td><td>Scalar-string elements joined with <code>,</code> or the String separator</td></tr>
-<tr><td>Array</td><td><code>.slice([start[, end]])</code></td><td>Half-open signed/clamped range copied into a new Array</td></tr>
 <tr><td>Object</td><td><code>.keys()</code></td><td>Keys in insertion order</td></tr>
 <tr><td>Object</td><td><code>.entries()</code></td><td><code>[key, value]</code> pairs in insertion order</td></tr>
 </tbody>
@@ -764,15 +622,10 @@ printf '%s %s\n' (snapshot(1)) ("ok".suffix("!"))
 <p>Bytes expose <code>.length</code> as a byte count but have no methods. Unknown Object members return Null; Array, String, and Bytes indexes accept signed Int indexes. Object indexes accept String keys or Int keys converted to decimal text.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="prototypes-and-namespaces"><a class="header" href="#prototypes-and-namespaces">Prototypes and namespaces</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-OBJ-001-1">J-OBJ-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="J-OBJ-001"></a></p>
-<h2 id="prototypal-method-lookup-and-builtin-namespaces-implemented"><a class="header" href="#prototypal-method-lookup-and-builtin-namespaces-implemented">Prototypal method lookup and builtin namespaces <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in the current development snapshot. Evidence: prototype namespace, conversion, member assignment, and cycle-rejection tests.</p>
+<h2 id="prototypal-method-lookup-and-builtin-namespaces"><a class="header" href="#prototypal-method-lookup-and-builtin-namespaces">Prototypal method lookup and builtin namespaces</a></h2>
 <p>Josh has no classes or implicit <code>this</code>. Objects are ordered key/value maps with an optional prototype link, and method lookup walks: the object’s own fields → the object’s prototype chain → the value’s <em>type prototype</em>. A method found on a prototype is called with the receiver passed as the first argument.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">Animal = { legs: 4 }
 Animal.speak = (this) =&gt; "legs:" + String(this.legs)
@@ -807,7 +660,7 @@ cat.speak()                    # "legs:4" — receiver travels as `this`
 <li><code>Object.setPrototype</code> refuses cycles; <code>Object.seal</code> prevents adding new keys to that object while existing keys stay writable.</li>
 <li><code>o.name = value</code> and <code>o[key] = value</code> mutate objects in place anywhere an expression position was already a statement; assignments target objects only.</li>
 </ul>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">cfg = { retries: 0 }
 cfg.retries = 3
@@ -817,13 +670,8 @@ String.prototype.shout = (this) =&gt; this.toUpperCase() + "!"
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="files-redirections-and-globs"><a class="header" href="#files-redirections-and-globs">Files, redirections, and globs</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-FILES-001-1">J-FILES-001</a> — <strong>Implemented</strong>; <a href="#J-TILDE-001-1">J-TILDE-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="J-FILES-001"></a></p>
-<h2 id="redirections-and-glob-expansion-implemented"><a class="header" href="#redirections-and-glob-expansion-implemented">Redirections and glob expansion <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: descriptor-order, pre-spawn validation, glob policy, and cross-product tests.</p>
+<h2 id="redirections-and-glob-expansion"><a class="header" href="#redirections-and-glob-expansion">Redirections and glob expansion</a></h2>
 <p>Redirections attach to the external command stage they follow:</p>
 <div class="table-wrapper">
 <table>
@@ -844,14 +692,14 @@ String.prototype.shout = (this) =&gt; this.toUpperCase() + "!"
 <p>Descriptor actions apply left to right, so <code>&gt; file 2&gt;&amp;1</code> sends both streams to the file while <code>2&gt;&amp;1 &gt; file</code> leaves stderr on the stdout destination that existed before the file redirect.</p>
 <p>Josh first evaluates every stage, expands argv/globs, and resolves every external executable. It then opens redirection files in stage and source order. Only after all preflight succeeds does any command spawn. Preflight is not a filesystem transaction: an earlier output may already be created or truncated when a later open fails.</p>
 <p>A target must evaluate to exactly one path. Array/object targets error. An unquoted glob target is allowed only when it matches exactly one path; zero matches is a glob error and multiple matches violate the one-path rule. Redirections on <code>cd</code>, <code>exit</code>, lexical functions, or in-shell transformer stages are unsupported.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">sh -c 'printf out; printf err &gt;&amp;2' &gt; output.txt 2&gt;&amp;1
 sh -c 'printf out; printf err &gt;&amp;2' 2&gt;&amp;1 &gt; stdout-only.txt
 </code></pre>
 <p>Unquoted command words expand <code>*</code>, <code>?</code>, bracket classes, and <code>**</code> before invocation. Matching is case-sensitive; path separators and leading dots must be matched literally. Results sort by path bytes, and each match becomes one argv item without word splitting. No match is an error. Quotes and backslash escapes suppress the quoted/escaped metacharacters while leaving other unquoted metacharacters active.</p>
 <p><code>glob(pattern)</code> accepts one String, applies the same matching, sorting, and no-match policy, and returns an Array of String paths on valid UTF-8 platforms or Bytes where a Unix path is not valid UTF-8.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">printf '%s\n' **/*.md
 printf '%s\n' '*.md'
@@ -859,41 +707,33 @@ files = glob("crates/**/*.rs")
 </code></pre>
 <p>REPL file completion and execution-time glob expansion are separate features.</p>
 <p><a id="J-TILDE-001"></a></p>
-<h2 id="tilde-expansion-implemented"><a class="header" href="#tilde-expansion-implemented">Tilde expansion <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in the current development snapshot. Evidence: lexer and expansion tests for <code>~</code> and <code>~/</code> at word starts.</p>
+<h2 id="tilde-expansion"><a class="header" href="#tilde-expansion">Tilde expansion</a></h2>
 <p>An unquoted leading <code>~</code> alone or followed by <code>/</code> expands to the session’s home directory: the session <code>HOME</code> when exported, else the per-process home at startup. Other forms (<code>~user</code>, <code>~+</code>, mid-word tildes) never expand and stay literal text.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">cd ~/Projects
 cfg = "~/config/app.toml"
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="control-flow-and-jobs"><a class="header" href="#control-flow-and-jobs">Control flow and jobs</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-RUN-006-1">J-RUN-006</a> — <strong>Implemented</strong>; <a href="#J-EXPR-003-1">J-EXPR-003</a> — <strong>Implemented</strong>; <a href="#J-CF-001-1">J-CF-001</a> — <strong>Implemented</strong>; <a href="#J-JOBS-001-1">J-JOBS-001</a> — <strong>Planned</strong>; <a href="#J-BG-001">J-BG-001</a> — <strong>Unresolved</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="J-RUN-006"></a></p>
-<h2 id="if-statements-implemented"><a class="header" href="#if-statements-implemented">If statements <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: parser and evaluator tests for expression/command conditions, else-if, and <code>else</code>.</p>
+<h2 id="if-statements"><a class="header" href="#if-statements">If statements</a></h2>
 <p>A parenthesized condition is an expression and uses Josh truthiness. An unparenthesized condition is a command pipeline ending before an unquoted standalone <code>{</code>. A completed nonzero command condition is false. Planning, interpolation, spawn, stream, and type errors propagate; they are not false.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">if (3 &gt; 2) { printf 'yes\n' } else { printf 'no\n' }
 if grep -q needle file.txt { printf 'found\n' }
 </code></pre>
 <p><a id="J-EXPR-003"></a></p>
-<h2 id="if-and-try-as-expressions-implemented"><a class="header" href="#if-and-try-as-expressions-implemented">If and try as expressions <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in the current development snapshot. Evidence: parser tests for expression-position <code>if</code>/<code>try</code> and runtime tests for produced values.</p>
+<h2 id="if-and-try-as-expressions"><a class="header" href="#if-and-try-as-expressions">If and try as expressions</a></h2>
 <p><code>if</code> and <code>try</code> produce values wherever an expression is legal: assignment right-hand sides, call arguments, captures, and pipeline sources. The <code>else</code> branch is required in expression position, and <code>try</code> still requires its <code>catch</code> block. As statements they behave exactly as before.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">size_label = if (total &gt; 1000) { "large" } else { "small" }
 recovered = try { read_config() } catch (e) { defaults }
 </code></pre>
 <p><a id="J-CF-001"></a></p>
-<h2 id="non-job-control-flow-implemented"><a class="header" href="#non-job-control-flow-implemented">Non-job control flow <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: typed-unwinding, process-error, status, chain, and cross-product tests.</p>
+<h2 id="non-job-control-flow"><a class="header" href="#non-job-control-flow">Non-job control flow</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -926,7 +766,7 @@ recovered = try { read_config() } catch (e) { defaults }
 </div>
 <p>Command-mode <code>&amp;&amp;</code> and <code>||</code> short-circuit on the completed Status: <code>&amp;&amp;</code> runs its right pipeline after success, and <code>||</code> runs it after failure. Entering a command chain handles completed nonzero status, including its final branch; lookup, interpolation, spawn, and type errors are not converted to chain booleans. Expression-mode <code>&amp;&amp;</code> and <code>||</code> instead short-circuit on truthiness and return one operand.</p>
 <p>Josh has no <code>for</code> production. At statement head, <code>for</code> remains an ordinary command word and may resolve through PATH.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">fn count() {
   n = 0
@@ -940,22 +780,15 @@ recovered = try { read_config() } catch (e) { defaults }
 try { sh -c 'exit 7' } catch (problem) { printf '%s\n' (problem.status.code) }
 </code></pre>
 <p><a id="J-JOBS-001"></a></p>
-<h2 id="background-jobs-planned"><a class="header" href="#background-jobs-planned">Background jobs <span class="status status--planned" aria-label="Status: Planned">Planned</span></a></h2>
-<p><strong>Availability:</strong> Excluded from the current implementation. Tracking: <a href="#j-jobs-001">Planned work</a>.</p>
-<p><code>&amp;</code>, <code>jobs</code>, <code>fg</code>, and <code>bg</code> are rejected. Background execution, a job table, terminal process-group transfer, and Job values are not partially implemented. The syntax and value shape for assigning a background operation remain <a href="#J-BG-001-1">Unresolved</a>.</p>
+<h2 id="background-jobs"><a class="header" href="#background-jobs">Background jobs</a></h2>
+<p><code>&amp;</code>, <code>jobs</code>, <code>fg</code>, and <code>bg</code> are rejected. Background execution, a job table, terminal process-group transfer, and Job values are not partially implemented. The syntax and value shape for assigning a background operation remain <a href="#J-BG-001">Unresolved</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="modules-and-configuration"><a class="header" href="#modules-and-configuration">Modules and configuration</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-MOD-001-1">J-MOD-001</a> — <strong>Planned</strong>; <a href="#J-MOD-002-1">J-MOD-002</a> — <strong>Implemented</strong>; <a href="#J-CONFIG-001-1">J-CONFIG-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="J-MOD-001"></a></p>
-<h2 id="modules-planned"><a class="header" href="#modules-planned">Modules <span class="status status--planned" aria-label="Status: Planned">Planned</span></a></h2>
-<p><strong>Availability:</strong> Excluded from the current implementation. Tracking: <a href="#j-mod-001">Planned work</a>.</p>
+<h2 id="modules"><a class="header" href="#modules">Modules</a></h2>
 <p><code>import</code> and <code>export</code> are rejected. URL and remote modules are also unavailable; Josh has no dependency identity, integrity, cache, update, offline, or trust model for them. <code>source</code> is the deliberate include mechanism (below) instead of a module system.</p>
 <p><a id="J-MOD-002"></a></p>
-<h2 id="source-statement-implemented"><a class="header" href="#source-statement-implemented">source statement <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in development snapshots since 2026-08-16. Evidence: runtime source tests.</p>
+<h2 id="source-statement"><a class="header" href="#source-statement">source statement</a></h2>
 <p><code>source path.josh</code> reads a file, parses it under the strict policy, and evaluates it in the current frame — bash-style, with no new scope, no caching, and no module identity. <code>let</code> and <code>fn</code> declarations from the file are visible afterwards (aliases share object prototypes), which makes <code>source</code> the way to load shared helper files and startup configuration.</p>
 <ul>
 <li>The path is one command word: quoting, <code>$variable</code>, captures, and a leading <code>~</code> behave like any command argument. Relative paths resolve against the working directory. More than one word is a parse error.</li>
@@ -963,8 +796,7 @@ try { sh -c 'exit 7' } catch (problem) { printf '%s\n' (problem.status.code) }
 <li><code>return</code>, <code>break</code>, and <code>continue</code> cannot escape the sourced file into the caller; they are type errors at the boundary. Loops and functions inside the file behave normally.</li>
 </ul>
 <p><a id="J-CONFIG-001"></a></p>
-<h2 id="configuration-implemented"><a class="header" href="#configuration-implemented">Configuration <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: batch startup, fallback path, interactive prompt, error-policy, and cross-product tests.</p>
+<h2 id="configuration"><a class="header" href="#configuration">Configuration</a></h2>
 <p>Josh chooses one config root before running requested source:</p>
 <ol>
 <li>nonempty <code>$XDG_CONFIG_HOME</code>;</li>
@@ -988,7 +820,7 @@ try { sh -c 'exit 7' } catch (problem) { printf '%s\n' (problem.status.code) }
 <p><code>--no-config</code> skips both startup files and is the reproducible automation mode. It does not change <code>$NAME</code> environment fallback or <code>JOSH_HISTORY</code>.</p>
 <p>A visible lexical function named <code>prompt</code> controls the interactive primary prompt. It must take zero arguments and return String. Josh calls it before each read. Missing <code>prompt</code> uses <code>josh&gt; </code>; a nonfunction, wrong arity, thrown error, or non-String result prints a diagnostic and falls back to <code>josh&gt; </code>. The multiline prompt remains <code>...&gt; </code>.</p>
 <p><code>JOSH_HISTORY</code> selects the Reedline history path. Without it, Josh uses <code>$HOME/.josh_history</code>, or <code>./.josh_history</code> when HOME is absent.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">prefix = "project"
 fn prompt() { return prefix + "&gt; " }
@@ -996,25 +828,17 @@ fn prompt() { return prefix + "&gt; " }
 <p>Dedicated startup files are ordinary Josh source and may use <code>source</code> for explicit includes; module loading stays excluded.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="agent-terminal"><a class="header" href="#agent-terminal">agent-terminal</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#AT-CLI-001-1">AT-CLI-001</a> — <strong>Implemented</strong>; <a href="#AT-PTY-001-1">AT-PTY-001</a> — <strong>Implemented</strong>; <a href="#AT-SNAP-001-1">AT-SNAP-001</a> — <strong>Implemented</strong>; <a href="#AT-PNG-001-1">AT-PNG-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><code>agent-terminal</code> is a Unix terminal automation CLI. One detached daemon owns one real PTY, child process, pinned <code>libghostty-vt</code> terminal, revision counter, and private Unix socket. Separate client invocations launch, send input, resize, wait, inspect semantic state, render deterministic PNGs, and close the process tree.</p>
 <p>Semantic snapshots are the authoritative automation state. Screenshots render copied schema-v2 cell/style/render state client-side with pinned fonts, metrics, rasterizer, and PNG encoding. They do not replace semantic snapshots.</p>
 <p>The verified 0.1.0 binary passes static-link/build-identity checks, real PTY/protocol/security/lifecycle tests, exact renderer tests, and the complete Josh scenario. See <a href="#install-agent-terminal">Installation and build</a> and <a href="#deterministic-png-screenshots">Deterministic PNG screenshots</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="install-agent-terminal"><a class="header" href="#install-agent-terminal">Install agent-terminal</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#AT-BUILD-001-1">AT-BUILD-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="AT-BUILD-001"></a></p>
-<h2 id="pinned-static-build-implemented"><a class="header" href="#pinned-static-build-implemented">Pinned static build <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in agent-terminal 0.1.0. Evidence: exact Ghostty pin and Zig 0.16.0 checks, linked-library identity tests, and <code>otool</code>/<code>nm</code> static-link inspection.</p>
+<h2 id="pinned-static-build"><a class="header" href="#pinned-static-build">Pinned static build</a></h2>
 <p>The repository vendors Ghostty as a git submodule. <code>build.rs</code> refuses a missing or mismatched revision, a dirty source tree, a mismatched tree digest, and a different Zig version. The static archive is keyed by the verified tree digest and build profile. Checked-in narrow bindings keep bindgen out of normal builds.</p>
 <p><strong>Host command</strong></p>
-<pre><code class="language-sh">cd /Users/mbullington/Projects/agent-terminal
+<pre><code class="language-sh">git clone https://github.com/mbullington/agent-terminal
+cd agent-terminal
 git submodule update --init --recursive
 test "$(nix develop -c zig version)" = 0.16.0
 nix develop -c cargo build --locked
@@ -1028,12 +852,8 @@ nm target/debug/agent-terminal | grep ghostty_terminal_new
 <p>The first <code>nix develop</code> can spend several minutes fetching the pinned Rust and Zig toolchains. On 2026-08-15, the canonical development shell completed after its cache was populated and ran the static build, tests, smoke checks, link inspection, and Josh scenario. Do not substitute another Zig version or terminal parser.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="your-first-automated-terminal-session"><a class="header" href="#your-first-automated-terminal-session">Your first automated terminal session</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#AT-CLI-001-1">AT-CLI-001</a> — <strong>Implemented</strong>; <a href="#AT-WAIT-001-1">AT-WAIT-001</a> — <strong>Implemented</strong>; <a href="#AT-LIFE-001-1">AT-LIFE-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p>Build and verify the binary before starting a session.</p>
-<p class="example-label example-label--implemented"><strong>Implemented CLI sequence · Runnable with agent-terminal 0.1.0</strong></p>
+<p class="example-label"><strong>CLI sequence · runnable with agent-terminal 0.1.0</strong></p>
 
 <pre><code class="language-sh">id=$(agent-terminal launch --cols 80 --rows 24 -- /bin/sh)
 agent-terminal wait "$id" --stable 200ms
@@ -1049,55 +869,34 @@ agent-terminal close "$id"
 <p>Always install an EXIT/INT/TERM cleanup trap in automation. The one-hour idle timeout is a backstop, not normal cleanup.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="sessions-and-process-lifecycle"><a class="header" href="#sessions-and-process-lifecycle">Sessions and process lifecycle</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#AT-LIFE-001-1">AT-LIFE-001</a> — <strong>Implemented</strong>; <a href="#AT-PTY-001-1">AT-PTY-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="AT-LIFE-001"></a></p>
-<h2 id="one-daemon-per-session-implemented"><a class="header" href="#one-daemon-per-session-implemented">One daemon per session <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in agent-terminal 0.1.0. Evidence: cross-invocation smoke and Josh scenarios launch, inspect, close, and directly verify daemon and child reaping.</p>
+<h2 id="one-daemon-per-session"><a class="header" href="#one-daemon-per-session">One daemon per session</a></h2>
 <p><code>launch</code> starts the same executable in hidden daemon mode under <code>setsid()</code>, waits up to five seconds for a protocol handshake, then sends argv, cwd, dimensions, and inherited environment. It executes argv directly; no shell expansion occurs unless the caller explicitly launches a shell.</p>
 <p><code>list</code> handshakes with sockets instead of trusting metadata PIDs. It reports starting, running, exited, incompatible, or unhealthy. Stale unreachable directories older than the startup grace period may be removed, but metadata alone never authorizes a signal.</p>
 <p><code>close</code> targets the PTY foreground and child leader process groups with HUP, then TERM and KILL after bounded waits, closes the PTY, waits for the direct child, removes socket/metadata, and ends the daemon. Natural child exit leaves final terminal state available until close or idle expiry.</p>
 <p>Cleanup strongly covers ordinary terminal process trees. A hostile child can create a new session or escape known process groups; this is not containment.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="semantic-snapshots"><a class="header" href="#semantic-snapshots">Semantic snapshots</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#AT-SNAP-001-1">AT-SNAP-001</a> — <strong>Implemented</strong>; <a href="#AT-PNG-001-1">AT-PNG-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="AT-SNAP-001"></a></p>
-<h2 id="visible-semantic-state-implemented"><a class="header" href="#visible-semantic-state-implemented">Visible semantic state <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in agent-terminal 0.1.0. Evidence: real CLI tests assert Ghostty title, text, fixed grids, row/cell/style facts, wide cells, and background-only cells.</p>
+<h2 id="visible-semantic-state"><a class="header" href="#visible-semantic-state">Visible semantic state</a></h2>
 <p>Default <code>snapshot</code> output starts with session, grid, cursor, revision, and process metadata, followed by Ghostty-formatted visible plain text. <code>--json</code> emits semantic schema v2.</p>
 <p>Rows include wrapping, prompt semantics, and text. Cells include grapheme, wide state, semantic content, protection, hyperlink, optional background-only color, and style ID. The deduplicated style table carries colors and text attributes. Render facts include Ghostty’s effective foreground/background, active 256-color palette, and optional cursor color plus cursor style, blink, viewport, and wide-tail state. OSC 4/10/11/12 updates therefore remain authoritative in later screenshots.</p>
 <p>Revision is monotonic within a live session. Each nonempty PTY batch and resize advances it; snapshots and screenshots do not. It is not a clock or cross-session sequence.</p>
 <p>Cell and row traversal uses Ghostty viewport coordinates. Active cursor coordinates remain available separately; the optional cursor viewport position determines whether and where a screenshot draws it. There is no client viewport-scrolling command. The live daemon is authoritative. <code>screenshot</code> consumes this copied semantic state client-side; it does not change or rename the schema.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="type-press-keys-resize-and-wait"><a class="header" href="#type-press-keys-resize-and-wait">Type, press keys, resize, and wait</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#AT-INPUT-001-1">AT-INPUT-001</a> — <strong>Implemented</strong>; <a href="#AT-WAIT-001-1">AT-WAIT-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="AT-INPUT-001"></a></p>
-<h2 id="input-and-resize-implemented"><a class="header" href="#input-and-resize-implemented">Input and resize <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in agent-terminal 0.1.0. Evidence: the real PTY CLI smoke test verifies Unicode input, encoded Enter, and resize.</p>
+<h2 id="input-and-resize"><a class="header" href="#input-and-resize">Input and resize</a></h2>
 <p>A key chord is <code>modifier+...+key</code>. Modifiers are <code>shift</code>, <code>ctrl</code>/<code>control</code>, <code>alt</code>/<code>option</code>, and <code>super</code>/<code>cmd</code>/<code>meta</code>. Named keys include enter/return, tab, backspace, escape/esc, arrows, home/end, page up/down, insert/delete, and F1–F12. One printable US-layout ASCII character is also accepted. Key encoding synchronizes application-cursor and Kitty keyboard modes before each event. Alt produces a distinct terminal encoding. A chord, including Super, that has no encoding in the current mode returns <code>InvalidKey</code> instead of acknowledging empty input.</p>
 <p>Grids are limited to 300 columns, 200 rows, and 20,000 total cells. The current contract uses deterministic synthetic 8×16 cell metrics for winsize pixel fields.</p>
 <p><a id="AT-WAIT-001"></a></p>
-<h2 id="wait-conditions-implemented"><a class="header" href="#wait-conditions-implemented">Wait conditions <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in agent-terminal 0.1.0. Evidence: the CLI smoke test and Josh scenario exercise daemon-side text and stability waits.</p>
+<h2 id="wait-conditions"><a class="header" href="#wait-conditions">Wait conditions</a></h2>
 <p><code>--text</code> matches a substring of current Ghostty-formatted visible text. <code>--stable 200ms</code> succeeds after revision remains unchanged for that interval. PTY reads continue while clients wait. Timeout exits 124 and carries last snapshot metadata; child exit triggers one final check before an exited-before-condition error.</p>
 <p>Stability is measured from the later of the last painted revision and the last submitted <code>type</code>/<code>key</code> input, so a wait admitted immediately after input cannot satisfy until a full quiet interval passes with no new input or output. See the <a href="#agent-terminal-errata">errata</a> for measured settle budgets when polling snapshots without waits.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="agent-terminal-cli-reference"><a class="header" href="#agent-terminal-cli-reference">agent-terminal CLI reference</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#AT-CLI-001-1">AT-CLI-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="AT-CLI-001"></a></p>
-<h2 id="command-surface-implemented"><a class="header" href="#command-surface-implemented">Command surface <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in agent-terminal 0.1.0. Evidence: the real cross-invocation CLI smoke test and <a href="#AT-JOSH-001"><code>scripts/josh-e2e.sh</code></a>.</p>
+<h2 id="command-surface"><a class="header" href="#command-surface">Command surface</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1121,13 +920,9 @@ agent-terminal close "$id"
 <p>Session selection accepts a full 32-hexadecimal ID, with or without UUID hyphens, or a unique hexadecimal prefix of at least eight characters. An explicit selector may identify a starting, running, or exited healthy daemon. An omitted selector requires exactly one running or exited healthy session. Read-only failure paths do not auto-start a daemon.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="snapshot-and-protocol-schemas"><a class="header" href="#snapshot-and-protocol-schemas">Snapshot and protocol schemas</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#AT-SNAP-001-1">AT-SNAP-001</a> — <strong>Implemented</strong>; <a href="#AT-PROTO-001-1">AT-PROTO-001</a> — <strong>Implemented</strong>; <a href="#AT-PNG-001-1">AT-PNG-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <h2 id="semantic-snapshot-schema-v2"><a class="header" href="#semantic-snapshot-schema-v2">Semantic snapshot schema v2</a></h2>
 <p>A snapshot has <code>schema_version</code>, <code>session_id</code>, <code>revision</code>, tagged <code>process</code>, <code>cols</code>, <code>rows</code>, captured <code>default_foreground</code>, <code>default_background</code>, the active 256-entry <code>palette</code>, <code>cursor</code>, optional <code>title</code>, <code>active_screen</code>, formatter <code>text</code>, <code>row_data</code>, <code>cells</code>, and deduplicated <code>styles</code>. The color fields are Ghostty render state copied by the daemon, not client theme substitutions.</p>
-<p class="example-label example-label--implemented"><strong>Implemented JSON shape · Emitted by agent-terminal 0.1.0</strong></p>
+<p class="example-label"><strong>JSON shape · emitted by agent-terminal 0.1.0</strong></p>
 
 <pre><code class="language-json">{
   "schema_version": 2,
@@ -1161,23 +956,18 @@ agent-terminal close "$id"
 <p>Rows carry <code>index</code>, <code>wrap</code>, <code>wrap_continuation</code>, <code>semantic_prompt</code> (<code>none</code>, <code>prompt</code>, or <code>prompt_continuation</code>), and <code>text</code>. Cells carry row/column, optional grapheme, <code>wide</code> state (<code>narrow</code>, <code>wide</code>, <code>spacer_tail</code>, <code>spacer_head</code>), semantic content, protection, hyperlink, background-only color, and style ID. Colors are tagged palette indices or RGB values. Styles include foreground/background/underline colors and bold, italic, faint, blink, inverse, invisible, strikethrough, overline, and underline shape. Cursor <code>x</code>/<code>y</code> remain active-area facts; optional <code>viewport</code> is the visible render position and records whether it is on a wide tail. <code>visual_style</code> is <code>bar</code>, <code>block</code>, <code>underline</code>, or <code>hollow_block</code>; <code>blinking</code> records terminal mode even though PNG rendering freezes it visibly on.</p>
 <p>Screenshot JSON is a command result, not schema v2. It contains <code>path</code>, <code>session_id</code>, <code>revision</code>, <code>width</code>, <code>height</code>, <code>bytes</code>, <code>dpi</code>, <code>cell_width</code>, and <code>cell_height</code>. PNG bytes carry no session metadata.</p>
 <p><a id="AT-PROTO-001"></a></p>
-<h2 id="ndjson-protocol-v1-implemented"><a class="header" href="#ndjson-protocol-v1-implemented">NDJSON protocol v1 <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in agent-terminal 0.1.0. Evidence: fresh CLI processes handshake and exchange typed launch, input, wait, snapshot, resize, list, and close requests in the smoke tests.</p>
+<h2 id="ndjson-protocol-v1"><a class="header" href="#ndjson-protocol-v1">NDJSON protocol v1</a></h2>
 <p>Requests carry <code>protocol_version: 1</code>, <code>request_id</code>, and a tagged command. Responses repeat the version and request ID and contain either a tagged result or <code>{code, message, details?}</code> error. Handshake returns CLI version, protocol version, Ghostty SHA, daemon PID, session ID, and process state.</p>
 <p>Error codes include invalid request/message size/version, lifecycle state, dimensions/key, spawn/I/O, timeout/early exit, session selection/health, and internal failure. A version mismatch is explicit; clients do not signal metadata PIDs to reconcile it.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="automate-the-complete-josh-scenario"><a class="header" href="#automate-the-complete-josh-scenario">Automate the complete Josh scenario</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#AT-JOSH-001-1">AT-JOSH-001</a> — <strong>Implemented</strong>; <a href="#J-REPL-001-1">J-REPL-001</a> — <strong>Implemented</strong>; <a href="#AT-PNG-001-1">AT-PNG-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="AT-JOSH-001"></a></p>
-<h2 id="cross-product-scenario-implemented"><a class="header" href="#cross-product-scenario-implemented">Cross-product scenario <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in agent-terminal 0.1.0 with Josh 0.1.0. Evidence: <code>scripts/josh-e2e.sh</code> drives the real fixed-grid REPL and verifies artifacts and cleanup.</p>
+<h2 id="cross-product-scenario"><a class="header" href="#cross-product-scenario">Cross-product scenario</a></h2>
 <p><strong>Host command</strong></p>
-<pre><code class="language-sh">cd /Users/mbullington/Projects/agent-terminal
-scripts/josh-e2e.sh target/debug/agent-terminal /Users/mbullington/Projects/josh-shell/target/debug/josh
+<pre><code class="language-sh">cd agent-terminal
+scripts/josh-e2e.sh target/debug/agent-terminal "$(command -v josh)"
 </code></pre>
+<p><code>agent-terminal</code> comes from the companion repository (crate <code>agent-terminal-cli</code>, binary <code>agent-terminal</code>); the scenario accepts any pair of <code>agent-terminal</code> and <code>josh</code> binaries, from a build tree or <code>PATH</code>.</p>
 <p>The script creates isolated HOME, XDG config, PATH, runtime, and file roots. <code>env.josh</code> and <code>init.josh</code> establish shared lexical state and <code>cfg:env-init&gt;</code> as the prompt. The 80×24 session exercises:</p>
 <ul>
 <li>objects, declarations/arrows, snapshot closures, calls/member/index access, and lexical UFCS;</li>
@@ -1192,13 +982,8 @@ scripts/josh-e2e.sh target/debug/agent-terminal /Users/mbullington/Projects/josh
 <p>After <code>exit 0</code>, the script requires an exact exited/code-0 process state. <code>close</code> must then leave <code>sessions=[]</code>, no control socket or session directory, and no live producer, external child, Josh child, or daemon PID. The temporary HOME/XDG/PATH/runtime/root is removed; only the semantic snapshot and PNG review artifacts remain.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="agent-terminal-security"><a class="header" href="#agent-terminal-security">agent-terminal security</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#AT-SEC-001-1">AT-SEC-001</a> — <strong>Implemented</strong>; <a href="#AT-LIFE-001-1">AT-LIFE-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="AT-SEC-001"></a></p>
-<h2 id="local-trust-boundary-implemented"><a class="header" href="#local-trust-boundary-implemented">Local trust boundary <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in agent-terminal 0.1.0. Evidence: the real CLI smoke test asserts owner-only runtime/session directories and control sockets.</p>
+<h2 id="local-trust-boundary"><a class="header" href="#local-trust-boundary">Local trust boundary</a></h2>
 <p>Launching a command grants ordinary local code-execution authority. agent-terminal is not a sandbox. Never expose its control socket through TCP, a web service, or an untrusted same-user boundary.</p>
 <p>The runtime directory comes from explicit <code>AGENT_TERMINAL_RUNTIME_DIR</code>, then <code>$XDG_RUNTIME_DIR/agent-terminal</code>, then a short <code>$TMPDIR/agent-terminal-$UID</code> path. Runtime and session directories must be real owner-owned 0700 directories, not symlinks; sockets and metadata are 0600. Socket paths are length-checked.</p>
 <p>Protocol versioning prevents accidental schema confusion but does not authenticate beyond filesystem permissions. Requests are capped at 1 MiB and responses at 16 MiB. Grids are capped at 300 columns, 200 rows, and 20,000 cells; style tables at 1,024 unique entries; hyperlinked cells at 1,024; graphemes at 256 bytes; hyperlinks at 2,048 bytes; formatter text at 256 KiB; and all snapshot strings at 512 KiB aggregate. These limits fit the response budget by construction. Borrowed Ghostty data is copied before mutation or await. Clients validate request IDs, handshake session/Ghostty identity, snapshot session/schema, complete row-major coverage, cursor and wide-cell invariants, and all bounds before allocating at most 10,240,000 raw RGBA bytes. Malformed state is rejected rather than clamped or painted.</p>
@@ -1206,13 +991,8 @@ scripts/josh-e2e.sh target/debug/agent-terminal /Users/mbullington/Projects/josh
 <p>Close/reap handling is lifecycle hygiene, not hostile-process containment. A process can ignore HUP, fork, or establish a new session. Stronger guarantees require cgroups, process contracts, or another OS containment mechanism.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="deterministic-png-screenshots"><a class="header" href="#deterministic-png-screenshots">Deterministic PNG screenshots</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#AT-PNG-001-1">AT-PNG-001</a> — <strong>Implemented</strong>; <a href="#AT-SNAP-001-1">AT-SNAP-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="AT-PNG-001"></a></p>
-<h2 id="pixel-renderer-implemented"><a class="header" href="#pixel-renderer-implemented">Pixel renderer <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in agent-terminal 0.1.0. Evidence: reviewed exact-pixel and fixed-digest fixtures, real Ghostty OSC/DECSCUSR and CLI tests, and repeated byte comparisons in <code>scripts/josh-e2e.sh</code>.</p>
+<h2 id="pixel-renderer"><a class="header" href="#pixel-renderer">Pixel renderer</a></h2>
 <p><code>agent-terminal screenshot [SESSION] [PATH] [--json]</code> requests schema-v2 semantic state from the selected live daemon, copies it into the client, validates the complete response, and renders there. It does not parse ANSI or scrape formatter text. Omitting PATH writes the platform temporary directory’s <code>agent-terminal-SESSION.png</code>. Relative paths use the client’s working directory. The write truncates an existing file; parent directories are not created.</p>
 <p>Default output is the written path. <code>--json</code> emits <code>path</code>, <code>session_id</code>, semantic <code>revision</code>, <code>width</code>, <code>height</code>, encoded <code>bytes</code>, <code>dpi</code>, <code>cell_width</code>, and <code>cell_height</code>. Taking a screenshot does not advance the revision.</p>
 <div class="table-wrapper">
@@ -1237,7 +1017,7 @@ scripts/josh-e2e.sh target/debug/agent-terminal /Users/mbullington/Projects/josh
 </div>
 <p>Before allocating or painting, the client validates response/request IDs, handshake session and pinned Ghostty identity, snapshot session/schema, dimensions, exact row and row-major cell coverage, unique bounded styles, cursor facts, wide head/tail/spacer consistency, the 256-entry palette, and per-field/aggregate strings. It rejects malformed state instead of clamping. The protocol permits at most 300 columns, 200 rows, 20,000 cells, 1,024 styles, 1,024 hyperlinked cells, and 512 KiB of aggregate snapshot strings. These advertised maxima serialize below the 16 MiB response cap and bound raw RGBA to 10,240,000 bytes.</p>
 <p>Determinism means identical semantic state, binary, lockfile, embedded font bytes, and frozen visible blink phase produce identical PNG bytes. A changing terminal revision, captured color/palette/cursor state, cursor location, grid, or build input may produce a different image. Wait for stability before comparing a live session.</p>
-<p class="example-label example-label--implemented"><strong>Implemented CLI sequence · Runnable with agent-terminal 0.1.0</strong></p>
+<p class="example-label"><strong>CLI sequence · runnable with agent-terminal 0.1.0</strong></p>
 
 <pre><code class="language-sh">agent-terminal wait "$id" --stable 200ms --timeout 5s
 agent-terminal screenshot "$id" terminal.png
@@ -1247,10 +1027,6 @@ cmp terminal.png terminal-repeat.png
 <p>Semantic <code>snapshot</code> output remains the authoritative JSON/text automation surface and is not renamed. PNG pixels contain terminal content and must be handled as sensitive output.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="agent-terminal-troubleshooting"><a class="header" href="#agent-terminal-troubleshooting">agent-terminal troubleshooting</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#AT-BUILD-001-1">AT-BUILD-001</a> — <strong>Implemented</strong>; <a href="#AT-LIFE-001-1">AT-LIFE-001</a> — <strong>Implemented</strong>; <a href="#AT-WAIT-001-1">AT-WAIT-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <ul>
 <li><strong>Zig version check times out:</strong> let the pinned Nix fetch complete, then rerun <code>test "$(nix develop -c zig version)" = 0.16.0</code>. Do not use system Zig or replace Ghostty.</li>
 <li><strong>Ghostty revision mismatch:</strong> run <code>git submodule update --init --recursive</code> and verify the exact full SHA. Do not move the pin without reviewing bindings and schemas.</li>
@@ -1267,10 +1043,6 @@ cmp terminal.png terminal-repeat.png
 <p>Every test script should use a unique temporary runtime directory and an EXIT/INT/TERM trap. After testing, require an empty <code>list --json</code>, no <code>control.sock</code>, and no new daemon or child process.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="agent-terminal-errata"><a class="header" href="#agent-terminal-errata">agent-terminal errata</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#AT-WAIT-001-1">AT-WAIT-001</a> — <strong>Implemented</strong> (qualified by erratum 1 below); <a href="#AT-INPUT-001-1">AT-INPUT-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p>Known behavioral defects and empirical guidance, recorded from real automation
 runs against the Josh REPL. Each entry states the observed behavior, the rule
 to follow until it is fixed, and the evidence. Full investigation writeup lives
@@ -1312,21 +1084,12 @@ were reproducible under those conditions in the Josh e2e.</p>
 reproduction), plus the investigation report linked above.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="reference"><a class="header" href="#reference">Reference</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> This page makes no product-availability claims. Reference entries preserve the statuses of the capabilities they describe.</p>
-</div>
-
-<p>Reference pages answer exact questions: invocation, grammar, ambiguity, operators, conversion, stream boundaries, diagnostics, and terms. They describe Josh 0.1.0 where marked Implemented and keep future contracts visibly separate.</p>
+<p>Reference pages answer exact questions about Josh 0.1.0: invocation, grammar, ambiguity, operators, conversion, stream boundaries, diagnostics, and terms. Future contracts live on the <a href="#roadmap">roadmap</a>, not here.</p>
 <p>Use <a href="#disambiguation-catalog">Disambiguation catalog</a> when whitespace or statement position changes a parse. Use <a href="#argv-and-pipeline-boundaries">argv and pipeline boundaries</a> when a Josh value crosses into a process.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="josh-command-line-interface"><a class="header" href="#josh-command-line-interface">Josh command-line interface</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-CLI-001-1">J-CLI-001</a> — <strong>Implemented</strong>; <a href="#J-CONFIG-001-1">J-CONFIG-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="J-CLI-001"></a></p>
-<h2 id="cli-entry-points-implemented"><a class="header" href="#cli-entry-points-implemented">CLI entry points <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: help/version, command/script, config, error, and exit-policy tests.</p>
+<h2 id="cli-entry-points"><a class="header" href="#cli-entry-points">CLI entry points</a></h2>
 <p><strong>Host command</strong></p>
 <pre><code class="language-text">Josh — JavaScript Object Shell
 
@@ -1334,6 +1097,7 @@ Usage:
   josh [--no-config]
   josh [--no-config] -c &lt;source&gt;
   josh [--no-config] &lt;script.josh&gt;
+  josh lsp
 
 Options:
   --no-config  Skip env.josh and interactive init.josh startup files
@@ -1343,6 +1107,9 @@ Options:
 
 Josh supports external commands and structured pipelines, redirections and globs,
 variables, functions/closures/UFCS, and non-job control flow. Jobs and modules are unavailable.
+
+The lsp subcommand serves the errors-only language server over stdin/stdout
+for editor integrations (see editors/vscode/).
 </code></pre>
 <div class="table-wrapper">
 <table>
@@ -1356,18 +1123,16 @@ variables, functions/closures/UFCS, and non-job control flow. Jobs and modules a
 <tr><td><code>josh --no-config ...</code></td><td>Skip both startup files</td></tr>
 <tr><td><code>josh -h</code>, <code>josh --help</code></td><td>Print help, exit 0 without loading config</td></tr>
 <tr><td><code>josh -V</code>, <code>josh --version</code></td><td>Print <code>josh 0.1.0</code>, exit 0 without loading config</td></tr>
+<tr><td><code>josh lsp</code></td><td>Serve the errors-only language server over stdin/stdout</td></tr>
 </tbody>
 </table>
 </div>
+<p><code>josh lsp</code> execs the sibling <code>josh-lsp</code> binary (found next to the <code>josh</code> binary first, then on <code>PATH</code>) before any REPL session, <code>ProcessHost</code>, or startup file: stdout carries only Language Server Protocol frames. The server is stateless (full-document sync, parse diagnostics only, no file I/O); closing stdin exits it. It is a separate binary because the editor protocol stack’s dependencies measurably slow the shell when linked in. The VSCode extension in <code>editors/vscode/</code> spawns this subcommand by default.</p>
 <p><code>-c</code> accepts no trailing argument. Script mode accepts no positional arguments. Usage/read/startup errors exit 2; parse/runtime errors exit 1; <code>exit N</code> returns N within the process exit-code range.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="lexical-modes-and-grammar"><a class="header" href="#lexical-modes-and-grammar">Lexical modes and grammar</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-PARSE-001-1">J-PARSE-001</a> — <strong>Implemented</strong>; <a href="#J-PARSE-002-1">J-PARSE-002</a> — <strong>Implemented</strong>; <a href="#J-PARSE-004-1">J-PARSE-004</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p>This descriptive EBNF summarizes the implemented slice; the hand-written parser is authoritative. Newline separates command statements and is trivia where expression parsing permits it.</p>
-<p class="example-label example-label--implemented"><strong>Implemented grammar summary · Runnable forms only where runtime capability also exists</strong></p>
+<p class="example-label"><strong>Grammar summary</strong></p>
 
 <pre><code class="language-text">program       = { separator | statement } ;
 statement     = let | assignment | function | if | while | loop | try
@@ -1385,18 +1150,12 @@ postfix       = adjacent-call | adjacent-member | adjacent-index ;
 <p>Expression precedence, low to high: ternary; <code>||</code>; <code>&amp;&amp;</code>; equality; ordering; <code>+</code>/<code>-</code>; <code>*</code>/<code>/</code>/<code>//</code>/<code>%</code>; unary; adjacent call/member/index. Arrow parsing applies at the lowest expression level.</p>
 <p><code>for</code>, jobs, modules, and <code>source</code> are not productions. Reserved/excluded forms produce diagnostics rather than argv.</p>
 <p><a id="J-PARSE-004"></a></p>
-<h2 id="completeness-and-strict-policy-implemented"><a class="header" href="#completeness-and-strict-policy-implemented">Completeness and strict policy <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: EOF-classification and strict/tolerant identity tests.</p>
+<h2 id="completeness-and-strict-policy"><a class="header" href="#completeness-and-strict-policy">Completeness and strict policy</a></h2>
 <p><code>Complete</code> means no error diagnostics. <code>Incomplete</code> means every error is caused by EOF after appendable missing syntax. Any hard error makes the result <code>Invalid</code>. <code>Parse::strict_program()</code> accepts only Complete/no-error parses and returns references to the same AST or diagnostics; it never reparses.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="disambiguation-catalog"><a class="header" href="#disambiguation-catalog">Disambiguation catalog</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-PARSE-003-1">J-PARSE-003</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="J-PARSE-003"></a></p>
-<h2 id="statement-head-outcomes-implemented"><a class="header" href="#statement-head-outcomes-implemented">Statement-head outcomes <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: <code>ambiguity_corpus_has_stable_statement_shapes</code> and <code>if_condition_variants_are_explicit</code> goldens.</p>
+<h2 id="statement-head-outcomes"><a class="header" href="#statement-head-outcomes">Statement-head outcomes</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1421,13 +1180,8 @@ postfix       = adjacent-call | adjacent-member | adjacent-index ;
 <p>A quoted <code>'{'</code> or escaped <code>\{</code> remains a command-condition argument. Adjacency is significant for calls/member/index but not for arrows. <code>foo.bar</code> therefore favors member expression parsing; use <code>./foo.bar</code> for a dotted executable path.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="operators-and-values"><a class="header" href="#operators-and-values">Operators and values</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-EXPR-001-1">J-EXPR-001</a> — <strong>Implemented</strong>; <a href="#J-EXPR-004-1">J-EXPR-004</a> — <strong>Implemented</strong>; <a href="#J-NAMES-001-1">J-NAMES-001</a> — <strong>Implemented</strong>; <a href="#J-UNICODE-001-1">J-UNICODE-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="J-EXPR-001"></a></p>
-<h2 id="implemented-expression-values-implemented"><a class="header" href="#implemented-expression-values-implemented">Implemented expression values <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: parser/evaluator tests for values, operators, access, spread, destructuring, <code>if</code>/<code>try</code> expressions, member assignment, and namespace converters.</p>
+<h2 id="expression-values"><a class="header" href="#expression-values">Expression values</a></h2>
 <p>Values are Null, Bool, Int, Float, String, Bytes, Array, insertion-ordered Object, Function, Error, and Status. Arrays/objects are Arc-backed. Object overwrite retains the original key position. Data, errors, and statuses compare structurally; user functions compare by identity.</p>
 <p>False, Null, numeric zero, empty String/Bytes/Array/Object, and failed Status are falsey. True, nonempty data, Function, Error, and successful Status are truthy. <code>typeof</code> returns <code>null</code>, <code>bool</code>, <code>int</code>, <code>float</code>, <code>string</code>, <code>bytes</code>, <code>array</code>, <code>object</code>, <code>function</code>, <code>error</code>, or <code>status</code>.</p>
 <div class="table-wrapper">
@@ -1450,21 +1204,18 @@ postfix       = adjacent-call | adjacent-member | adjacent-index ;
 <p><code>if</code> and <code>try</code> are value-producing in expression position: <code>let x = if 40 &lt; 42 { "yes" } else { "no" }</code> binds <code>"yes"</code>, and <code>try { ... }</code> produces the body’s value or the thrown error object (the status <code>e</code> variable still binds inside <code>catch</code>).</p>
 <p><code>object.key = value</code> and <code>object[index] = value</code> assign existing or new fields on object values in place and evaluate to the assigned value; they are errors on other kinds.</p>
 <p><a id="J-NAMES-001"></a></p>
-<h2 id="builtin-namespaces-and-prototypes-implemented"><a class="header" href="#builtin-namespaces-and-prototypes-implemented">Builtin namespaces and prototypes <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: <code>prototype_namespaces_methods_and_statics_are_first_class</code>, <code>file_date_and_math_namespaces_cover_the_flattened_surface</code>, and the namespace runtime tests.</p>
+<h2 id="builtin-namespaces-and-prototypes"><a class="header" href="#builtin-namespaces-and-prototypes">Builtin namespaces and prototypes</a></h2>
 <p>Scalar converters live as namespace callables: <code>String(1)</code>, <code>Number("42")</code>, <code>Boolean([])</code>, <code>Array(...)</code>, <code>error(...)</code>, and <code>glob("pattern")</code>. Calling <code>Object(...)</code> is a type error; objects come from literals. <code>Number(value)</code> keeps Josh’s conversion rules (<code>int</code>/<code>float</code> arguments; strings choose Int when the text is integral, otherwise Float, then error) and rejects bool, null, object, function, error, and status inputs.</p>
-<p>Methods sit on prototype tables owned by the namespaces (full method lists live in <a href="#prototypes-and-namespaces">prototypes and namespaces</a>). <code>String.prototype</code> carries <code>at</code>/<code>contains</code>/<code>startsWith</code>/<code>endsWith</code>/<code>split</code>/<code>replace</code>/<code>replaceAll</code>/<code>trim</code>/<code>toUpperCase</code>/<code>toLowerCase</code>, <code>Number.prototype</code> carries <code>abs</code>/<code>ceil</code>/<code>floor</code>/<code>round</code>/<code>norm</code>, and <code>Array.prototype</code> carries <code>at</code>/<code>contains</code>/<code>map</code>/<code>filter</code>/<code>reduce</code>/<code>flat</code>/<code>join</code>/<code>slice</code> plus <code>push</code>/<code>pop</code>/<code>reverse</code>/<code>sort</code>, which edit the array in place JavaScript-style — every alias observes the edit; <code>push</code> returns the new length, <code>pop</code> the removed element (null when empty), and <code>reverse</code>/<code>sort</code> the array itself. <code>.length</code> answers directly on arrays, strings, and bytes as a builtin member read (not a prototype function). Extending PATH is three steps because <code>env.PATH</code> reads materialize a fresh array: <code>paths = env.PATH; paths.push("/new/dir"); env.PATH = paths</code>. Method lookup is own fields first, then the receiver’s custom prototype chain, then its type prototype, then Null. Prototype entries receive the receiver as the first argument (creators use <code>(this, ...)</code>-style parameters); <code>+</code> does not dispatch through tables. Object literals chain off the root <code>Object.prototype</code>, which currently starts empty — enumeration goes through the <code>Object.keys</code>/<code>Object.values</code>/<code>Object.entries</code> statics until the root table grows members.</p>
+<p>Methods sit on prototype tables owned by the namespaces (full method lists live in <a href="#prototypes-and-namespaces">prototypes and namespaces</a>). <code>String.prototype</code> carries <code>at</code>/<code>contains</code>/<code>startsWith</code>/<code>endsWith</code>/<code>split</code>/<code>replace</code>/<code>replaceAll</code>/<code>trim</code>/<code>toUpperCase</code>/<code>toLowerCase</code>, <code>Number.prototype</code> carries <code>abs</code>/<code>ceil</code>/<code>floor</code>/<code>round</code>/<code>norm</code>, and <code>Array.prototype</code> carries <code>at</code>/<code>contains</code>/<code>map</code>/<code>filter</code>/<code>reduce</code>/<code>flat</code>/<code>join</code> plus <code>push</code>/<code>pop</code>/<code>reverse</code>/<code>sort</code>, which edit the array in place JavaScript-style — every alias observes the edit; <code>push</code> returns the new length, <code>pop</code> the removed element (null when empty), and <code>reverse</code>/<code>sort</code> the array itself. <code>.length</code> answers directly on arrays, strings, and bytes as a builtin member read (not a prototype function). Extending PATH is three steps because <code>env.PATH</code> reads materialize a fresh array: <code>paths = env.PATH; paths.push("/new/dir"); env.PATH = paths</code>. Method lookup is own fields first, then the receiver’s custom prototype chain, then its type prototype, then Null. Prototype entries receive the receiver as the first argument (creators use <code>(this, ...)</code>-style parameters); <code>+</code> does not dispatch through tables. Object literals chain off the root <code>Object.prototype</code>, which currently starts empty — enumeration goes through the <code>Object.keys</code>/<code>Object.values</code>/<code>Object.entries</code> statics until the root table grows members.</p>
 <p><code>Object.keys(o)</code>, <code>Object.values(o)</code>, <code>Object.entries(o)</code>, <code>Object.freeze(o)</code>, and <code>Object.isFrozen(o)</code> cover statics; <code>Object.freeze</code> seals an object against member assignment, and <code>Object.isFrozen</code> reports it. <code>Object.prototype</code> itself is immutable, so anonymous objects cannot mutate the shared tables.</p>
 <p><code>Date.now()</code> returns epoch-milliseconds Int, <code>Date.fromTimestamp(value)</code> parses epoch numbers or RFC3339 timestamps into <code>{timestamp millis, epochSeconds, timezone, text, datetimeComponents}</code>, and <code>Date.toTimestamp(value)</code> formats them back to ISO-8601 UTC (Int/Float/text input). <code>File.exists(path)</code> / <code>File.stat(path)</code> report basic cwd-relative file metadata as <code>{exists, file, directory, byteSize}</code>; null/empty paths stay false. <code>Math</code> exposes <code>PI</code>, <code>E</code>, <code>TAU</code>, abs/sign/truncate/floor/ceil/round (Int-preserving), sqrt/cbrt/exp/log/log2/log10/pow (Float), min/max variadic, and <code>random()</code> (Float [0,1)).</p>
 <p><a id="J-UNICODE-001"></a></p>
-<h2 id="string-indexing-unit-implemented"><a class="header" href="#string-indexing-unit-implemented">String indexing unit <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0 with Unicode scalar positions; the unit policy changed to UTF-16 code units on 2026-08-16. Evidence: Unicode string <code>length</code>, <code>at</code>, signed-index, and range-slice tests.</p>
+<h2 id="string-indexing-unit"><a class="header" href="#string-indexing-unit">String indexing unit</a></h2>
 <p>String indexing counts UTF-16 code units (JavaScript semantics), not UTF-8 bytes or grapheme clusters: <code>"😀".length</code> is 2. Josh strings are Rust strings and can only hold whole code points, so a position inside a surrogate pair resolves outward to the full code point — <code>"😀ab"[0]</code> and <code>"😀ab"[1]</code> are both <code>"😀"</code> instead of JS’s lone surrogates. Negative indexes count from the end. This policy applies to <code>length</code>, <code>at</code>, bracket indexing, and range slices; unsupported positions return Null.</p>
 <p><a id="J-EXPR-004"></a></p>
-<h2 id="range-slices-implemented"><a class="header" href="#range-slices-implemented">Range slices <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in development snapshots since 2026-08-16. Evidence: slice parse and semantics tests.</p>
+<h2 id="range-slices"><a class="header" href="#range-slices">Range slices</a></h2>
 <p><code>a[b..c]</code> slices an array or a string with JavaScript <code>slice()</code> bound semantics:</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">letters = ["a", "b", "c", "d", "e"]
 letters[0..2]    # ["a", "b"] — end-exclusive
@@ -1478,13 +1229,8 @@ letters[-2..]    # ["d", "e"] — negative counts from the end
 <p>Out-of-range bounds clamp to the edges, and an inverted pair produces an empty slice. Slice bounds must be numbers (floats truncate toward zero); bytes do not support slicing yet. Inclusive <code>..=</code> and stride ranges are deliberately rejected — <code>a[0..2]</code> already covers exactly indices 0 and 1, and <code>Array.prototype.slice</code> (or the range form) stays the only slicing mechanism.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="argv-and-pipeline-boundaries"><a class="header" href="#argv-and-pipeline-boundaries">argv and pipeline boundaries</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-ARGV-001-1">J-ARGV-001</a> — <strong>Implemented</strong>; <a href="#J-RUN-003-1">J-RUN-003</a> — <strong>Implemented</strong>; <a href="#J-STRUCT-001-1">J-STRUCT-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="J-ARGV-001"></a></p>
-<h2 id="command-word-conversion-implemented"><a class="header" href="#command-word-conversion-implemented">Command-word conversion <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: argv, glob, tilde, structured-stream, and invalid-UTF-8 tests.</p>
+<h2 id="command-word-conversion"><a class="header" href="#command-word-conversion">Command-word conversion</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1515,7 +1261,8 @@ letters[-2..]    # ["d", "e"] — negative counts from the end
 <tr><td>bytes → <code>text</code></td><td>One String, or Bytes for invalid UTF-8</td></tr>
 <tr><td>bytes → <code>json</code></td><td>One parsed JSON value</td></tr>
 <tr><td>bytes → <code>lines</code>/<code>jsonl</code>/<code>chunks</code></td><td>Streaming values with many cardinality</td></tr>
-<tr><td>bytes → function/<code>map</code></td><td>Pre-spawn planning error with an explicit-transformer hint</td></tr>
+<tr><td>bytes → function</td><td>Bounded collect into one Bytes value; the function runs once after upstream closes. Byte streams never decode implicitly — the function chooses <code>String(bytes)</code> or byte-level work</td></tr>
+<tr><td>bytes → <code>map fn</code></td><td>Pre-spawn planning error with an explicit-transformer hint</td></tr>
 <tr><td>values → function/<code>map</code>/<code>filter</code></td><td>One call per item; map emits return values and filter emits retained input values</td></tr>
 <tr><td>values → <code>take</code>/<code>first</code></td><td>Bounded output and upstream cancellation</td></tr>
 <tr><td>values → <code>collect</code></td><td>One Array value</td></tr>
@@ -1527,13 +1274,8 @@ letters[-2..]    # ["d", "e"] — negative counts from the end
 <p>Capture follows the final declared cardinality, not observed item count. <code>lines</code>, <code>jsonl</code>, <code>chunks</code>, <code>filter</code>, and <code>take</code> return Array for zero or one item; function/map preserve upstream cardinality; <code>first</code> returns one value or Null; <code>collect</code> returns its one Array. JSON-looking bytes remain text unless <code>json</code> or <code>jsonl</code> is explicit. See <a href="#J-STRUCT-001">Capture and pipelines</a> for decoding and serialization errors.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="diagnostics-and-exit-behavior"><a class="header" href="#diagnostics-and-exit-behavior">Diagnostics and exit behavior</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-ERR-001-1">J-ERR-001</a> — <strong>Implemented</strong>; <a href="#J-PARSE-004-1">J-PARSE-004</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="J-ERR-001"></a></p>
-<h2 id="diagnostic-and-process-errors-implemented"><a class="header" href="#diagnostic-and-process-errors-implemented">Diagnostic and process errors <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: parser diagnostic-code assertions, batch CLI tests, and ordered process-outcome tests.</p>
+<h2 id="diagnostic-and-process-errors"><a class="header" href="#diagnostic-and-process-errors">Diagnostic and process errors</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1569,10 +1311,6 @@ letters[-2..]    # ["d", "e"] — negative counts from the end
 </div>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="glossary"><a class="header" href="#glossary">Glossary</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> This page makes no product-availability claims. Definitions do not imply implementation.</p>
-</div>
-
 <p><strong>Josh</strong> — JavaScript Object Shell, a Unix-first shell with a JavaScript-shaped deterministic data language.</p>
 <p><strong>Command mode</strong> — lexical/parser context in which bare words form command argv and shell operators delimit pipelines/statements.</p>
 <p><strong>Expression mode</strong> — lexical/parser context in which literals, identifiers, operators, arrays, and expression continuations are parsed.</p>
@@ -1587,32 +1325,19 @@ letters[-2..]    # ["d", "e"] — negative counts from the end
 <p><strong>Pipefail</strong> — pipeline policy under which any non-suppressed stage failure fails the pipeline.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="architecture-and-security"><a class="header" href="#architecture-and-security">Architecture and security</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-PARSE-001-1">J-PARSE-001</a> — <strong>Implemented</strong>; <a href="#J-RUN-003-1">J-RUN-003</a> — <strong>Implemented</strong>; <a href="#AT-PTY-001-1">AT-PTY-001</a> — <strong>Implemented</strong>; <a href="#AT-SEC-001-1">AT-SEC-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p>Josh is a six-crate Rust workspace organized by ownership: syntax, runtime/evaluation, process planning, structured streams, Reedline integration, and CLI composition. REPL, <code>-c</code>, scripts, and startup files converge on <code>Engine::run_source</code>; the runtime depends on an execution-host contract rather than OS details.</p>
 <p>agent-terminal is a separate source tree. Each session owns one daemon, PTY master, direct child, and pinned Ghostty terminal. A current-thread event loop serializes terminal access. The typed local protocol returns copied semantic state; the invoking client owns deterministic PNG rendering and file output.</p>
 <p>Security boundaries follow ownership. Josh executes commands with the user’s authority. agent-terminal launches arbitrary local commands and trusts same-user socket clients. Neither product is a sandbox. Planned modules, remote dependencies, background jobs, and network exposure require separate threat-model review.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="parser-and-parse-result"><a class="header" href="#parser-and-parse-result">Parser and parse result</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-PARSE-001-1">J-PARSE-001</a> — <strong>Implemented</strong>; <a href="#J-PARSE-004-1">J-PARSE-004</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="J-PARSE-001"></a></p>
-<h2 id="one-lossless-tolerant-parse-implemented"><a class="header" href="#one-lossless-tolerant-parse-implemented">One lossless tolerant parse <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: source reconstruction, UTF-8 boundary, AST-shape, diagnostics, and strict-policy tests.</p>
+<h2 id="one-lossless-tolerant-parse"><a class="header" href="#one-lossless-tolerant-parse">One lossless tolerant parse</a></h2>
 <p>The public operation returns <code>Parse { source, tokens, program, diagnostics, completeness }</code>. Source is shared <code>Arc&lt;str&gt;</code>. Concrete tokens include trivia, lexical mode, and UTF-8 byte span; token slices partition source exactly. Semantic AST nodes have spans and can represent zero-width Missing or source-covering Error nodes.</p>
 <p>One lexer and recursive-descent/Pratt parser serve tolerant callers and strict execution. Statement-head lookahead inspects the same token sequence. The parser commits each consumed token’s mode as productions choose Command, Expression, SingleQuote, or DoubleQuote.</p>
 <p>Recovery preserves owning delimiters. EOF-only appendable errors classify Incomplete; a hard error makes the whole parse Invalid. Diagnostics encode stable code, severity, expected set, primary/secondary labels, and whether EOF caused the error.</p>
 <p>The slice intentionally has no Rowan tree, token-text copies, incremental reparse, formatter CST, or separate strict parser. Short REPL buffers are reparsed whole; future formatting/refactoring evidence may justify a lossless green-tree sink later.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="runtime-and-pipelines"><a class="header" href="#runtime-and-pipelines">Runtime and pipelines</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-RUN-001-1">J-RUN-001</a> — <strong>Implemented</strong>; <a href="#J-RUN-003-1">J-RUN-003</a> — <strong>Implemented</strong>; <a href="#J-RUN-004-1">J-RUN-004</a> — <strong>Implemented</strong>; <a href="#J-STRUCT-001-1">J-STRUCT-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p>The workspace separates syntax, runtime values/evaluation, process execution, structured streams, interactive editing, and CLI composition. <code>josh-runtime</code> owns the consumer-facing <code>ExecutionHost</code> contract; <code>josh-exec</code> implements it without a dependency cycle.</p>
 <p><code>Engine</code> owns lexical frames, closures, and typed control-flow unwinding. It parses once, applies strict policy, evaluates statements in order, and stops on uncaught errors or explicit exit. Ordinary compound values are Arc-backed; resource execution state stays outside Value.</p>
 <p>Pipeline planning resolves stage variants, transitions, argv, globs, redirections, and external paths before any stage spawns. Adjacent external stages use OS pipes. Structured boundaries use bounded channels and joined worker threads. Downstream close cancels workers and external producers. Partial spawn failure kills and reaps started children.</p>
@@ -1620,10 +1345,6 @@ letters[-2..]    # ["d", "e"] — negative counts from the end
 <p>Direct byte capture remains a whole-buffer memory risk. Josh has no user-visible Stream value, async runtime, event loop, background jobs, VM, or garbage collector.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="reedline-integration"><a class="header" href="#reedline-integration">Reedline integration</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-REPL-001-1">J-REPL-001</a> — <strong>Implemented</strong>; <a href="#J-REPL-002-1">J-REPL-002</a> — <strong>Implemented</strong>; <a href="#J-REPL-003-1">J-REPL-003</a> — <strong>Implemented</strong>; <a href="#J-REPL-004-1">J-REPL-004</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <h2 id="reedline-ownership"><a class="header" href="#reedline-ownership">Reedline ownership</a></h2>
 <p>The REPL adapter is outside parser and runtime modules. <code>ReplAnalyzer</code> exposes parse and completion-context operations. Validator maps only Incomplete to continuation. Highlighter and completer independently parse immutable buffers and use UTF-8 byte spans.</p>
 <p>A completion snapshot owns sorted command and variable sets. It combines builtins, PATH directory entries, lexical engine names, and inherited environment names. Reedline helpers borrow an <code>Arc</code> snapshot behind a short read lock; the main loop replaces it only after accepted input. Callbacks do not evaluate or mutate the engine.</p>
@@ -1631,37 +1352,23 @@ letters[-2..]    # ["d", "e"] — negative counts from the end
 <p>SIGINT installs a parent-side caught handler on the engine’s root cancellation flag. Reedline Ctrl-C discards editing. During execution, the same flag reaches the active structured graph; its child cancellation scope stops and joins workers and kills and reaps external process groups without poisoning the next command. This seam is not terminal process-group transfer or job control.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="agent-terminal-daemon"><a class="header" href="#agent-terminal-daemon">agent-terminal daemon</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#AT-PTY-001-1">AT-PTY-001</a> — <strong>Implemented</strong>; <a href="#AT-PROTO-001-1">AT-PROTO-001</a> — <strong>Implemented</strong>; <a href="#AT-LIFE-001-1">AT-LIFE-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p><a id="AT-PTY-001"></a></p>
-<h2 id="pty-and-ghostty-ownership-implemented"><a class="header" href="#pty-and-ghostty-ownership-implemented">PTY and Ghostty ownership <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in agent-terminal 0.1.0. Evidence: linked-library identity tests plus real PTY, semantic snapshot, input, resize, and lifecycle smoke checks.</p>
+<h2 id="pty-and-ghostty-ownership"><a class="header" href="#pty-and-ghostty-ownership">PTY and Ghostty ownership</a></h2>
 <p>The child receives three duplicated PTY slave descriptors. Pre-exec creates a session, sets the controlling terminal, and establishes the child process group. Environment preserves caller entries while setting conservative terminal identity variables and fixed initial dimensions.</p>
 <p>PTY reads are drained in bounded batches and fed directly to <code>ghostty_terminal_vt_write</code>. Ghostty effects append bytes to a pending queue during the synchronous call; the event loop flushes them afterward to avoid callback reentrancy. Grid references, render colors, and borrowed strings never survive an await or terminal mutation.</p>
 <p>Snapshot code uses the pinned formatter, viewport grid/cell/style APIs, and narrow render-state APIs for active colors and cursor facts. Key encoding updates from current terminal modes before each event. Resize applies PTY winsize and Ghostty grid state within one serialized command.</p>
 <p><code>screenshot</code> sends the ordinary Snapshot protocol request, validates and renders copied schema-v2 cells/styles/render facts in the short-lived client, and writes the PNG there. The daemon does not own fonts, pixels, or arbitrary output paths. The canonical Nix development shell built and executed the pinned library, renderer tests, smoke script, and complete Josh scenario on this host.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="contributor-guide"><a class="header" href="#contributor-guide">Contributor guide</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> This page makes no product-availability claims. Contributor procedures preserve capability statuses and evidence.</p>
-</div>
-
 <p>Contributors work across two source trees and one manual:</p>
 <ul>
-<li><code>/Users/mbullington/Projects/josh-shell</code>: Josh Rust source, tests, and <code>docs/</code>.</li>
-<li><code>/Users/mbullington/Projects/agent-terminal</code>: separate PTY/VT automation source.</li>
-<li><code>docs/src/status/matrix.md</code>: authoritative capability ledger.</li>
+<li><a href="https://github.com/mbullington/josh-shell"><code>josh-shell</code></a> (this repository): Josh Rust source, tests, and <code>docs/</code>.</li>
+<li><a href="https://github.com/mbullington/agent-terminal"><code>agent-terminal</code></a>: separate PTY/VT automation source. Its <code>agent-terminal-cli</code> crate provides the <code>agent-terminal</code> binary.</li>
 </ul>
 <p>Do not edit Rust while performing documentation-only work. Before promoting a capability, exercise its closest real entry point. A build or source review is not runtime evidence.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="development-setup-and-repository-map"><a class="header" href="#development-setup-and-repository-map">Development setup and repository map</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> This page makes no product-availability claims. Setup commands do not promote capabilities.</p>
-</div>
-
-<p>Josh is a six-crate Rust workspace. Rust/Cargo and common Unix test utilities are required.</p>
+<p>Josh is a seven-crate Rust workspace. Rust/Cargo and common Unix test utilities are required.</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1673,23 +1380,21 @@ letters[-2..]    # ["d", "e"] — negative counts from the end
 <tr><td><code>crates/josh-exec</code></td><td>PATH/argv planning, globbing, redirection opens, and process-host composition</td></tr>
 <tr><td><code>crates/josh-streams</code></td><td>Typed byte/value stage graph, bounded channels, external processes, cancellation, and reap</td></tr>
 <tr><td><code>crates/josh-interactive</code></td><td>Reedline prompt, validator, highlighter, completion, hints, history, and signal behavior</td></tr>
+<tr><td><code>crates/josh-lsp</code></td><td>Errors-only LSP server (separate <code>josh-lsp</code> binary, exec’d by <code>josh lsp</code>)</td></tr>
 <tr><td><code>crates/josh-cli</code></td><td><code>josh</code> argument routing, startup files, scripts, and REPL composition</td></tr>
 <tr><td><code>scripts/structured-large-producer.sh</code></td><td>Bounded-memory stream test producer</td></tr>
 </tbody>
 </table>
 </div>
-<p>The sibling <code>/Users/mbullington/Projects/agent-terminal</code> tree separates CLI/client, daemon, protocol, runtime paths, PTY, semantic Ghostty FFI, and client-side PNG renderer. <code>vendor/ghostty</code>, Zig 0.16.0, renderer crates, and four font faces are pinned build inputs. <code>scripts/smoke.sh</code> proves the core terminal slice; <code>scripts/josh-e2e.sh</code> proves the complete cross-product scenario.</p>
-<p>The manual is a conventional mdBook under <code>docs</code>: hand-edited <code>src/SUMMARY.md</code>, Markdown source, <code>theme/status.css</code>, and deterministic <code>tools/check-manual.py</code>. The checker validates page reachability, links/fragments, capability/status consistency, fence labeling/extraction, generated code blocks, duplicate IDs, literal fences, the agent-terminal wait row, and status-color contrast. It uses no custom JavaScript.</p>
+<p>The companion <a href="https://github.com/mbullington/agent-terminal">agent-terminal</a> tree separates CLI/client, daemon, protocol, runtime paths, PTY, semantic Ghostty FFI, and client-side PNG renderer. <code>vendor/ghostty</code>, Zig 0.16.0, renderer crates, and four font faces are pinned build inputs. Its <code>scripts/smoke.sh</code> proves the core terminal slice; its <code>scripts/josh-e2e.sh</code> proves the complete cross-product scenario against a <code>josh</code> binary.</p>
+<p>The manual is a conventional mdBook under <code>docs</code>: hand-edited <code>src/SUMMARY.md</code>, Markdown source, and deterministic <code>tools/check-manual.py</code>. The checker validates page reachability, links/fragments, fence labeling/extraction, generated code blocks, duplicate IDs, literal fences, and the agent-terminal wait row. It uses no custom JavaScript.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="build-and-test"><a class="header" href="#build-and-test">Build and test</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-CLI-001-1">J-CLI-001</a> — <strong>Implemented</strong>; <a href="#AT-BUILD-001-1">AT-BUILD-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p>Use separate Cargo target directories to run independent checks concurrently. Otherwise serialize Cargo commands that share <code>target</code>, and always serialize terminal scripts that own sockets or process lifecycles.</p>
 <h2 id="josh-evidence"><a class="header" href="#josh-evidence">Josh evidence</a></h2>
 <p><strong>Host command</strong></p>
-<pre><code class="language-sh">cd /Users/mbullington/Projects/josh-shell
+<pre><code class="language-sh">git clone https://github.com/mbullington/josh-shell
+cd josh-shell
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --all-targets
@@ -1700,88 +1405,72 @@ cargo build --workspace --all-targets
 <h2 id="agent-terminal-evidence"><a class="header" href="#agent-terminal-evidence">agent-terminal evidence</a></h2>
 <p>Ghostty is pinned to revision <code>d760ee96e54657416eb427b793c7e839f003df7d</code>, tree <code>6f245f6c192857e1ee69503c20158e9abf583cee</code>, and Zig 0.16.0. The flake supplies matching Cargo, Clippy, and rustfmt packages.</p>
 <p><strong>Host command</strong></p>
-<pre><code class="language-sh">cd /Users/mbullington/Projects/agent-terminal
+<pre><code class="language-sh">git clone https://github.com/mbullington/agent-terminal
+cd agent-terminal
 nix develop --no-write-lock-file -c cargo fmt --all -- --check
 nix develop --no-write-lock-file -c cargo clippy --locked --all-targets -- -D warnings
 nix develop --no-write-lock-file -c cargo test --locked --all-targets
 nix develop --no-write-lock-file -c cargo build --locked --all-targets
 scripts/smoke.sh target/debug/agent-terminal
-scripts/josh-e2e.sh target/debug/agent-terminal /Users/mbullington/Projects/josh-shell/target/debug/josh
+scripts/josh-e2e.sh target/debug/agent-terminal "$(command -v josh)"
 </code></pre>
 <p>The 2026-08-15 verification passed Nix-shell format, warnings-denied Clippy, locked all-target build, 12 unit tests, 4 CLI integration tests, smoke, and the Josh scenario twice. Tests assert linked Ghostty identity, protocol/lifecycle/security boundaries, schema-v2 render facts and malformed-state rejection, response-budget maxima, exact renderer pixels and dimensions, all font faces/cursor variants, OSC 4/10/11/12 colors, DECSCUSR states, omitted screenshot paths, metadata-free encoding, and repeated bytes. The reviewed 128×32 feature fixture has PNG SHA-256 <code>b1aa287227011a11a50b57dde51d785deac5eaf827cff6a15349a4bc98240c96</code>. Both Josh runs produced byte-identical repeated renders and the same retained 640×384 RGBA SHA-256 <code>5956b699529a9d8e3167078e8682339c811c80e7f56cb4d8a69c67abd50d9428</code>.</p>
 <h2 id="cross-product-evidence"><a class="header" href="#cross-product-evidence">Cross-product evidence</a></h2>
 <p><code>scripts/josh-e2e.sh</code> builds an isolated HOME/XDG/PATH/runtime/root and launches Josh at 80×24. Each command must reach a later terminal revision ending at the configured prompt. Side effects distinguish taken command-chain branches from echoed input; exact byte comparisons cover every structured cardinality class, value serialization, all redirections, and complete ordered wildcard/bracket/recursive glob results. The script also checks language/functions/UFCS, semantic styles, deterministic PNG output, and explicit rejection of <code>&amp;</code>, <code>jobs</code>, <code>fg</code>, <code>bg</code>, <code>import</code>, <code>export</code>, and remote import. Final assertions require <code>sessions=[]</code>, no control sockets or temporary runtime, and no producer, external child, Josh, or daemon PID.</p>
 <h2 id="manual-evidence"><a class="header" href="#manual-evidence">Manual evidence</a></h2>
 <p><strong>Host command</strong></p>
-<pre><code class="language-sh">cd /Users/mbullington/Projects/josh-shell
+<pre><code class="language-sh">cd josh-shell
 python3 docs/tools/check-manual.py
 mdbook build docs
 </code></pre>
-<p>The checker builds a temporary mdBook and inspects all source and generated pages for SUMMARY reachability, links/fragments, literal fences, duplicate IDs, source-to-HTML code-block preservation, extracted runnable examples, capability/status drift, matrix provenance, table shape, and status-color contrast. The 2026-08-15 run passed 66 pages and 42 capabilities and extracted 26 runnable fences. The persistent build is <code>docs/book/index.html</code>; review the retained PNG at <code>../agent-terminal/target/josh-e2e/screenshot.png</code>.</p>
+<p>The checker builds a temporary mdBook (when mdbook is on PATH) and inspects all source and generated pages for SUMMARY reachability, links/fragments, fence labeling, literal fences, duplicate IDs, source-to-HTML code-block preservation, extracted runnable examples, and table shape. The persistent build is <code>docs/book/index.html</code>; review the retained PNG under <code>target/josh-e2e/</code> in the agent-terminal checkout.</p>
 <p>Man pages live in <code>docs/man/*.scd</code> (scdoc) with the generated roff committed; <code>scripts/build-man.sh</code> regenerates and soft-validates them. Keep the man page a summary — the manual remains the language reference.</p>
 <p><code>scripts/check-share.sh</code> runs the <code>share/*.josh</code> selftests and the regex golden-output gate; <code>scripts/regex-bench.josh</code> prints the fixed-corpus performance table used by interpreter-optimization work (timings vary; the <code>hits</code> checksum column must not).</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="change-grammar-or-runtime-behavior"><a class="header" href="#change-grammar-or-runtime-behavior">Change grammar or runtime behavior</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> This page makes no product-availability claims. It defines review procedure for status-bearing code changes.</p>
-</div>
-
 <h2 id="grammar-changes"><a class="header" href="#grammar-changes">Grammar changes</a></h2>
 <p>Start with the source distinction the grammar must preserve. Update token kinds/modes, AST variants, parser production, recovery ownership, completeness, diagnostics, and statement-head goldens together. Verify token spans still partition Unicode source and strict policy still returns the tolerant parse’s storage.</p>
 <p>Add a test only for a concrete regression: ambiguity, delimiter ownership, EOF classification, stable diagnostic, or lossless span invariant. Do not add a second tokenizer or runtime-dependent parse fallback.</p>
 <h2 id="runtime-and-pipeline-changes"><a class="header" href="#runtime-and-pipeline-changes">Runtime and pipeline changes</a></h2>
 <p>Define value shape, ownership, and process boundary before execution logic. Planning must reject unsupported stage classes and resolve every external executable before spawning. Preserve ordered outcomes and terminate/reap partial starts.</p>
-<p>For structured streams, define each byte/value transition and capture cardinality explicitly. Split the capability row when a transition can be delivered or verified independently; do not fake a transformer by JSON-detecting behind unrelated syntax.</p>
+<p>For structured streams, define each byte/value transition and capture cardinality explicitly; do not fake a transformer by JSON-detecting behind unrelated syntax.</p>
 <h2 id="documentation-co-change-points"><a class="header" href="#documentation-co-change-points">Documentation co-change points</a></h2>
-<p>A status transition changes exactly these linked facts:</p>
+<p>A behavior change updates the linked facts in one pass:</p>
 <ol>
-<li>one matrix row, including revision and evidence;</li>
-<li>one anchored capability block and availability sentence;</li>
-<li>adjacent example/evidence;</li>
-<li>roadmap view when the old/new status appears there;</li>
-<li>affected SUMMARY placement only when reader navigation changes.</li>
+<li>the affected manual section and its prose;</li>
+<li>adjacent examples, re-run against the build;</li>
+<li>roadmap views when the capability appears there;</li>
+<li>SUMMARY placement only when reader navigation changes.</li>
 </ol>
 <p>Run the checker after any heading, anchor, link, or code-fence edit.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="interactive-tests-and-documentation"><a class="header" href="#interactive-tests-and-documentation">Interactive tests and documentation</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-REPL-001-1">J-REPL-001</a> — <strong>Implemented</strong>; <a href="#AT-JOSH-001-1">AT-JOSH-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p>Unit checks should pin parser-to-Reedline policy: only Incomplete continues; Invalid submits; spans are UTF-8-safe; completion context selects command, file, or variable without evaluation.</p>
 <p>PTY checks should wait for semantic output rather than sleep when a terminal harness is available. Fix dimensions, match prompts, send exact text/key events, and inspect final terminal state. Test Ctrl-C on both partial editing and a bounded foreground child. Always close the session and inspect processes directly.</p>
-<h2 id="write-status-safe-documentation"><a class="header" href="#write-status-safe-documentation">Write status-safe documentation</a></h2>
+<h2 id="write-behavior-first-documentation"><a class="header" href="#write-behavior-first-documentation">Write behavior-first documentation</a></h2>
 <ul>
-<li>Put a Status coverage panel near every title.</li>
-<li>Give each product capability one stable ID and one status heading.</li>
-<li>Include the required availability sentence and explicit exclusions.</li>
-<li>Label every behavioral fence immediately before the fence.</li>
-<li>Call only Implemented examples runnable.</li>
-<li>Keep Specified, Planned, and Unresolved snippets explicitly unavailable.</li>
+<li>Label every behavioral fence immediately before the fence (<code>Runnable example</code> versus <code>**Host command**</code>).</li>
+<li>Only examples exercised against the current build carry the <code>Runnable example</code> label; keep planned or hypothetical snippets out of runnable fences.</li>
 <li>Never call semantic terminal text a screenshot.</li>
-<li>Do not promote a source-defined agent-terminal command until the pinned binary executes.</li>
+<li>Do not document a source-defined agent-terminal command until the pinned binary executes it.</li>
 </ul>
 <p>The deterministic checker validates structure, but reviewers must still check claims against behavior.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="release-verification"><a class="header" href="#release-verification">Release verification</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> This page makes no product-availability claims. Passing items provide evidence for specific matrix rows.</p>
-</div>
-
 <p>Run from clean source trees. Record both product revisions, lockfiles, toolchain identity, check date, and retained artifact hashes. Compilation and test summaries are necessary evidence, not substitutes for the real CLI/artifact paths.</p>
 <ol>
 <li><strong>Josh quality:</strong> format, Clippy with warnings denied, workspace all-target tests, and workspace all-target build.</li>
 <li><strong>Josh language:</strong> direct objects, insertion order, spread/destructuring, closures, recursion, exact methods, lexical UFCS, conversions, and Unicode scalar indexing.</li>
 <li><strong>Josh control:</strong> expression/command conditions, while/loop, typed return/break/continue/throw, catch of runtime/process errors, Status members, chain short-circuiting, and planning-error propagation.</li>
 <li><strong>Josh streams/files/config:</strong> every documented byte/value transition and cardinality; malformed UTF-8/JSON/JSONL; bounded producer cancellation; every redirection and ordering; quoted/unquoted/no-match globs; XDG/fallback startup order, scope, <code>--no-config</code>, error policy, and prompt through a PTY.</li>
-<li><strong>Excluded Josh surfaces:</strong> prove <code>&amp;</code>, <code>jobs</code>, <code>fg</code>, <code>bg</code>, <code>source</code>, <code>import</code>, <code>export</code>, and remote imports fail; keep background assignment Unresolved.</li>
+<li><strong>Excluded Josh surfaces:</strong> prove <code>&amp;</code>, <code>jobs</code>, <code>fg</code>, <code>bg</code>, <code>import</code>, <code>export</code>, and remote imports fail; background assignment remains out of scope.</li>
 <li><strong>agent-terminal prerequisite:</strong> exact Zig 0.16.0, Ghostty SHA/tree, matching Rust tools, renderer lockfile, four vendored font faces/license, and static <code>libghostty-vt</code> linkage.</li>
 <li><strong>agent-terminal behavior:</strong> locked format/Clippy/tests/build; real PTY/input/key/resize/wait/protocol/security/lifecycle tests; schema-v2 semantic cells/styles/render facts; screenshot omitted/explicit paths; exact pixels/dimensions; metadata-free repeated PNG bytes.</li>
 <li><strong>Cross-product:</strong> run the isolated-XDG fixed-grid Josh scenario twice; inspect semantic JSON and PNG; compare each run’s repeated screenshot; exit/close; directly inspect process, socket, session, and temporary-runtime cleanup.</li>
-<li><strong>Manual:</strong> run the checker and persistent mdBook build; inspect generated links/fragments, literal fences, duplicate IDs, code blocks, wait-table shape, status drift, status colors, index/matrix/schema pages, and the retained PNG.</li>
+<li><strong>Manual:</strong> run the checker and persistent mdBook build; inspect generated links/fragments, literal fences, duplicate IDs, code blocks, wait-table shape, index/schema pages, and the retained PNG.</li>
 </ol>
 <p><strong>Host command</strong></p>
-<pre><code class="language-sh">cd /Users/mbullington/Projects/josh-shell
+<pre><code class="language-sh">cd josh-shell
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --all-targets
@@ -1790,94 +1479,24 @@ python3 docs/tools/check-manual.py
 mdbook build docs
 
 test -f docs/book/index.html
-test -f docs/book/status/matrix.html
 test -f docs/book/agent-terminal/screenshots.html
 </code></pre>
 <p><strong>Host command</strong></p>
-<pre><code class="language-sh">cd /Users/mbullington/Projects/agent-terminal
+<pre><code class="language-sh">cd agent-terminal
 test "$(nix develop --no-write-lock-file -c zig version)" = 0.16.0
 nix develop --no-write-lock-file -c cargo fmt --all -- --check
 nix develop --no-write-lock-file -c cargo clippy --locked --all-targets -- -D warnings
 nix develop --no-write-lock-file -c cargo test --locked --all-targets
 nix develop --no-write-lock-file -c cargo build --locked --all-targets
 scripts/smoke.sh target/debug/agent-terminal
-scripts/josh-e2e.sh target/debug/agent-terminal /Users/mbullington/Projects/josh-shell/target/debug/josh
-scripts/josh-e2e.sh target/debug/agent-terminal /Users/mbullington/Projects/josh-shell/target/debug/josh
+scripts/josh-e2e.sh target/debug/agent-terminal "$(command -v josh)"
+scripts/josh-e2e.sh target/debug/agent-terminal "$(command -v josh)"
 shasum -a 256 target/josh-e2e/screenshot.png
 </code></pre>
-<p>The 2026-08-15 release evidence was 53 Josh tests, 12 agent-terminal unit tests, 4 agent-terminal CLI integration tests, 66 manual pages, 42 capability rows, 26 extracted runnable fences, a 640×384 RGBA PNG, and SHA-256 <code>5956b699529a9d8e3167078e8682339c811c80e7f56cb4d8a69c67abd50d9428</code>. Recompute rather than copying those values into a later release record.</p>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="capability-status"><a class="header" href="#capability-status">Capability status</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> This page makes no product-availability claims. It is the authoritative ledger. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
-<p>Each row is atomic. <strong>Implemented</strong> requires executable evidence. <strong>Specified</strong> means accepted but not available in the current verified build. <strong>Planned</strong> is directional. <strong>Unresolved</strong> promises no behavior.</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>ID</th><th>Capability</th><th>Product</th><th>Status</th><th>Exact included scope</th><th>Explicit exclusions</th><th>Evidence, specification, tracker, or decision</th><th>Manual anchor</th><th>Verified against</th><th>Last checked</th></tr>
-</thead>
-<tbody>
-<tr><td><a id="J-CLI-001-1"></a>J-CLI-001</td><td>CLI entry points</td><td>Josh</td><td>Implemented</td><td>REPL, <code>-c</code>, script path, help, version</td><td>Script arguments and other flags</td><td><a href="#josh-evidence"><code>cli</code> tests</a></td><td><a href="#J-CLI-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
-<tr><td><a id="J-PARSE-001-1"></a>J-PARSE-001</td><td>Lossless tolerant parse</td><td>Josh</td><td>Implemented</td><td>Source, trivia tokens, AST, diagnostics, spans</td><td>Incremental reparse and CST</td><td><a href="#josh-evidence"><code>syntax</code> tests</a></td><td><a href="#J-PARSE-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
-<tr><td><a id="J-PARSE-002-1"></a>J-PARSE-002</td><td>Dual lexical modes</td><td>Josh</td><td>Implemented</td><td>Command/expression classification and quote modes</td><td>Runtime-dependent parsing</td><td><a href="#josh-evidence"><code>syntax</code> tests</a></td><td><a href="#J-PARSE-002">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
-<tr><td><a id="J-PARSE-003-1"></a>J-PARSE-003</td><td>Disambiguation catalog</td><td>Josh</td><td>Implemented</td><td>Required command, assignment, call, arrow, and condition cases</td><td>Runtime guessing</td><td><a href="#josh-evidence"><code>ambiguity_corpus_has_stable_statement_shapes</code></a></td><td><a href="#J-PARSE-003">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
-<tr><td><a id="J-PARSE-004-1"></a>J-PARSE-004</td><td>Completeness and recovery</td><td>Josh</td><td>Implemented</td><td>Complete, Incomplete, Invalid; strict policy reuses parse</td><td>Separate strict parser</td><td><a href="#josh-evidence"><code>eof_only_errors_are_incomplete_but_hard_errors_are_invalid</code></a></td><td><a href="#J-PARSE-004">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
-<tr><td><a id="J-EXPR-001-1"></a>J-EXPR-001</td><td>Data expressions</td><td>Josh</td><td>Implemented</td><td>Scalars, arrays, objects, spread, destructuring, ternary, member/index access, <code>if</code>/<code>try</code> as value-producing expressions, object member assignment (<code>o.x = v</code>, <code>o[k] = v</code>)</td><td>Destructuring assignment</td><td><a href="#josh-evidence"><code>if_and_try_are_value_producing_expressions</code> and <code>member_assignment_updates_objects_in_place</code></a></td><td><a href="#J-EXPR-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-16</td></tr>
-<tr><td><a id="J-EXPR-002-1"></a>J-EXPR-002</td><td>Function-shaped syntax</td><td>Josh</td><td>Implemented</td><td>Calls, member/index access, declarations, arrows, spread calls, parameter patterns</td><td>Hoisting and mutual forward recursion</td><td><a href="#josh-evidence"><code>syntax</code> tests</a></td><td><a href="#J-EXPR-002">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
-<tr><td><a id="J-RUN-001-1"></a>J-RUN-001</td><td>External commands</td><td>Josh</td><td>Implemented</td><td>PATH/direct resolution and Unix byte argv</td><td>Functions as stages and globbing</td><td><a href="#josh-evidence"><code>cli</code> smoke</a></td><td><a href="#J-RUN-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
-<tr><td><a id="J-RUN-002-1"></a>J-RUN-002</td><td>Standalone builtins</td><td>Josh</td><td>Implemented</td><td><code>cd</code> and <code>exit [status]</code> as standalone commands</td><td>Builtins in pipelines or capture</td><td><a href="#josh-evidence"><code>builtins_are_dispatched_from_evaluated_argv_and_validate_arity</code></a></td><td><a href="#J-RUN-002">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
-<tr><td><a id="J-RUN-003-1"></a>J-RUN-003</td><td>External byte pipelines</td><td>Josh</td><td>Implemented</td><td>OS pipes, pre-resolution, pipefail, downstream-close SIGPIPE exception</td><td>Background pipelines</td><td><a href="#josh-evidence"><code>pipeline_uses_pipefail_and_ignores_nonfinal_sigpipe</code></a></td><td><a href="#J-RUN-003">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
-<tr><td><a id="J-RUN-004-1"></a>J-RUN-004</td><td>Synchronous capture</td><td>Josh</td><td>Implemented</td><td>String/Bytes result and terminal CR/LF trimming</td><td>Size limit, JSON detection, streaming capture</td><td><a href="#josh-evidence"><code>captures_trim_all_terminal_lf_and_crlf</code></a></td><td><a href="#J-RUN-004">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
-<tr><td><a id="J-RUN-005-1"></a>J-RUN-005</td><td>Bindings and assignment</td><td>Josh</td><td>Implemented</td><td>Lexical frames, <code>let</code>, nearest-binding assignment, array/object destructuring</td><td>Export declarations and destructuring assignment</td><td><a href="#josh-evidence"><code>engine_capture_commits_only_on_success</code></a></td><td><a href="#J-RUN-005">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
-<tr><td><a id="J-RUN-006-1"></a>J-RUN-006</td><td>If statements</td><td>Josh</td><td>Implemented</td><td>Expression and command conditions, else-if, else, completed-nonzero suppression</td><td>Planning-error suppression</td><td><a href="#josh-evidence"><code>if_condition_variants_are_explicit</code></a></td><td><a href="#J-RUN-006">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
-<tr><td><a id="J-ARGV-001-1"></a>J-ARGV-001</td><td>argv conversion</td><td>Josh</td><td>Implemented</td><td>No word splitting; concatenation; array splat; byte argv; sorted quote-aware globs; <code>~</code>/<code>~/</code> tilde expansion against the session HOME</td><td>Implicit object serialization outside value streams; bare <code>~user</code> homes</td><td><a href="#josh-evidence"><code>tilde_expands_to_session_home_before_globbing</code></a></td><td><a href="#J-ARGV-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-16</td></tr>
-<tr><td><a id="J-ERR-001-1"></a>J-ERR-001</td><td>Errors and exit policy</td><td>Josh</td><td>Implemented</td><td>Structured parse/runtime/process errors, interactive recovery, throw/catch, status and chains</td><td>Background-job errors</td><td><a href="#josh-evidence"><code>batch_errors_are_nonzero_and_exit_status_is_honored</code></a></td><td><a href="#J-ERR-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
-<tr><td><a id="J-NAMES-001-1"></a>J-NAMES-001</td><td>Builtin namespaces and prototypes</td><td>Josh</td><td>Implemented</td><td><code>Object</code>/<code>String</code>/<code>Number</code>/<code>Boolean</code>/<code>Array</code>/<code>Function</code> namespace callables and prototype tables with explicit receivers, <code>Object.*</code> statics including sealed objects, <code>Date</code>, <code>File</code>, <code>Math</code> namespaces</td><td><code>class</code> syntax and operator overloading</td><td><a href="#josh-evidence"><code>prototype_namespaces_methods_and_statics_are_first_class</code>, <code>file_date_and_math_namespaces_cover_the_flattened_surface</code></a></td><td><a href="#J-NAMES-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-16</td></tr>
-<tr><td><a id="J-REPL-001-1"></a>J-REPL-001</td><td>Editing and multiline</td><td>Josh</td><td>Implemented</td><td>Reedline editor, prompts, parser-driven continuation</td><td>Job-control editing modes</td><td><a href="#josh-evidence"><code>validator_continues_only_incomplete_input</code></a></td><td><a href="#J-REPL-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
-<tr><td><a id="J-REPL-002-1"></a>J-REPL-002</td><td>Token highlighting</td><td>Josh</td><td>Implemented</td><td>Mode-aware token styles and first-command PATH color</td><td>Fully nested interpolation token coloring</td><td><a href="#josh-evidence"><code>repl</code> adapter checks</a></td><td><a href="#J-REPL-002">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
-<tr><td><a id="J-REPL-003-1"></a>J-REPL-003</td><td>Completion</td><td>Josh</td><td>Implemented</td><td>Command (session PATH), file (session cwd), and variable (session environment) prefixes; UTF-8-safe spans; optional carapace bridge with silent native fallback</td><td>Semantic evaluation and other spec systems</td><td><a href="#josh-evidence"><code>completion_context_uses_utf8_safe_byte_spans</code>, <code>completion_snapshot_follows_session_path_and_environment</code></a></td><td><a href="#J-REPL-003">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-16</td></tr>
-<tr><td><a id="J-REPL-004-1"></a>J-REPL-004</td><td>Hints and history</td><td>Josh</td><td>Implemented</td><td>Plain file-backed history synced after each accepted line; prefix hints</td><td>SQLite</td><td><a href="#reedline-ownership">Reedline construction</a></td><td><a href="#J-REPL-004">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
-<tr><td><a id="J-REPL-005-1"></a>J-REPL-005</td><td>Interactive signals</td><td>Josh</td><td>Implemented</td><td>Ctrl-C clears input and cancels in-flight pure-Josh evaluation; Ctrl-D exits; child Ctrl-C leaves shell alive; Ctrl-Z tears the pipeline down with a diagnostic</td><td>Process-group transfer and job control</td><td><a href="#josh-evidence"><code>foreground child</code> PTY probe</a></td><td><a href="#J-REPL-005">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-16</td></tr>
-<tr><td><a id="J-EXPR-003-1"></a>J-EXPR-003</td><td>Control-flow expressions</td><td>Josh</td><td>Implemented</td><td><code>if</code> and <code>try</code> produce values in assignment and capture positions</td><td>Value-producing <code>while</code>/<code>loop</code>/<code>for</code></td><td><a href="#josh-evidence">Runtime <code>if</code>/<code>try</code> expression tests</a></td><td><a href="#J-EXPR-003">Manual</a></td><td>Development snapshot</td><td>2026-08-16</td></tr>
-<tr><td><a id="J-STREAM-002-1"></a>J-STREAM-002</td><td>Value pipelines</td><td>Josh</td><td>Implemented</td><td>Arrays/objects/scalars as pipeline sources, closure map stages, single-stage value capture, objects stream as <code>{key, value}</code> records</td><td>Streaming user-defined Stream values</td><td><a href="#josh-evidence"><code>value_pipeline_*</code> tests</a></td><td><a href="#J-STREAM-002">Manual</a></td><td>Development snapshot</td><td>2026-08-16</td></tr>
-<tr><td><a id="J-OBJ-001-1"></a>J-OBJ-001</td><td>Prototypal namespaces</td><td>Josh</td><td>Implemented</td><td>Type prototypes, receiver-first prototype dispatch, member assignment, <code>Object</code> statics, sealed objects</td><td>Classes, implicit <code>this</code>, mixins</td><td><a href="#josh-evidence"><code>prototype_namespaces_methods_and_statics_are_first_class</code>, <code>member_assignment_updates_objects_in_place</code></a></td><td><a href="#J-OBJ-001">Manual</a></td><td>Development snapshot</td><td>2026-08-16</td></tr>
-<tr><td><a id="J-TILDE-001-1"></a>J-TILDE-001</td><td>Tilde expansion</td><td>Josh</td><td>Implemented</td><td>Leading unquoted <code>~</code>/<code>~/</code> at command-word starts</td><td><code>~user</code> and mid-word forms</td><td><a href="#josh-evidence">Tilde lexer/expansion tests</a></td><td><a href="#J-TILDE-001">Manual</a></td><td>Development snapshot</td><td>2026-08-16</td></tr>
-<tr><td><a id="J-ENV-001-1"></a>J-ENV-001</td><td><code>$NAME</code> fallback</td><td>Josh</td><td>Implemented</td><td>Lexical binding before inherited environment in command interpolation</td><td><code>env</code> object and export API</td><td><a href="#environment-boundary">Engine source behavior</a></td><td><a href="#J-ENV-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
-<tr><td><a id="J-STRUCT-001-1"></a>J-STRUCT-001</td><td>Structured streams and transformers</td><td>Josh</td><td>Implemented</td><td>Explicit byte/value transitions, function/map/filter/take/takeLast/first/collect, value pipelines feeding scalar/array sources into closure stages, bounded cancellation, stable capture cardinality</td><td>Generic iterable or user-visible Stream value</td><td><a href="#josh-evidence"><code>structured_*</code> tests, <code>take_last_stage_returns_bounded_tail</code>, <code>value_pipelines_stream_expressions_through_closure_stages</code>, and E2E</a></td><td><a href="#J-STRUCT-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-16</td></tr>
-<tr><td><a id="J-FILES-001-1"></a>J-FILES-001</td><td>Redirections and globs</td><td>Josh</td><td>Implemented</td><td><code>&gt;</code>, <code>&gt;&gt;</code>, <code>&lt;</code>, <code>2&gt;</code>, <code>2&gt;&gt;</code>, <code>2&gt;&amp;1</code>, <code>&amp;&gt;</code>; left-to-right planning; sorted quote-aware globs and <code>glob()</code></td><td>Process substitution</td><td><a href="#josh-evidence"><code>redirections_*</code> and glob CLI tests</a></td><td><a href="#J-FILES-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
-<tr><td><a id="J-CF-001-1"></a>J-CF-001</td><td>Non-job control flow</td><td>Josh</td><td>Implemented</td><td><code>while</code>, <code>loop</code>, <code>try/catch</code>, return, break, continue, throw, status, command chains</td><td>No <code>for</code> production</td><td><a href="#josh-evidence"><code>typed_unwinding_*</code> and chain tests</a></td><td><a href="#J-CF-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
-<tr><td><a id="J-JOBS-001-1"></a>J-JOBS-001</td><td>Background jobs and job control</td><td>Josh</td><td>Planned</td><td>Background statements and terminal process-group control</td><td>No current <code>&amp;</code> execution</td><td><a href="#j-jobs-001">Tracker</a></td><td><a href="#J-JOBS-001">Manual</a></td><td>Project brief</td><td>2026-08-14</td></tr>
-<tr><td><a id="J-FUNC-001-1"></a>J-FUNC-001</td><td>Function execution and UFCS</td><td>Josh</td><td>Implemented</td><td>Declarations/arrows, snapshot closures, direct recursion, destructured/rest parameters, prototype-table methods with explicit receivers, lexical UFCS</td><td>No hoisting or <code>this</code></td><td><a href="#josh-evidence"><code>closures_*</code> and method tests, <code>prototype_namespaces_methods_and_statics_are_first_class</code></a></td><td><a href="#J-FUNC-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-16</td></tr>
-<tr><td><a id="J-MOD-001-1"></a>J-MOD-001</td><td>Modules (<code>import</code>/<code>export</code>)</td><td>Josh</td><td>Planned</td><td>Scoped imports/exports; <code>source</code> graduated to J-MOD-002</td><td>URL modules need a security decision</td><td><a href="#j-mod-001">Tracker</a></td><td><a href="#J-MOD-001">Manual</a></td><td>Project brief</td><td>2026-08-14</td></tr>
-<tr><td><a id="J-MOD-002-1"></a>J-MOD-002</td><td><code>source</code> statement</td><td>Josh</td><td>Implemented</td><td>One-word path (quoting, variables, <code>~</code>), current-frame evaluation, strict parse gate, cycle rejection, boundary errors for <code>return</code>/<code>break</code>/<code>continue</code></td><td>Search paths, module identity, and caching</td><td><a href="#josh-evidence"><code>source_evaluates_in_current_frame_and_guards_cycles</code></a></td><td><a href="#J-MOD-002">Manual</a></td><td>Development snapshot</td><td>2026-08-16</td></tr>
-<tr><td><a id="J-CONFIG-001-1"></a>J-CONFIG-001</td><td>Configuration</td><td>Josh</td><td>Implemented</td><td>XDG <code>env.josh</code>/interactive <code>init.josh</code>, global lexical scope, prompt function, <code>--no-config</code>, error policy</td><td>Imports or a config schema</td><td><a href="#josh-evidence">Startup CLI and PTY tests</a></td><td><a href="#J-CONFIG-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
-<tr><td><a id="J-ENV-002-1"></a>J-ENV-002</td><td><code>env</code> namespace and export</td><td>Josh</td><td>Implemented</td><td><code>env.NAME</code> reads/writes the session environment; closure reads resolve dynamically; child pipelines inherit member-state-at-spawn; PATH exposes array and scalar views</td><td>Process-global mutation</td><td><a href="#josh-evidence"><code>environment_namespace_is_dynamic_exported_and_scalar_canonical</code>, <code>startup_environment_mutation_persists_for_path_lookup_and_children</code></a></td><td><a href="#J-ENV-002">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-16</td></tr>
-<tr><td><a id="J-BG-001"></a>J-BG-001</td><td>Job expression assignment</td><td>Josh</td><td>Unresolved</td><td>Choose whether/how a background job produces a value</td><td><code>j = sleep 100 &amp;</code> is not valid syntax</td><td><a href="#J-BG-001-1">Decision question</a></td><td><a href="#J-BG-001-1">Manual</a></td><td>Open</td><td>2026-08-14</td></tr>
-<tr><td><a id="J-UNICODE-001-1"></a>J-UNICODE-001</td><td>String indexing unit</td><td>Josh</td><td>Implemented</td><td>UTF-16 code-unit <code>length</code>, signed indexing, and <code>at</code>; pair-interior positions snap to whole code points</td><td>Grapheme-cluster indexing and JS lone-surrogate returns</td><td><a href="#josh-evidence"><code>strings_use_javascript_utf16_positions</code></a></td><td><a href="#J-UNICODE-001">Manual</a></td><td>Development snapshot</td><td>2026-08-16</td></tr>
-<tr><td><a id="J-EXPR-004-1"></a>J-EXPR-004</td><td>Range slices</td><td>Josh</td><td>Implemented</td><td>End-exclusive <code>a[b..c]</code> on arrays and strings with negative, omitted, and clamped bounds; copies, never views</td><td>Inclusive <code>..=</code>, stride ranges, and byte slicing</td><td><a href="#josh-evidence"><code>range_slicing_follows_javascript_slice_semantics</code> and <code>range_slices_parse_with_optional_bounds</code></a></td><td><a href="#J-EXPR-004">Manual</a></td><td>Development snapshot</td><td>2026-08-16</td></tr>
-<tr><td><a id="AT-BUILD-001-1"></a>AT-BUILD-001</td><td>Pinned static build</td><td>agent-terminal</td><td>Implemented</td><td>Clean Ghostty tree digest, SHA, Zig 0.16.0, ReleaseFast, baseline CPU, SIMD off, static link</td><td>Initial Nix cache provisioning may be slow</td><td><a href="#AT-BUILD-001">Build identity and link inspection</a></td><td><a href="#AT-BUILD-001">Manual</a></td><td>agent-terminal 0.1.0; Ghostty d760ee96</td><td>2026-08-15</td></tr>
-<tr><td><a id="AT-CLI-001-1"></a>AT-CLI-001</td><td>Cross-invocation CLI</td><td>agent-terminal</td><td>Implemented</td><td>launch, snapshot, screenshot, type, key, resize, wait, list, close</td><td>No TCP or shared daemon</td><td><a href="#agent-terminal-evidence">Real CLI smoke</a></td><td><a href="#AT-CLI-001">Manual</a></td><td>agent-terminal 0.1.0</td><td>2026-08-15</td></tr>
-<tr><td><a id="AT-PTY-001-1"></a>AT-PTY-001</td><td>Real PTY and Ghostty state</td><td>agent-terminal</td><td>Implemented</td><td>One PTY, child, <code>libghostty-vt</code> terminal per daemon</td><td>No substitute ANSI parser</td><td><a href="#agent-terminal-evidence">Linked-library and real PTY tests</a></td><td><a href="#AT-PTY-001">Manual</a></td><td>agent-terminal 0.1.0; Ghostty d760ee96</td><td>2026-08-15</td></tr>
-<tr><td><a id="AT-SNAP-001-1"></a>AT-SNAP-001</td><td>Semantic snapshots</td><td>agent-terminal</td><td>Implemented</td><td>Formatter text and schema v2 grid/cell/style/render state</td><td>No checkpoint restore</td><td><a href="#agent-terminal-evidence">Real semantic snapshot smoke</a></td><td><a href="#AT-SNAP-001">Manual</a></td><td>agent-terminal 0.1.0; Ghostty d760ee96</td><td>2026-08-15</td></tr>
-<tr><td><a id="AT-INPUT-001-1"></a>AT-INPUT-001</td><td>Input and resize</td><td>agent-terminal</td><td>Implemented</td><td>Exact UTF-8 type, mode-aware keys, PTY/grid resize</td><td>No mouse or clipboard</td><td><a href="#agent-terminal-evidence">Unicode, key, and resize smoke</a></td><td><a href="#AT-INPUT-001">Manual</a></td><td>agent-terminal 0.1.0</td><td>2026-08-15</td></tr>
-<tr><td><a id="AT-WAIT-001-1"></a>AT-WAIT-001</td><td>Daemon-side waits</td><td>agent-terminal</td><td>Implemented</td><td>Case-sensitive visible text, stable revision, timeout 124</td><td>No regex or hidden scrollback match</td><td><a href="#AT-JOSH-001">Text and stability E2E waits</a></td><td><a href="#AT-WAIT-001">Manual</a></td><td>agent-terminal 0.1.0</td><td>2026-08-15</td></tr>
-<tr><td><a id="AT-LIFE-001-1"></a>AT-LIFE-001</td><td>Session lifecycle</td><td>agent-terminal</td><td>Implemented</td><td>UUID sessions, health handshake, close escalation, reap, idle expiry</td><td>Not a hostile-process sandbox</td><td><a href="#AT-JOSH-001">Close and direct PID reap proof</a></td><td><a href="#AT-LIFE-001">Manual</a></td><td>agent-terminal 0.1.0</td><td>2026-08-15</td></tr>
-<tr><td><a id="AT-PROTO-001-1"></a>AT-PROTO-001</td><td>NDJSON protocol v1</td><td>agent-terminal</td><td>Implemented</td><td>Typed envelopes, 1 MiB request cap, errors, handshake</td><td>Unix socket only; no compatibility promise beyond version</td><td><a href="#agent-terminal-evidence">Cross-invocation smoke</a></td><td><a href="#AT-PROTO-001">Manual</a></td><td>agent-terminal 0.1.0</td><td>2026-08-15</td></tr>
-<tr><td><a id="AT-SEC-001-1"></a>AT-SEC-001</td><td>Local security controls</td><td>agent-terminal</td><td>Implemented</td><td>Owner-only paths/sockets, symlink rejection, trusted same-user clients</td><td>No sandbox or network exposure</td><td><a href="#agent-terminal-evidence">Permission assertions</a></td><td><a href="#AT-SEC-001">Manual</a></td><td>agent-terminal 0.1.0</td><td>2026-08-15</td></tr>
-<tr><td><a id="AT-JOSH-001-1"></a>AT-JOSH-001</td><td>Josh REPL automation scenario</td><td>agent-terminal</td><td>Implemented</td><td>Fixed grid, XDG config/prompt, language/control/stream/file capabilities, negative exclusions, semantic snapshot, repeated PNG, exit/close/leak proof</td><td>Hostile descendant containment</td><td><a href="#AT-JOSH-001"><code>scripts/josh-e2e.sh</code> evidence</a></td><td><a href="#AT-JOSH-001">Manual</a></td><td>agent-terminal 0.1.0 + Josh 0.1.0</td><td>2026-08-15</td></tr>
-<tr><td><a id="AT-PNG-001-1"></a>AT-PNG-001</td><td>Deterministic PNG renderer</td><td>agent-terminal</td><td>Implemented</td><td>Client-side schema-v2 rendering, captured Ghostty colors/palette/cursor, pinned fonts/96 DPI/8×16 grid, effects/wide/background, metadata-free PNG</td><td>Host font fallback and animation</td><td><a href="#agent-terminal-evidence">Pixel/unit, CLI, and repeated-byte E2E</a></td><td><a href="#AT-PNG-001">Manual</a></td><td>agent-terminal 0.1.0</td><td>2026-08-15</td></tr>
-</tbody>
-</table>
-</div>
+<p>The 2026-08-15 release evidence was 53 Josh tests, 12 agent-terminal unit tests, 4 agent-terminal CLI integration tests, 66 manual pages, 26 extracted runnable fences, a 640×384 RGBA PNG, and SHA-256 <code>5956b699529a9d8e3167078e8682339c811c80e7f56cb4d8a69c67abd50d9428</code>. Recompute rather than copying those values into a later release record.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="roadmap"><a class="header" href="#roadmap">Roadmap</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> This page makes no product-availability claims. Roadmap entries are views over stable IDs in the <a href="#capability-status">capability matrix</a>.</p>
-</div>
-
-<p>The roadmap separates today’s vertical slice, planned work, and unresolved decisions. It does not create a second source of truth. Promote, split, or retire the matrix row first; then update the corresponding view.</p>
+<p>The roadmap separates today’s vertical slice, planned work, and unresolved decisions.</p>
 <ul>
 <li><a href="#verified-010-scope">Verified 0.1.0 scope</a> states what the two source trees contain and what was verified.</li>
 <li><a href="#planned-work">Planned work</a> groups directional capabilities without runnable examples.</li>
@@ -1885,33 +1504,20 @@ shasum -a 256 target/josh-e2e/screenshot.png
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="verified-010-scope"><a class="header" href="#verified-010-scope">Verified 0.1.0 scope</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-CLI-001-1">J-CLI-001</a> — <strong>Implemented</strong>; <a href="#J-STRUCT-001-1">J-STRUCT-001</a> — <strong>Implemented</strong>; <a href="#J-FILES-001-1">J-FILES-001</a> — <strong>Implemented</strong>; <a href="#J-CF-001-1">J-CF-001</a> — <strong>Implemented</strong>; <a href="#J-FUNC-001-1">J-FUNC-001</a> — <strong>Implemented</strong>; <a href="#J-CONFIG-001-1">J-CONFIG-001</a> — <strong>Implemented</strong>; <a href="#AT-PNG-001-1">AT-PNG-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <p>Josh 0.1.0 now verifies the six-crate workspace end to end: one lossless parser across tolerant interaction and strict execution; lexical data/functions and UFCS; typed non-job control flow; planned external execution; explicit byte/value streams with stable cardinality and bounded cancellation; redirections and sorted globs; dedicated startup scripts; and Reedline interaction.</p>
 <p>agent-terminal 0.1.0 verifies a detached daemon per session, real PTY, pinned static <code>libghostty-vt</code>, typed NDJSON protocol, semantic schema, input/wait/resize/lifecycle operations, and deterministic client-side PNG rendering from copied semantic state. The isolated-XDG 80×24 scenario drives the complete Josh capability set, checks excluded surfaces, compares repeated 640×384 PNG bytes, exits, closes, and directly proves PID/socket/runtime cleanup.</p>
 <p>The canonical Nix development shell completed format, warnings-denied Clippy, locked tests, locked builds, smoke, and the complete scenario with matching Rust tooling. Remaining limits are deliberate: raw byte capture is whole-buffer; unsupported glyphs render as U+FFFD; lifecycle cleanup is not hostile-process containment; and Jobs, modules, and general source loading are unavailable.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="planned-work"><a class="header" href="#planned-work">Planned work</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-JOBS-001-1">J-JOBS-001</a> — <strong>Planned</strong>; <a href="#J-MOD-001-1">J-MOD-001</a> — <strong>Planned</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
 <h2 id="j-jobs-001"><a class="header" href="#j-jobs-001">J-JOBS-001</a></h2>
-<p>Background statements and terminal job control require process-group transfer, status ownership, signal routing, cleanup, a job table, and Job values. Job-value assignment syntax remains <a href="#J-BG-001-1">Unresolved</a>. Current <code>&amp;</code>, <code>jobs</code>, <code>fg</code>, and <code>bg</code> forms are rejected; no partial background execution is available.</p>
+<p>Background statements and terminal job control require process-group transfer, status ownership, signal routing, cleanup, a job table, and Job values. Job-value assignment syntax remains <a href="#J-BG-001">Unresolved</a>. Current <code>&amp;</code>, <code>jobs</code>, <code>fg</code>, and <code>bg</code> forms are rejected; no partial background execution is available.</p>
 <h2 id="j-mod-001"><a class="header" href="#j-mod-001">J-MOD-001</a></h2>
 <p>Scoped imports/exports, general current-scope <code>source</code>, package resolution, and a standard library module resolver remain excluded. Remote modules require identity, integrity, cache, permission, update, offline, and trust policies before syntax can be accepted.</p>
 <p>Structured streams, redirections/globs, non-job control flow, functions/UFCS, startup configuration, and deterministic PNG screenshots moved to Implemented after executable verification.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="unresolved-decisions"><a class="header" href="#unresolved-decisions">Unresolved decisions</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-BG-001">J-BG-001</a> — <strong>Unresolved</strong>. See <a href="#status-conventions">status conventions</a>.</p>
-</div>
-
-<p><a id="J-BG-001-1"></a></p>
-<h2 id="job-expression-assignment-unresolved"><a class="header" href="#job-expression-assignment-unresolved">Job expression assignment <span class="status status--unresolved" aria-label="Status: Unresolved">Unresolved</span></a></h2>
-<p><strong>Availability:</strong> Open design question; no behavior is promised. Decide whether a background command is only a statement or can form an affine Job value without making parsing depend on runtime type.</p>
+<p><a id="J-BG-001"></a></p>
+<h2 id="job-expression-assignment"><a class="header" href="#job-expression-assignment">Job expression assignment</a></h2>
 <p>No assignment syntax is accepted. A decision must define ownership, cancellation, status, process-group lifetime, and interaction with error-first execution.</p>
 <h2 id="remote-module-trust"><a class="header" href="#remote-module-trust">Remote module trust</a></h2>
 <p><strong>Status: Unresolved.</strong> URL or hosted-library imports need identity, integrity, permission, cache, update, and offline rules. Until then, <a href="#J-MOD-001">modules remain Planned</a> and no URL syntax is promised.</p>

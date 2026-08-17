@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,24 +175,20 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="release-verification"><a class="header" href="#release-verification">Release verification</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> This page makes no product-availability claims. Passing items provide evidence for specific matrix rows.</p>
-</div>
-
 <p>Run from clean source trees. Record both product revisions, lockfiles, toolchain identity, check date, and retained artifact hashes. Compilation and test summaries are necessary evidence, not substitutes for the real CLI/artifact paths.</p>
 <ol>
 <li><strong>Josh quality:</strong> format, Clippy with warnings denied, workspace all-target tests, and workspace all-target build.</li>
 <li><strong>Josh language:</strong> direct objects, insertion order, spread/destructuring, closures, recursion, exact methods, lexical UFCS, conversions, and Unicode scalar indexing.</li>
 <li><strong>Josh control:</strong> expression/command conditions, while/loop, typed return/break/continue/throw, catch of runtime/process errors, Status members, chain short-circuiting, and planning-error propagation.</li>
 <li><strong>Josh streams/files/config:</strong> every documented byte/value transition and cardinality; malformed UTF-8/JSON/JSONL; bounded producer cancellation; every redirection and ordering; quoted/unquoted/no-match globs; XDG/fallback startup order, scope, <code>--no-config</code>, error policy, and prompt through a PTY.</li>
-<li><strong>Excluded Josh surfaces:</strong> prove <code>&amp;</code>, <code>jobs</code>, <code>fg</code>, <code>bg</code>, <code>source</code>, <code>import</code>, <code>export</code>, and remote imports fail; keep background assignment Unresolved.</li>
+<li><strong>Excluded Josh surfaces:</strong> prove <code>&amp;</code>, <code>jobs</code>, <code>fg</code>, <code>bg</code>, <code>import</code>, <code>export</code>, and remote imports fail; background assignment remains out of scope.</li>
 <li><strong>agent-terminal prerequisite:</strong> exact Zig 0.16.0, Ghostty SHA/tree, matching Rust tools, renderer lockfile, four vendored font faces/license, and static <code>libghostty-vt</code> linkage.</li>
 <li><strong>agent-terminal behavior:</strong> locked format/Clippy/tests/build; real PTY/input/key/resize/wait/protocol/security/lifecycle tests; schema-v2 semantic cells/styles/render facts; screenshot omitted/explicit paths; exact pixels/dimensions; metadata-free repeated PNG bytes.</li>
 <li><strong>Cross-product:</strong> run the isolated-XDG fixed-grid Josh scenario twice; inspect semantic JSON and PNG; compare each run’s repeated screenshot; exit/close; directly inspect process, socket, session, and temporary-runtime cleanup.</li>
-<li><strong>Manual:</strong> run the checker and persistent mdBook build; inspect generated links/fragments, literal fences, duplicate IDs, code blocks, wait-table shape, status drift, status colors, index/matrix/schema pages, and the retained PNG.</li>
+<li><strong>Manual:</strong> run the checker and persistent mdBook build; inspect generated links/fragments, literal fences, duplicate IDs, code blocks, wait-table shape, index/schema pages, and the retained PNG.</li>
 </ol>
 <p><strong>Host command</strong></p>
-<pre><code class="language-sh">cd /Users/mbullington/Projects/josh-shell
+<pre><code class="language-sh">cd josh-shell
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --all-targets
@@ -202,22 +197,21 @@ python3 docs/tools/check-manual.py
 mdbook build docs
 
 test -f docs/book/index.html
-test -f docs/book/status/matrix.html
 test -f docs/book/agent-terminal/screenshots.html
 </code></pre>
 <p><strong>Host command</strong></p>
-<pre><code class="language-sh">cd /Users/mbullington/Projects/agent-terminal
+<pre><code class="language-sh">cd agent-terminal
 test "$(nix develop --no-write-lock-file -c zig version)" = 0.16.0
 nix develop --no-write-lock-file -c cargo fmt --all -- --check
 nix develop --no-write-lock-file -c cargo clippy --locked --all-targets -- -D warnings
 nix develop --no-write-lock-file -c cargo test --locked --all-targets
 nix develop --no-write-lock-file -c cargo build --locked --all-targets
 scripts/smoke.sh target/debug/agent-terminal
-scripts/josh-e2e.sh target/debug/agent-terminal /Users/mbullington/Projects/josh-shell/target/debug/josh
-scripts/josh-e2e.sh target/debug/agent-terminal /Users/mbullington/Projects/josh-shell/target/debug/josh
+scripts/josh-e2e.sh target/debug/agent-terminal "$(command -v josh)"
+scripts/josh-e2e.sh target/debug/agent-terminal "$(command -v josh)"
 shasum -a 256 target/josh-e2e/screenshot.png
 </code></pre>
-<p>The 2026-08-15 release evidence was 53 Josh tests, 12 agent-terminal unit tests, 4 agent-terminal CLI integration tests, 66 manual pages, 42 capability rows, 26 extracted runnable fences, a 640×384 RGBA PNG, and SHA-256 <code>5956b699529a9d8e3167078e8682339c811c80e7f56cb4d8a69c67abd50d9428</code>. Recompute rather than copying those values into a later release record.</p>
+<p>The 2026-08-15 release evidence was 53 Josh tests, 12 agent-terminal unit tests, 4 agent-terminal CLI integration tests, 66 manual pages, 26 extracted runnable fences, a 640×384 RGBA PNG, and SHA-256 <code>5956b699529a9d8e3167078e8682339c811c80e7f56cb4d8a69c67abd50d9428</code>. Recompute rather than copying those values into a later release record.</p>
 
                     </main>
 
@@ -227,7 +221,7 @@ shasum -a 256 target/josh-e2e/screenshot.png
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../status/matrix.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../roadmap/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -241,7 +235,7 @@ shasum -a 256 target/josh-e2e/screenshot.png
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../status/matrix.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../roadmap/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

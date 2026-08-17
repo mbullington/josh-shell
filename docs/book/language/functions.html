@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,18 +175,12 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="functions-arrows-and-ufcs"><a class="header" href="#functions-arrows-and-ufcs">Functions, arrows, and UFCS</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-EXPR-002">J-EXPR-002</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-FUNC-001">J-FUNC-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p><a id="J-EXPR-002"></a></p>
-<h2 id="function-shaped-syntax-implemented"><a class="header" href="#function-shaped-syntax-implemented">Function-shaped syntax <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: AST and evaluator tests for calls, member/index access, arrows, declarations, spread, and destructuring.</p>
+<h2 id="function-shaped-syntax"><a class="header" href="#function-shaped-syntax">Function-shaped syntax</a></h2>
 <p>Calls require adjacency: <code>value(args)</code>, <code>value.member</code>, and <code>value[index]</code>. A space before <code>(</code> instead makes the parenthesized expression a command argument. Arrows accept one bare parameter or a parenthesized parameter list. Their body is one expression or a block.</p>
 <p><a id="J-FUNC-001"></a></p>
-<h2 id="function-execution-and-ufcs-implemented"><a class="header" href="#function-execution-and-ufcs-implemented">Function execution and UFCS <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: closure, recursion, method, command-position, and UFCS tests.</p>
-<p><code>fn name(params) { ... }</code> and arrow functions share one Function value. A closure copies all visible lexical bindings when it is created; later reassignment outside the closure does not change that snapshot. Named functions rebind themselves while called, so direct recursion works without cyclic ownership. Declarations are source-ordered, not hoisted, and mutual forward recursion is unavailable.</p>
+<h2 id="function-execution-and-ufcs"><a class="header" href="#function-execution-and-ufcs">Function execution and UFCS</a></h2>
+<p><code>fn name(params) { ... }</code> and arrow functions share one Function value. A closure copies all visible lexical bindings when it is created; later reassignment outside the closure does not change that snapshot. Named functions rebind themselves while called, so direct recursion works without cyclic ownership. Declarations are source-ordered, not hoisted, but calls resolve names when invoked, so functions defined later in the same script can call back into earlier ones (mutual recursion included). Scope is lexical: a running function sees its own parameters, its captured snapshot, and shared top-level bindings — it can neither see nor rewrite bindings owned by another active function.</p>
 <p>Parameters allow nested array/object destructuring and one trailing rest pattern. Missing arguments bind Null; extra arguments are ignored. <code>...array</code> expands a call argument list. Spreading any other value is a type error. <code>return</code> without a value returns Null. <code>break</code> and <code>continue</code> cannot cross a function boundary.</p>
 <p>A visible lexical function in command position runs before PATH lookup and receives evaluated command arguments. Member-call dispatch has this fixed order:</p>
 <ol>
@@ -196,7 +189,7 @@
 <li>a visible lexical function with the member name, called as <code>name(receiver, ...args)</code> (UFCS).</li>
 </ol>
 <p>A prototype method therefore wins over a same-named lexical function, and an own field wins over a prototype method. Josh has no <code>this</code>, classes, or hoisting; the builtin prototype tables are the only shared method registry, and prototype methods declare the receiver explicitly with first-argument parameters (for example <code>(this, ...)</code>).</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">x = 10
 snapshot = y =&gt; x + y
@@ -229,7 +222,6 @@ printf '%s %s\n' (snapshot(1)) ("ok".suffix("!"))
 <tr><td>Array</td><td><code>.reduce(fn[, initial])</code></td><td>Calls <code>fn(accumulator, item, index, array)</code>; an empty Array without <code>initial</code> errors</td></tr>
 <tr><td>Array</td><td><code>.flat([depth])</code></td><td>Flatten nested Arrays; default depth 1; depth must be a nonnegative Int</td></tr>
 <tr><td>Array</td><td><code>.join([separator])</code></td><td>Scalar-string elements joined with <code>,</code> or the String separator</td></tr>
-<tr><td>Array</td><td><code>.slice([start[, end]])</code></td><td>Half-open signed/clamped range copied into a new Array</td></tr>
 <tr><td>Object</td><td><code>.keys()</code></td><td>Keys in insertion order</td></tr>
 <tr><td>Object</td><td><code>.entries()</code></td><td><code>[key, value]</code> pairs in insertion order</td></tr>
 </tbody>

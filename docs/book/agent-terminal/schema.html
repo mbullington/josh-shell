@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,13 +175,9 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="snapshot-and-protocol-schemas"><a class="header" href="#snapshot-and-protocol-schemas">Snapshot and protocol schemas</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#AT-SNAP-001">AT-SNAP-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#AT-PROTO-001">AT-PROTO-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#AT-PNG-001">AT-PNG-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <h2 id="semantic-snapshot-schema-v2"><a class="header" href="#semantic-snapshot-schema-v2">Semantic snapshot schema v2</a></h2>
 <p>A snapshot has <code>schema_version</code>, <code>session_id</code>, <code>revision</code>, tagged <code>process</code>, <code>cols</code>, <code>rows</code>, captured <code>default_foreground</code>, <code>default_background</code>, the active 256-entry <code>palette</code>, <code>cursor</code>, optional <code>title</code>, <code>active_screen</code>, formatter <code>text</code>, <code>row_data</code>, <code>cells</code>, and deduplicated <code>styles</code>. The color fields are Ghostty render state copied by the daemon, not client theme substitutions.</p>
-<p class="example-label example-label--implemented"><strong>Implemented JSON shape · Emitted by agent-terminal 0.1.0</strong></p>
+<p class="example-label"><strong>JSON shape · emitted by agent-terminal 0.1.0</strong></p>
 
 <pre><code class="language-json">{
   "schema_version": 2,
@@ -216,8 +211,7 @@
 <p>Rows carry <code>index</code>, <code>wrap</code>, <code>wrap_continuation</code>, <code>semantic_prompt</code> (<code>none</code>, <code>prompt</code>, or <code>prompt_continuation</code>), and <code>text</code>. Cells carry row/column, optional grapheme, <code>wide</code> state (<code>narrow</code>, <code>wide</code>, <code>spacer_tail</code>, <code>spacer_head</code>), semantic content, protection, hyperlink, background-only color, and style ID. Colors are tagged palette indices or RGB values. Styles include foreground/background/underline colors and bold, italic, faint, blink, inverse, invisible, strikethrough, overline, and underline shape. Cursor <code>x</code>/<code>y</code> remain active-area facts; optional <code>viewport</code> is the visible render position and records whether it is on a wide tail. <code>visual_style</code> is <code>bar</code>, <code>block</code>, <code>underline</code>, or <code>hollow_block</code>; <code>blinking</code> records terminal mode even though PNG rendering freezes it visibly on.</p>
 <p>Screenshot JSON is a command result, not schema v2. It contains <code>path</code>, <code>session_id</code>, <code>revision</code>, <code>width</code>, <code>height</code>, <code>bytes</code>, <code>dpi</code>, <code>cell_width</code>, and <code>cell_height</code>. PNG bytes carry no session metadata.</p>
 <p><a id="AT-PROTO-001"></a></p>
-<h2 id="ndjson-protocol-v1-implemented"><a class="header" href="#ndjson-protocol-v1-implemented">NDJSON protocol v1 <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in agent-terminal 0.1.0. Evidence: fresh CLI processes handshake and exchange typed launch, input, wait, snapshot, resize, list, and close requests in the smoke tests.</p>
+<h2 id="ndjson-protocol-v1"><a class="header" href="#ndjson-protocol-v1">NDJSON protocol v1</a></h2>
 <p>Requests carry <code>protocol_version: 1</code>, <code>request_id</code>, and a tagged command. Responses repeat the version and request ID and contain either a tagged result or <code>{code, message, details?}</code> error. Handshake returns CLI version, protocol version, Ghostty SHA, daemon PID, session ID, and process state.</p>
 <p>Error codes include invalid request/message size/version, lifecycle state, dimensions/key, spawn/I/O, timeout/early exit, session selection/health, and internal failure. A version mismatch is explicit; clients do not signal metadata PIDs to reconcile it.</p>
 

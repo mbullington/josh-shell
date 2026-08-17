@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,17 +175,13 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="automate-the-complete-josh-scenario"><a class="header" href="#automate-the-complete-josh-scenario">Automate the complete Josh scenario</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#AT-JOSH-001">AT-JOSH-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-REPL-001">J-REPL-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#AT-PNG-001">AT-PNG-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p><a id="AT-JOSH-001"></a></p>
-<h2 id="cross-product-scenario-implemented"><a class="header" href="#cross-product-scenario-implemented">Cross-product scenario <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in agent-terminal 0.1.0 with Josh 0.1.0. Evidence: <code>scripts/josh-e2e.sh</code> drives the real fixed-grid REPL and verifies artifacts and cleanup.</p>
+<h2 id="cross-product-scenario"><a class="header" href="#cross-product-scenario">Cross-product scenario</a></h2>
 <p><strong>Host command</strong></p>
-<pre><code class="language-sh">cd /Users/mbullington/Projects/agent-terminal
-scripts/josh-e2e.sh target/debug/agent-terminal /Users/mbullington/Projects/josh-shell/target/debug/josh
+<pre><code class="language-sh">cd agent-terminal
+scripts/josh-e2e.sh target/debug/agent-terminal "$(command -v josh)"
 </code></pre>
+<p><code>agent-terminal</code> comes from the companion repository (crate <code>agent-terminal-cli</code>, binary <code>agent-terminal</code>); the scenario accepts any pair of <code>agent-terminal</code> and <code>josh</code> binaries, from a build tree or <code>PATH</code>.</p>
 <p>The script creates isolated HOME, XDG config, PATH, runtime, and file roots. <code>env.josh</code> and <code>init.josh</code> establish shared lexical state and <code>cfg:env-init&gt;</code> as the prompt. The 80×24 session exercises:</p>
 <ul>
 <li>objects, declarations/arrows, snapshot closures, calls/member/index access, and lexical UFCS;</li>

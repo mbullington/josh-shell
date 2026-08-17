@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,15 +175,11 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="your-first-session"><a class="header" href="#your-first-session">Your first session</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-REPL-001">J-REPL-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#J-RUN-002">J-RUN-002</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p>Start the shell from the repository. Josh shows <code>josh&gt; </code> for a complete input and <code>...&gt; </code> when the parser needs more source.</p>
 <p><strong>Host command</strong></p>
 <pre><code class="language-sh">./target/debug/josh
 </code></pre>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">josh&gt; printf 'hello\n'
 hello
@@ -193,10 +188,9 @@ josh&gt; (1 + 2)
 </code></pre>
 <p>The first line is a command. The second starts with an expression delimiter, so Josh evaluates arithmetic and prints the resulting non-null value.</p>
 <p><a id="J-RUN-002"></a></p>
-<h2 id="standalone-builtins-implemented"><a class="header" href="#standalone-builtins-implemented">Standalone builtins <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: <code>builtins_are_dispatched_from_evaluated_argv_and_validate_arity</code> and CLI exit-status tests.</p>
+<h2 id="standalone-builtins"><a class="header" href="#standalone-builtins">Standalone builtins</a></h2>
 <p><code>cd [path]</code> changes Josh’s process directory; without a path it uses <code>HOME</code>, then <code>.</code>. <code>exit [status]</code> leaves the REPL or returns that status from batch mode. Both must be standalone. A pipeline or capture containing either builtin returns an unsupported-feature error.</p>
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">josh&gt; cd /tmp
 josh&gt; pwd

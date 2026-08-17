@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,10 +175,6 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="agent-terminal"><a class="header" href="#agent-terminal">agent-terminal</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#AT-CLI-001">AT-CLI-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#AT-PTY-001">AT-PTY-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#AT-SNAP-001">AT-SNAP-001</a> — <strong>Implemented</strong>; <a href="../status/matrix.html#AT-PNG-001">AT-PNG-001</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p><code>agent-terminal</code> is a Unix terminal automation CLI. One detached daemon owns one real PTY, child process, pinned <code>libghostty-vt</code> terminal, revision counter, and private Unix socket. Separate client invocations launch, send input, resize, wait, inspect semantic state, render deterministic PNGs, and close the process tree.</p>
 <p>Semantic snapshots are the authoritative automation state. Screenshots render copied schema-v2 cell/style/render state client-side with pinned fonts, metrics, rasterizer, and PNG encoding. They do not replace semantic snapshots.</p>
 <p>The verified 0.1.0 binary passes static-link/build-identity checks, real PTY/protocol/security/lifecycle tests, exact renderer tests, and the complete Josh scenario. See <a href="install.html">Installation and build</a> and <a href="screenshots.html">Deterministic PNG screenshots</a>.</p>

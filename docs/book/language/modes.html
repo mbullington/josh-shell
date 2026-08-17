@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,13 +175,8 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="command-mode-and-expression-mode"><a class="header" href="#command-mode-and-expression-mode">Command mode and expression mode</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="../status/matrix.html#J-PARSE-002">J-PARSE-002</a> — <strong>Implemented</strong>. See <a href="../welcome/status-conventions.html">status conventions</a>.</p>
-</div>
-
 <p><a id="J-PARSE-002"></a></p>
-<h2 id="deterministic-mode-selection-implemented"><a class="header" href="#deterministic-mode-selection-implemented">Deterministic mode selection <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: statement-shape goldens and lossless token-mode tests.</p>
+<h2 id="deterministic-mode-selection"><a class="header" href="#deterministic-mode-selection">Deterministic mode selection</a></h2>
 <p>At statement position, a shell word that is not exactly a JavaScript identifier starts a command. An identifier starts assignment when the next significant token is <code>=</code>, <code>+=</code>, or <code>-=</code>. It starts an expression for an adjacent <code>(</code>, <code>.</code>, or <code>[</code>, or for <code>=&gt;</code> with or without trivia. <code>let</code> and <code>if</code> route to dedicated productions. <code>for</code> is an ordinary command word, not a keyword.</p>
 <p>Command mode makes unquoted <code>|</code>, newline, and <code>;</code> structural even without spaces. Whitespace followed by <code>(</code> starts one evaluated expression argument. <code>$(</code> enters a nested command pipeline; single quotes are literal; double quotes support <code>$name</code>, <code>${expression}</code>, and <code>$(pipeline)</code>.</p>
 <p>Expression mode implements a strict JavaScript-shaped subset. <code>===</code> and <code>!==</code> exist; <code>==</code> is an Invalid parse with a suggestion to use <code>===</code>. Parsing depends only on source, token mode, and adjacency. Name lookup never changes the parse.</p>

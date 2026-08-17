@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="The status-safe manual for Josh and agent-terminal">
+        <meta name="description" content="The manual for Josh and agent-terminal">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,6 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="../theme/status-2563544c.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
+            window.path_to_searchindex_js = "../searchindex-53185e34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-39e943a2.js"></script>
+        <script src="../toc-601258de.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,11 +175,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="development-setup-and-repository-map"><a class="header" href="#development-setup-and-repository-map">Development setup and repository map</a></h1>
-<div class="status-coverage">
-<p><strong>Status coverage:</strong> This page makes no product-availability claims. Setup commands do not promote capabilities.</p>
-</div>
-
-<p>Josh is a six-crate Rust workspace. Rust/Cargo and common Unix test utilities are required.</p>
+<p>Josh is a seven-crate Rust workspace. Rust/Cargo and common Unix test utilities are required.</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -192,13 +187,14 @@
 <tr><td><code>crates/josh-exec</code></td><td>PATH/argv planning, globbing, redirection opens, and process-host composition</td></tr>
 <tr><td><code>crates/josh-streams</code></td><td>Typed byte/value stage graph, bounded channels, external processes, cancellation, and reap</td></tr>
 <tr><td><code>crates/josh-interactive</code></td><td>Reedline prompt, validator, highlighter, completion, hints, history, and signal behavior</td></tr>
+<tr><td><code>crates/josh-lsp</code></td><td>Errors-only LSP server (separate <code>josh-lsp</code> binary, exec’d by <code>josh lsp</code>)</td></tr>
 <tr><td><code>crates/josh-cli</code></td><td><code>josh</code> argument routing, startup files, scripts, and REPL composition</td></tr>
 <tr><td><code>scripts/structured-large-producer.sh</code></td><td>Bounded-memory stream test producer</td></tr>
 </tbody>
 </table>
 </div>
-<p>The sibling <code>/Users/mbullington/Projects/agent-terminal</code> tree separates CLI/client, daemon, protocol, runtime paths, PTY, semantic Ghostty FFI, and client-side PNG renderer. <code>vendor/ghostty</code>, Zig 0.16.0, renderer crates, and four font faces are pinned build inputs. <code>scripts/smoke.sh</code> proves the core terminal slice; <code>scripts/josh-e2e.sh</code> proves the complete cross-product scenario.</p>
-<p>The manual is a conventional mdBook under <code>docs</code>: hand-edited <code>src/SUMMARY.md</code>, Markdown source, <code>theme/status.css</code>, and deterministic <code>tools/check-manual.py</code>. The checker validates page reachability, links/fragments, capability/status consistency, fence labeling/extraction, generated code blocks, duplicate IDs, literal fences, the agent-terminal wait row, and status-color contrast. It uses no custom JavaScript.</p>
+<p>The companion <a href="https://github.com/mbullington/agent-terminal">agent-terminal</a> tree separates CLI/client, daemon, protocol, runtime paths, PTY, semantic Ghostty FFI, and client-side PNG renderer. <code>vendor/ghostty</code>, Zig 0.16.0, renderer crates, and four font faces are pinned build inputs. Its <code>scripts/smoke.sh</code> proves the core terminal slice; its <code>scripts/josh-e2e.sh</code> proves the complete cross-product scenario against a <code>josh</code> binary.</p>
+<p>The manual is a conventional mdBook under <code>docs</code>: hand-edited <code>src/SUMMARY.md</code>, Markdown source, and deterministic <code>tools/check-manual.py</code>. The checker validates page reachability, links/fragments, fence labeling/extraction, generated code blocks, duplicate IDs, literal fences, and the agent-terminal wait row. It uses no custom JavaScript.</p>
 
                     </main>
 
