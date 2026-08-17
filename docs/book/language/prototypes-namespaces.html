@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8264fe8d.js";
+            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-39e943a2.js"></script>
@@ -201,9 +201,9 @@ cat.speak()                    # "legs:4" — receiver travels as `this`
 <tbody>
 <tr><td><code>Object</code></td><td><code>keys</code>, <code>entries</code>, <code>values</code>, <code>create(proto)</code>, <code>fromEntries</code>, <code>getPrototype</code>, <code>setPrototype</code>, <code>seal</code>, <code>isSealed</code></td></tr>
 <tr><td><code>String</code></td><td>conversion <code>String(x)</code>; <code>String.prototype</code>: <code>at</code>, <code>contains</code>, <code>startsWith</code>, <code>endsWith</code>, <code>split</code>, <code>replace</code>, <code>replaceAll</code>, <code>trim</code>, <code>toUpperCase</code>, <code>toLowerCase</code></td></tr>
-<tr><td><code>Number</code></td><td>conversion <code>Number(x)</code>; <code>Number.prototype</code>: <code>abs</code>, <code>ceil</code>, <code>floor</code>, <code>round</code>, <code>norm</code>; constants <code>NaN</code>, <code>MAX_VALUE</code>, <code>MIN_VALUE</code>, <code>MAX_INT</code>, <code>MIN_INT</code></td></tr>
+<tr><td><code>Number</code></td><td>conversion <code>Number(x)</code>; <code>Number.prototype</code>: <code>abs</code>, <code>ceil</code>, <code>floor</code>, <code>round</code>, <code>norm</code>; constants <code>NaN</code>, <code>MAX_VALUE</code>, <code>MIN_VALUE</code>, <code>MAX_INT</code>, <code>MIN_INT</code>; <code>Number.isNaN(x)</code> (JavaScript semantics: true only for actual NaN, never coerced). <code>MIN_VALUE</code> follows JavaScript: the smallest positive denormal (5e-324), not the most-negative finite value</td></tr>
 <tr><td><code>Boolean</code></td><td>conversion <code>Boolean(x)</code></td></tr>
-<tr><td><code>Array</code></td><td>conversion <code>Array(x)</code>; <code>Array.prototype</code>: <code>at</code>, <code>contains</code>, <code>map</code>, <code>filter</code>, <code>reduce</code>, <code>flat</code>, <code>join</code>, <code>slice</code></td></tr>
+<tr><td><code>Array</code></td><td>conversion <code>Array(x)</code>; <code>Array.prototype</code>: <code>at</code>, <code>contains</code>, <code>map</code>, <code>filter</code>, <code>reduce</code>, <code>flat</code>, <code>join</code>, <code>slice</code>, plus <code>push</code>/<code>pop</code>/<code>reverse</code>/<code>sort</code>, which edit the array in place (JavaScript semantics: <code>push</code> returns the new length, <code>pop</code> the removed element or null, <code>reverse</code>/<code>sort</code> return the array itself)</td></tr>
 <tr><td><code>Function</code></td><td>never callable: constructing functions goes through <code>=&gt;</code></td></tr>
 <tr><td><code>File</code></td><td><code>exists</code>, <code>stat</code></td></tr>
 <tr><td><code>Date</code></td><td><code>now</code> (epoch milliseconds), <code>toLocaleString</code></td></tr>
@@ -214,7 +214,8 @@ cat.speak()                    # "legs:4" — receiver travels as `this`
 <p>Rules that stay constant:</p>
 <ul>
 <li>Reading a missing member is <code>null</code>, never an error. Typo’d method calls then fail at the call with a “not callable” error pointing at the resolved null.</li>
-<li>Object literals start with the root prototype shared by all objects, while <code>Object.create(null)</code> opts out entirely.</li>
+<li>Object literals start with the root prototype shared by all objects, while <code>Object.create(null)</code> opts out entirely; the root table is empty today, so object enumeration goes through <code>Object.keys</code>/<code>values</code>/<code>entries</code>.</li>
+<li>Arrays are shared mutable values like objects: aliases observe in-place edits, while callback methods (<code>map</code>/<code>filter</code>/<code>reduce</code>) iterate a snapshot so callbacks may push/pop freely. <code>sort</code> needs all numbers or all strings, and <code>.length</code> is a builtin member read, not a method. Extending PATH is <code>paths = env.PATH; paths.push("/new/dir"); env.PATH = paths</code> — <code>env.PATH</code> reads materialize fresh arrays, so the assignment writes PATH back.</li>
 <li><code>Object.setPrototype</code> refuses cycles; <code>Object.seal</code> prevents adding new keys to that object while existing keys stay writable.</li>
 <li><code>o.name = value</code> and <code>o[key] = value</code> mutate objects in place anywhere an expression position was already a statement; assignments target objects only.</li>
 </ul>

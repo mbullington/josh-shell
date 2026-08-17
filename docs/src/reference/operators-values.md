@@ -2,7 +2,7 @@
 
 <div class="status-coverage">
 
-**Status coverage:** [J-EXPR-001](../status/matrix.md#J-EXPR-001) — **Implemented**; [J-NAMES-001](../status/matrix.md#J-NAMES-001) — **Implemented**; [J-UNICODE-001](../status/matrix.md#J-UNICODE-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
+**Status coverage:** [J-EXPR-001](../status/matrix.md#J-EXPR-001) — **Implemented**; [J-EXPR-004](../status/matrix.md#J-EXPR-004) — **Implemented**; [J-NAMES-001](../status/matrix.md#J-NAMES-001) — **Implemented**; [J-UNICODE-001](../status/matrix.md#J-UNICODE-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
 
 </div>
 
@@ -47,6 +47,28 @@ Methods sit on prototype tables owned by the namespaces (full method lists live 
 <a id="J-UNICODE-001"></a>
 ## String indexing unit <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
 
-**Availability:** Available in Josh 0.1.0. Evidence: Unicode string `length`, `at`, and signed-index tests.
+**Availability:** Available in Josh 0.1.0 with Unicode scalar positions; the unit policy changed to UTF-16 code units on 2026-08-16. Evidence: Unicode string `length`, `at`, signed-index, and range-slice tests.
 
-String indexing counts Unicode scalar values, not UTF-8 bytes or grapheme clusters. Negative indexes count from the end. This policy applies to `length` and `at`; unsupported scalar positions return Null.
+String indexing counts UTF-16 code units (JavaScript semantics), not UTF-8 bytes or grapheme clusters: `"😀".length` is 2. Josh strings are Rust strings and can only hold whole code points, so a position inside a surrogate pair resolves outward to the full code point — `"😀ab"[0]` and `"😀ab"[1]` are both `"😀"` instead of JS's lone surrogates. Negative indexes count from the end. This policy applies to `length`, `at`, bracket indexing, and range slices; unsupported positions return Null.
+
+<a id="J-EXPR-004"></a>
+## Range slices <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
+
+**Availability:** Available in development snapshots since 2026-08-16. Evidence: slice parse and semantics tests.
+
+`a[b..c]` slices an array or a string with JavaScript `slice()` bound semantics:
+
+<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+
+```josh
+letters = ["a", "b", "c", "d", "e"]
+letters[0..2]    # ["a", "b"] — end-exclusive
+letters[2..]     # ["c", "d", "e"] — open end
+letters[..2]     # ["a", "b"] — open start
+letters[..]      # full copy (mutating it cannot touch the original)
+letters[-2..]    # ["d", "e"] — negative counts from the end
+"hello"[1..3]    # "el"
+"😀ab"[0..1]     # "😀" — bounds snap outward to whole code points
+```
+
+Out-of-range bounds clamp to the edges, and an inverted pair produces an empty slice. Slice bounds must be numbers (floats truncate toward zero); bytes do not support slicing yet. Inclusive `..=` and stride ranges are deliberately rejected — `a[0..2]` already covers exactly indices 0 and 1, and `Array.prototype.slice` (or the range form) stays the only slicing mechanism.

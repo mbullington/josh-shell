@@ -37,6 +37,7 @@ Josh evaluates stages and validates the complete byte/value graph before spawnin
 | values → function or `map fn` | Call once per item and emit each return value |
 | values → `filter fn` | Keep an item when the function result is truthy |
 | values → `take n` | Emit at most nonnegative Int `n`, then cancel upstream |
+| values → `takeLast n` | Emit the last nonnegative Int `n` items (bounded buffer) |
 | values → `first` | Emit the first item, then cancel upstream |
 | values → `collect` | Collect all items and emit one Array |
 | values → `text` | Emit bytes with one LF between values and no final LF; String/Bytes stay raw and other data uses JSON |
@@ -50,7 +51,7 @@ The terminal stage determines capture shape:
 |---|---|
 | external bytes or values → `text` → bytes | Raw String/Bytes capture with trailing newline trimming |
 | `json` or bytes → `text` | One value |
-| `lines`, `jsonl`, `chunks`, `filter`, or `take` | Always Array, including zero or one item |
+| `lines`, `jsonl`, `chunks`, `filter`, `take`, or `takeLast` | Always Array, including zero or one item |
 | function or `map` | Preserve upstream one/many cardinality |
 | `first` | First value, or Null for empty input |
 | `collect` | One Array, including an empty Array |

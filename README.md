@@ -26,7 +26,7 @@ Use `--no-config` for reproducible automation. Otherwise Josh runs `$XDG_CONFIG_
 
 ## Excluded
 
-Background `&`, `jobs`, `fg`, `bg`, imports, exports, `source`, and remote modules are rejected. There is no `for` production, VM, event loop, prototype system, `this`, job table, or user-visible generic Stream value.
+Background `&`, `jobs`, `fg`, `bg`, imports, exports, and remote modules are rejected. `source file.josh` is the deliberate, bash-style include mechanism: explicit paths, current-frame evaluation, no module system. There is no `for` production, VM, event loop, prototype system, `this`, job table, or user-visible generic Stream value.
 
 ## Verification
 
@@ -37,5 +37,11 @@ cargo test --workspace --all-targets
 cargo build --workspace --all-targets
 python3 docs/tools/check-manual.py
 ```
+./scripts/check-share.sh
+```
+
+## Support libraries
+
+`share/` holds [stb-style](https://github.com/nothings/stb) single-file Josh libraries — public domain (MIT-0), no stability promises, intended to be copied into your own config or project. It ships `assert` (assertion helpers) and `regex` (an RE2-syntax-subset engine in pure Josh, also the language's canonical performance benchmark). See [share/README.md](share/README.md); `scripts/check-share.sh` runs the selftests and the golden-output gate; `scripts/regex-bench.josh` is the repeatable performance harness.
 
 The cross-project proof is `../agent-terminal/scripts/josh-e2e.sh`; it uses an isolated XDG config and fixed 80×24 grid, exercises the implemented language/stream/file surfaces, records semantic JSON and a deterministic PNG, rejects excluded jobs/modules, exits, and proves process/socket/runtime cleanup.

@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8264fe8d.js";
+            window.path_to_searchindex_js = "searchindex-d1844f06.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-39e943a2.js"></script>
@@ -183,7 +183,7 @@
 
 <p>Josh is a Unix-first JavaScript Object Shell. It combines external commands with lexical objects/functions, explicit structured pipelines, redirections/globs, non-job control flow, startup scripts, and a Reedline REPL. It is not JavaScript, a JavaScript runtime, POSIX shell, or compatibility layer.</p>
 <p><code>agent-terminal</code> is a separate Unix automation harness. Its cross-process CLI uses a real PTY and pinned <code>libghostty-vt</code>, exposes semantic snapshots, and renders deterministic PNG screenshots with pinned assets.</p>
-<p>Background jobs and modules/source remain Planned and are rejected. The <a href="#capability-status">capability matrix</a> is the availability authority.</p>
+<p>Background jobs and <code>import</code>/<code>export</code> modules remain Planned and are rejected; <code>source</code> is the implemented include mechanism. The <a href="#capability-status">capability matrix</a> is the availability authority.</p>
 <h2 id="choose-a-path"><a class="header" href="#choose-a-path">Choose a path</a></h2>
 <ul>
 <li>New to Josh: <a href="#your-first-session">Your first session</a>.</li>
@@ -522,7 +522,7 @@ josh smoke.josh
 <p>At a statement or post-pipe command head, completion searches builtins and executable names indexed from the session’s <code>env.PATH</code> — including entries relative to the session cwd — so <code>cd</code> and PATH edits apply on the very next Tab. After <code>$</code>, it searches Josh bindings and inherited environment names. Elsewhere, it lists matching files and appends <code>/</code> to directories. Results are prefix-based, sorted where file traversal permits, capped at 200, and never evaluate source.</p>
 <p>The replacement span uses UTF-8 byte offsets. Command/file completions request trailing whitespace; variable completions do not.</p>
 <h3 id="command-specific-completion-via-carapace"><a class="header" href="#command-specific-completion-via-carapace">Command-specific completion via carapace</a></h3>
-<p>When an external <code>carapace</code> binary resolves on PATH, argument completion for an external command asks <code>carapace &lt;name&gt; _carapace export &lt;name&gt; &lt;args…current-word&gt;</code> and uses its JSON values (with descriptions, and <code>nospace</code> suffixes suppressing the trailing space). Every failure — the binary is absent, a spec for the command does not exist, the call errors, or the answer is empty — falls back silently to native file completion; there are no diagnostics. <code>JOSH_CARAPACE=0</code> disables the bridge entirely, and <code>JOSH_CARAPACE=/path/to/carapace</code> pins a specific binary. First words that are paths, <code>$variables</code>, or assignments never reach carapace.</p>
+<p>When an external <code>carapace</code> binary resolves on PATH, argument completion for an external command asks <code>carapace &lt;name&gt; export &lt;name&gt; &lt;args…current-word&gt;</code> and uses its JSON values (with descriptions, and <code>nospace</code> suffixes suppressing the trailing space). Every failure — the binary is absent, a spec for the command does not exist, the call errors, or the answer is empty — falls back silently to native file completion; there are no diagnostics. <code>JOSH_CARAPACE=0</code> disables the bridge entirely, and <code>JOSH_CARAPACE=/path/to/carapace</code> pins a specific binary. First words that are paths, <code>$variables</code>, or assignments never reach carapace.</p>
 <p><a id="J-REPL-004"></a></p>
 <h2 id="hints-and-history-implemented"><a class="header" href="#hints-and-history-implemented">Hints and history <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
 <p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: Reedline is configured with <code>FileBackedHistory</code> and <code>DefaultHinter</code>.</p>
@@ -613,7 +613,7 @@ literal $n
 value=42
 </code></pre>
 <p>Source strings are UTF-8. Captured process output may become Bytes when decoding fails, and Unix argv preserves those bytes. Displaying Bytes as an expression prints a size marker rather than decoding it.</p>
-<p>String length, signed indexing, and <code>at</code> count Unicode scalar values. They do not count UTF-8 bytes or extended grapheme clusters.</p>
+<p>String length, signed indexing, and <code>at</code> count UTF-16 code units (JavaScript semantics): <code>"😀".length</code> is 2. A position inside a surrogate pair resolves to the whole code point, since Josh strings cannot hold lone surrogates. See <a href="#J-UNICODE-001">String indexing unit</a> and <a href="#J-EXPR-004">Range slices</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="capture-and-pipelines"><a class="header" href="#capture-and-pipelines">Capture and pipelines</a></h1>
 <div class="status-coverage">
@@ -647,6 +647,7 @@ value=42
 <tr><td>values → function or <code>map fn</code></td><td>Call once per item and emit each return value</td></tr>
 <tr><td>values → <code>filter fn</code></td><td>Keep an item when the function result is truthy</td></tr>
 <tr><td>values → <code>take n</code></td><td>Emit at most nonnegative Int <code>n</code>, then cancel upstream</td></tr>
+<tr><td>values → <code>takeLast n</code></td><td>Emit the last nonnegative Int <code>n</code> items (bounded buffer)</td></tr>
 <tr><td>values → <code>first</code></td><td>Emit the first item, then cancel upstream</td></tr>
 <tr><td>values → <code>collect</code></td><td>Collect all items and emit one Array</td></tr>
 <tr><td>values → <code>text</code></td><td>Emit bytes with one LF between values and no final LF; String/Bytes stay raw and other data uses JSON</td></tr>
@@ -664,7 +665,7 @@ value=42
 <tbody>
 <tr><td>external bytes or values → <code>text</code> → bytes</td><td>Raw String/Bytes capture with trailing newline trimming</td></tr>
 <tr><td><code>json</code> or bytes → <code>text</code></td><td>One value</td></tr>
-<tr><td><code>lines</code>, <code>jsonl</code>, <code>chunks</code>, <code>filter</code>, or <code>take</code></td><td>Always Array, including zero or one item</td></tr>
+<tr><td><code>lines</code>, <code>jsonl</code>, <code>chunks</code>, <code>filter</code>, <code>take</code>, or <code>takeLast</code></td><td>Always Array, including zero or one item</td></tr>
 <tr><td>function or <code>map</code></td><td>Preserve upstream one/many cardinality</td></tr>
 <tr><td><code>first</code></td><td>First value, or Null for empty input</td></tr>
 <tr><td><code>collect</code></td><td>One Array, including an empty Array</td></tr>
@@ -737,7 +738,7 @@ printf '%s %s\n' (snapshot(1)) ("ok".suffix("!"))
 <tr><th>Receiver</th><th>Member or method</th><th>Exact result</th></tr>
 </thead>
 <tbody>
-<tr><td>String</td><td><code>.length</code>, <code>.length()</code></td><td>Count Unicode scalar values</td></tr>
+<tr><td>String</td><td><code>.length</code></td><td>Count UTF-16 code units (JavaScript semantics); plain member, not callable</td></tr>
 <tr><td>String</td><td><code>.contains(part)</code>, <code>.includes(part)</code></td><td>Literal substring test</td></tr>
 <tr><td>String</td><td><code>.startsWith(part)</code>, <code>.endsWith(part)</code></td><td>Literal prefix/suffix test</td></tr>
 <tr><td>String</td><td><code>.split(separator)</code></td><td>Array of literal splits; an empty separator splits into Unicode scalar strings</td></tr>
@@ -745,7 +746,7 @@ printf '%s %s\n' (snapshot(1)) ("ok".suffix("!"))
 <tr><td>String</td><td><code>.replaceAll(from, to)</code></td><td>Replace every literal match</td></tr>
 <tr><td>String</td><td><code>.trim()</code></td><td>Remove leading and trailing Unicode whitespace</td></tr>
 <tr><td>String</td><td><code>.toUpperCase()</code>, <code>.toLowerCase()</code></td><td>Unicode case conversion</td></tr>
-<tr><td>String</td><td><code>.at(index)</code></td><td>One Unicode scalar String; negative indexes count from the end; otherwise Null</td></tr>
+<tr><td>String</td><td><code>.at(index)</code></td><td>One code-point String at a UTF-16 unit index (pair-interior snaps to the containing code point); negative indexes count from the end; otherwise Null</td></tr>
 <tr><td>Array</td><td><code>.length</code>, <code>.length()</code></td><td>Element count</td></tr>
 <tr><td>Array</td><td><code>.at(index)</code></td><td>Element at a signed index, otherwise Null</td></tr>
 <tr><td>Array</td><td><code>.contains(value)</code>, <code>.includes(value)</code></td><td>Structural equality search</td></tr>
@@ -788,9 +789,9 @@ cat.speak()                    # "legs:4" — receiver travels as `this`
 <tbody>
 <tr><td><code>Object</code></td><td><code>keys</code>, <code>entries</code>, <code>values</code>, <code>create(proto)</code>, <code>fromEntries</code>, <code>getPrototype</code>, <code>setPrototype</code>, <code>seal</code>, <code>isSealed</code></td></tr>
 <tr><td><code>String</code></td><td>conversion <code>String(x)</code>; <code>String.prototype</code>: <code>at</code>, <code>contains</code>, <code>startsWith</code>, <code>endsWith</code>, <code>split</code>, <code>replace</code>, <code>replaceAll</code>, <code>trim</code>, <code>toUpperCase</code>, <code>toLowerCase</code></td></tr>
-<tr><td><code>Number</code></td><td>conversion <code>Number(x)</code>; <code>Number.prototype</code>: <code>abs</code>, <code>ceil</code>, <code>floor</code>, <code>round</code>, <code>norm</code>; constants <code>NaN</code>, <code>MAX_VALUE</code>, <code>MIN_VALUE</code>, <code>MAX_INT</code>, <code>MIN_INT</code></td></tr>
+<tr><td><code>Number</code></td><td>conversion <code>Number(x)</code>; <code>Number.prototype</code>: <code>abs</code>, <code>ceil</code>, <code>floor</code>, <code>round</code>, <code>norm</code>; constants <code>NaN</code>, <code>MAX_VALUE</code>, <code>MIN_VALUE</code>, <code>MAX_INT</code>, <code>MIN_INT</code>; <code>Number.isNaN(x)</code> (JavaScript semantics: true only for actual NaN, never coerced). <code>MIN_VALUE</code> follows JavaScript: the smallest positive denormal (5e-324), not the most-negative finite value</td></tr>
 <tr><td><code>Boolean</code></td><td>conversion <code>Boolean(x)</code></td></tr>
-<tr><td><code>Array</code></td><td>conversion <code>Array(x)</code>; <code>Array.prototype</code>: <code>at</code>, <code>contains</code>, <code>map</code>, <code>filter</code>, <code>reduce</code>, <code>flat</code>, <code>join</code>, <code>slice</code></td></tr>
+<tr><td><code>Array</code></td><td>conversion <code>Array(x)</code>; <code>Array.prototype</code>: <code>at</code>, <code>contains</code>, <code>map</code>, <code>filter</code>, <code>reduce</code>, <code>flat</code>, <code>join</code>, <code>slice</code>, plus <code>push</code>/<code>pop</code>/<code>reverse</code>/<code>sort</code>, which edit the array in place (JavaScript semantics: <code>push</code> returns the new length, <code>pop</code> the removed element or null, <code>reverse</code>/<code>sort</code> return the array itself)</td></tr>
 <tr><td><code>Function</code></td><td>never callable: constructing functions goes through <code>=&gt;</code></td></tr>
 <tr><td><code>File</code></td><td><code>exists</code>, <code>stat</code></td></tr>
 <tr><td><code>Date</code></td><td><code>now</code> (epoch milliseconds), <code>toLocaleString</code></td></tr>
@@ -801,7 +802,8 @@ cat.speak()                    # "legs:4" — receiver travels as `this`
 <p>Rules that stay constant:</p>
 <ul>
 <li>Reading a missing member is <code>null</code>, never an error. Typo’d method calls then fail at the call with a “not callable” error pointing at the resolved null.</li>
-<li>Object literals start with the root prototype shared by all objects, while <code>Object.create(null)</code> opts out entirely.</li>
+<li>Object literals start with the root prototype shared by all objects, while <code>Object.create(null)</code> opts out entirely; the root table is empty today, so object enumeration goes through <code>Object.keys</code>/<code>values</code>/<code>entries</code>.</li>
+<li>Arrays are shared mutable values like objects: aliases observe in-place edits, while callback methods (<code>map</code>/<code>filter</code>/<code>reduce</code>) iterate a snapshot so callbacks may push/pop freely. <code>sort</code> needs all numbers or all strings, and <code>.length</code> is a builtin member read, not a method. Extending PATH is <code>paths = env.PATH; paths.push("/new/dir"); env.PATH = paths</code> — <code>env.PATH</code> reads materialize fresh arrays, so the assignment writes PATH back.</li>
 <li><code>Object.setPrototype</code> refuses cycles; <code>Object.seal</code> prevents adding new keys to that object while existing keys stay writable.</li>
 <li><code>o.name = value</code> and <code>o[key] = value</code> mutate objects in place anywhere an expression position was already a statement; assignments target objects only.</li>
 </ul>
@@ -886,7 +888,7 @@ if grep -q needle file.txt { printf 'found\n' }
 <p><code>if</code> and <code>try</code> produce values wherever an expression is legal: assignment right-hand sides, call arguments, captures, and pipeline sources. The <code>else</code> branch is required in expression position, and <code>try</code> still requires its <code>catch</code> block. As statements they behave exactly as before.</p>
 <p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
 
-<pre><code class="language-josh">size_label = if ($total &gt; 1000) { "large" } else { "small" }
+<pre><code class="language-josh">size_label = if (total &gt; 1000) { "large" } else { "small" }
 recovered = try { read_config() } catch (e) { defaults }
 </code></pre>
 <p><a id="J-CF-001"></a></p>
@@ -944,13 +946,22 @@ try { sh -c 'exit 7' } catch (problem) { printf '%s\n' (problem.status.code) }
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="modules-and-configuration"><a class="header" href="#modules-and-configuration">Modules and configuration</a></h1>
 <div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-MOD-001-1">J-MOD-001</a> — <strong>Planned</strong>; <a href="#J-CONFIG-001-1">J-CONFIG-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
+<p><strong>Status coverage:</strong> <a href="#J-MOD-001-1">J-MOD-001</a> — <strong>Planned</strong>; <a href="#J-MOD-002-1">J-MOD-002</a> — <strong>Implemented</strong>; <a href="#J-CONFIG-001-1">J-CONFIG-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
 </div>
 
 <p><a id="J-MOD-001"></a></p>
-<h2 id="modules-and-source-planned"><a class="header" href="#modules-and-source-planned">Modules and source <span class="status status--planned" aria-label="Status: Planned">Planned</span></a></h2>
+<h2 id="modules-planned"><a class="header" href="#modules-planned">Modules <span class="status status--planned" aria-label="Status: Planned">Planned</span></a></h2>
 <p><strong>Availability:</strong> Excluded from the current implementation. Tracking: <a href="#j-mod-001">Planned work</a>.</p>
-<p><code>import</code>, <code>export</code>, and <code>source</code> are rejected. URL and remote modules are also unavailable; Josh has no dependency identity, integrity, cache, update, offline, or trust model for them.</p>
+<p><code>import</code> and <code>export</code> are rejected. URL and remote modules are also unavailable; Josh has no dependency identity, integrity, cache, update, offline, or trust model for them. <code>source</code> is the deliberate include mechanism (below) instead of a module system.</p>
+<p><a id="J-MOD-002"></a></p>
+<h2 id="source-statement-implemented"><a class="header" href="#source-statement-implemented">source statement <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
+<p><strong>Availability:</strong> Available in development snapshots since 2026-08-16. Evidence: runtime source tests.</p>
+<p><code>source path.josh</code> reads a file, parses it under the strict policy, and evaluates it in the current frame — bash-style, with no new scope, no caching, and no module identity. <code>let</code> and <code>fn</code> declarations from the file are visible afterwards (aliases share object prototypes), which makes <code>source</code> the way to load shared helper files and startup configuration.</p>
+<ul>
+<li>The path is one command word: quoting, <code>$variable</code>, captures, and a leading <code>~</code> behave like any command argument. Relative paths resolve against the working directory. More than one word is a parse error.</li>
+<li>A file whose path is already being sourced (a cycle) fails with a type error; a missing or unreadable file is a catchable filesystem error; a file that fails the strict parse gate fails before anything runs.</li>
+<li><code>return</code>, <code>break</code>, and <code>continue</code> cannot escape the sourced file into the caller; they are type errors at the boundary. Loops and functions inside the file behave normally.</li>
+</ul>
 <p><a id="J-CONFIG-001"></a></p>
 <h2 id="configuration-implemented"><a class="header" href="#configuration-implemented">Configuration <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
 <p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: batch startup, fallback path, interactive prompt, error-policy, and cross-product tests.</p>
@@ -982,7 +993,7 @@ try { sh -c 'exit 7' } catch (problem) { printf '%s\n' (problem.status.code) }
 <pre><code class="language-josh">prefix = "project"
 fn prompt() { return prefix + "&gt; " }
 </code></pre>
-<p>Dedicated startup files do not expose general source or module loading.</p>
+<p>Dedicated startup files are ordinary Josh source and may use <code>source</code> for explicit includes; module loading stays excluded.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="agent-terminal"><a class="header" href="#agent-terminal">agent-terminal</a></h1>
 <div class="status-coverage">
@@ -1077,7 +1088,7 @@ agent-terminal close "$id"
 <h2 id="wait-conditions-implemented"><a class="header" href="#wait-conditions-implemented">Wait conditions <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
 <p><strong>Availability:</strong> Available in agent-terminal 0.1.0. Evidence: the CLI smoke test and Josh scenario exercise daemon-side text and stability waits.</p>
 <p><code>--text</code> matches a substring of current Ghostty-formatted visible text. <code>--stable 200ms</code> succeeds after revision remains unchanged for that interval. PTY reads continue while clients wait. Timeout exits 124 and carries last snapshot metadata; child exit triggers one final check before an exited-before-condition error.</p>
-<p>Reads are not paints: a stable wait issued immediately after submitted input can succeed against the last fully painted pre-input frame. See the <a href="#agent-terminal-errata">errata</a> for the input-then-wait rule and measured settle budgets.</p>
+<p>Stability is measured from the later of the last painted revision and the last submitted <code>type</code>/<code>key</code> input, so a wait admitted immediately after input cannot satisfy until a full quiet interval passes with no new input or output. See the <a href="#agent-terminal-errata">errata</a> for measured settle budgets when polling snapshots without waits.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="agent-terminal-cli-reference"><a class="header" href="#agent-terminal-cli-reference">agent-terminal CLI reference</a></h1>
 <div class="status-coverage">
@@ -1174,7 +1185,7 @@ scripts/josh-e2e.sh target/debug/agent-terminal /Users/mbullington/Projects/josh
 <li>exact values and cardinalities for <code>text</code>, <code>json</code>, <code>lines</code>, <code>jsonl</code>, <code>chunks</code>, function, map/filter/take/first/collect, value-to-external serialization, and value-to-text serialization;</li>
 <li>every redirection family with left-to-right descriptor behavior;</li>
 <li>complete sorted wildcard, bracket, and recursive glob outputs, quoted literals, and no-match errors;</li>
-<li>explicit rejection of <code>&amp;</code>, <code>jobs</code>, <code>fg</code>, <code>bg</code>, <code>source</code>, <code>import</code>, <code>export</code>, and remote imports.</li>
+<li>explicit rejection of <code>&amp;</code>, <code>jobs</code>, <code>fg</code>, <code>bg</code>, <code>import</code>, <code>export</code>, and remote imports.</li>
 </ul>
 <p>Before each input, the script records the current terminal revision. It accepts completion only after a later revision whose last nonblank row is exactly the configured prompt, so echoed command text cannot satisfy an output assertion. Structured and glob results are compared as exact host-file bytes.</p>
 <p>It records <code>target/josh-e2e/snapshot.json</code> and <code>screenshot.png</code>. The schema-v2 snapshot asserts semantic style, wide-cell, background-only, captured palette/default/cursor state, prompt, running-process, and 80×24 grid facts. Each run renders the same revision twice and requires byte-identical 640×384 RGBA PNGs with no text/time metadata. The 2026-08-15 retained artifact has SHA-256 <code>5956b699529a9d8e3167078e8682339c811c80e7f56cb4d8a69c67abd50d9428</code>; both complete verification runs reproduced it.</p>
@@ -1247,7 +1258,7 @@ cmp terminal.png terminal-repeat.png
 <li><strong>Runtime path rejected:</strong> remove symlinks, fix ownership, use 0700 directories, and keep the path short enough for <code>sockaddr_un</code>.</li>
 <li><strong>Text wait times out:</strong> matching is case-sensitive and limited to current Ghostty-formatted visible text. Inspect the last revision metadata and a JSON snapshot.</li>
 <li><strong>Stable wait never completes:</strong> output is still advancing revision. Bound the child or increase the quiet duration and timeout.</li>
-<li><strong>Snapshot after a successful stable wait shows pre-input text:</strong> known wait-admission defect; do not wait immediately after submitting input. See the <a href="#agent-terminal-errata">errata</a> for the settle and polling rules.</li>
+<li><strong>Snapshot after a successful stable wait shows pre-input text:</strong> fixed defect in development builds before <code>ec1d958</code>; update agent-terminal. See the <a href="#agent-terminal-errata">errata</a>.</li>
 <li><strong>Exited child remains listed:</strong> final terminal state is retained by design. Run <code>close</code> to remove the session.</li>
 <li><strong>Screenshot shows U+FFFD:</strong> the grapheme is absent from the pinned JetBrains Mono faces. Host font fallback is disabled for deterministic output.</li>
 <li><strong>Repeated screenshots differ:</strong> wait for a stable revision, keep grid, palette, default colors, and cursor state fixed, and compare commands built from the same lockfile and font assets.</li>
@@ -1265,29 +1276,26 @@ runs against the Josh REPL. Each entry states the observed behavior, the rule
 to follow until it is fixed, and the evidence. Full investigation writeup lives
 outside the book at <code>docs/repl-integration-investigation.md</code> (repo root
 relative), with scenarios and harness under <code>/tmp/josh-repl-test/</code>.</p>
-<h2 id="1-a-stable-wait-can-satisfy-against-a-pre-input-frame"><a class="header" href="#1-a-stable-wait-can-satisfy-against-a-pre-input-frame">1. A stable wait can satisfy against a pre-input frame</a></h2>
-<p><strong>Affected:</strong> agent-terminal 0.1.0, <code>agent-terminal wait</code>.</p>
-<p><strong>Observed:</strong> <code>wait --stable</code> issued immediately after <code>type</code>/<code>key</code> can succeed
-while the next <code>snapshot --json</code> still shows the <em>pre-input</em> grid: the typed
-text is absent, the cursor sits at its old position, and the revision has not
-advanced. Reproduced 3/3 against the Josh REPL with 100–200 ms stable
-intervals.</p>
-<p><strong>Why it matters:</strong> <a href="#type-press-keys-resize-and-wait">input-wait.md</a> says PTY reads continue
-while clients wait, but reads are not the same as paints. A wait admitted
-before the submitted input has been painted can satisfy its quiet interval
-against the last fully painted frame, and a snapshot taken right after the
-wait returns reflects that lag. Scripts that treat “wait succeeded” as “all
-submitted input is rendered” read a torn, pre-input state.</p>
-<p><strong>Rule until fixed:</strong> do not use <code>wait --stable</code> as the first operation after
-submitting input. Either sleep past observed paint latency (see entry 2) and
-then snapshot, or poll <code>snapshot --json</code> rows for the expected text with
-bounded retries. <code>wait --text</code> is less exposed because its final check matches
-post-input text, but follow it with a short sleep before asserting on the full
-grid.</p>
-<p><strong>Fix direction:</strong> serialize input submit → paint → wait-admission ordering,
-or record the input revision and reject wait admission until it has painted.
-Remove this entry and update <a href="#type-press-keys-resize-and-wait">input-wait.md</a> when fixed.</p>
+<h2 id="1-fixed-stable-waits-could-satisfy-against-a-pre-input-frame"><a class="header" href="#1-fixed-stable-waits-could-satisfy-against-a-pre-input-frame">1. (Fixed) Stable waits could satisfy against a pre-input frame</a></h2>
+<p><strong>Affected:</strong> agent-terminal development builds before <code>ec1d958</code>
+(“daemon: gate stable waits on input submission time”, 2026-08-16).</p>
+<p><strong>Observed:</strong> <code>wait --stable</code> issued immediately after <code>type</code>/<code>key</code> satisfied
+its quiet interval against the last fully painted <em>pre-input</em> frame: the
+daemon’s stability source (<code>last_revision_at</code>) only advanced on PTY reads, so
+an idle session looked quiet the moment the wait was admitted. The next
+<code>snapshot --json</code> showed the pre-input grid — typed text absent, cursor at its
+old position. Reproduced 3/3 against the Josh REPL.</p>
+<p><strong>Fix:</strong> the session now stamps <code>last_input_at</code> after every successful
+<code>type</code>/<code>key</code> write, and the stability window is measured from
+<code>max(last_revision_at, last_input_at)</code>. A wait admitted immediately after
+input cannot satisfy until at least one quiet interval has passed with no new
+input <em>or</em> output. Regression: <code>stable_waits_account_for_recent_input</code> in
+<code>tests/cli_smoke.rs</code> (<code>type</code>, <code>wait --stable 150ms</code>, assert ≥150 ms elapsed
+and the typed marker visible in the post-wait snapshot), verified live against
+the Josh REPL. On current builds, wait-after-input is safe; scripts may still
+prefer the settle budgets in entry 2 when polling without waits.</p>
 <h2 id="2-settle-budgets-measured-latencies-and-recommended-waits"><a class="header" href="#2-settle-budgets-measured-latencies-and-recommended-waits">2. Settle budgets: measured latencies and recommended waits</a></h2>
+<p>Guidance entry; still applies when scripts poll snapshots without <code>wait</code>.</p>
 <p><strong>Observed:</strong> the Josh REPL renders a line submission in 4–8 ms of paint time,
 but the gap between CLI acknowledgment and the <em>last</em> painted revision can
 exceed 100 ms. Consequently a 100 ms revision quiet bound or a 100 ms sleep
@@ -1414,7 +1422,7 @@ postfix       = adjacent-call | adjacent-member | adjacent-index ;
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="operators-and-values"><a class="header" href="#operators-and-values">Operators and values</a></h1>
 <div class="status-coverage">
-<p><strong>Status coverage:</strong> <a href="#J-EXPR-001-1">J-EXPR-001</a> — <strong>Implemented</strong>; <a href="#J-NAMES-001-1">J-NAMES-001</a> — <strong>Implemented</strong>; <a href="#J-UNICODE-001-1">J-UNICODE-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
+<p><strong>Status coverage:</strong> <a href="#J-EXPR-001-1">J-EXPR-001</a> — <strong>Implemented</strong>; <a href="#J-EXPR-004-1">J-EXPR-004</a> — <strong>Implemented</strong>; <a href="#J-NAMES-001-1">J-NAMES-001</a> — <strong>Implemented</strong>; <a href="#J-UNICODE-001-1">J-UNICODE-001</a> — <strong>Implemented</strong>. See <a href="#status-conventions">status conventions</a>.</p>
 </div>
 
 <p><a id="J-EXPR-001"></a></p>
@@ -1445,13 +1453,29 @@ postfix       = adjacent-call | adjacent-member | adjacent-index ;
 <h2 id="builtin-namespaces-and-prototypes-implemented"><a class="header" href="#builtin-namespaces-and-prototypes-implemented">Builtin namespaces and prototypes <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
 <p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: <code>prototype_namespaces_methods_and_statics_are_first_class</code>, <code>file_date_and_math_namespaces_cover_the_flattened_surface</code>, and the namespace runtime tests.</p>
 <p>Scalar converters live as namespace callables: <code>String(1)</code>, <code>Number("42")</code>, <code>Boolean([])</code>, <code>Array(...)</code>, <code>error(...)</code>, and <code>glob("pattern")</code>. Calling <code>Object(...)</code> is a type error; objects come from literals. <code>Number(value)</code> keeps Josh’s conversion rules (<code>int</code>/<code>float</code> arguments; strings choose Int when the text is integral, otherwise Float, then error) and rejects bool, null, object, function, error, and status inputs.</p>
-<p>Methods sit on prototype tables: <code>String.prototype</code>, <code>Number.prototype</code>, <code>Array.prototype</code>, <code>Boolean.prototype</code>, and <code>Function.prototype</code> cover case/trim/split/join/slices/parse/push/pop/reverse/sort/length/iterate/each/map/filter/reduce/toString and the other runtime helpers. Method lookup is own fields first, then the type’s prototype, then Null. Prototype entries receive the receiver as the first argument (creators use <code>(this, ...)</code>-style parameters); <code>+</code> does not dispatch through tables. Object literals chain off <code>Object.prototype</code> so objects that have not shadowed them get <code>keys</code>/<code>values</code>/<code>iterate</code>/<code>map</code>/<code>each</code>/<code>toString</code>.</p>
+<p>Methods sit on prototype tables owned by the namespaces (full method lists live in <a href="#prototypes-and-namespaces">prototypes and namespaces</a>). <code>String.prototype</code> carries <code>at</code>/<code>contains</code>/<code>startsWith</code>/<code>endsWith</code>/<code>split</code>/<code>replace</code>/<code>replaceAll</code>/<code>trim</code>/<code>toUpperCase</code>/<code>toLowerCase</code>, <code>Number.prototype</code> carries <code>abs</code>/<code>ceil</code>/<code>floor</code>/<code>round</code>/<code>norm</code>, and <code>Array.prototype</code> carries <code>at</code>/<code>contains</code>/<code>map</code>/<code>filter</code>/<code>reduce</code>/<code>flat</code>/<code>join</code>/<code>slice</code> plus <code>push</code>/<code>pop</code>/<code>reverse</code>/<code>sort</code>, which edit the array in place JavaScript-style — every alias observes the edit; <code>push</code> returns the new length, <code>pop</code> the removed element (null when empty), and <code>reverse</code>/<code>sort</code> the array itself. <code>.length</code> answers directly on arrays, strings, and bytes as a builtin member read (not a prototype function). Extending PATH is three steps because <code>env.PATH</code> reads materialize a fresh array: <code>paths = env.PATH; paths.push("/new/dir"); env.PATH = paths</code>. Method lookup is own fields first, then the receiver’s custom prototype chain, then its type prototype, then Null. Prototype entries receive the receiver as the first argument (creators use <code>(this, ...)</code>-style parameters); <code>+</code> does not dispatch through tables. Object literals chain off the root <code>Object.prototype</code>, which currently starts empty — enumeration goes through the <code>Object.keys</code>/<code>Object.values</code>/<code>Object.entries</code> statics until the root table grows members.</p>
 <p><code>Object.keys(o)</code>, <code>Object.values(o)</code>, <code>Object.entries(o)</code>, <code>Object.freeze(o)</code>, and <code>Object.isFrozen(o)</code> cover statics; <code>Object.freeze</code> seals an object against member assignment, and <code>Object.isFrozen</code> reports it. <code>Object.prototype</code> itself is immutable, so anonymous objects cannot mutate the shared tables.</p>
 <p><code>Date.now()</code> returns epoch-milliseconds Int, <code>Date.fromTimestamp(value)</code> parses epoch numbers or RFC3339 timestamps into <code>{timestamp millis, epochSeconds, timezone, text, datetimeComponents}</code>, and <code>Date.toTimestamp(value)</code> formats them back to ISO-8601 UTC (Int/Float/text input). <code>File.exists(path)</code> / <code>File.stat(path)</code> report basic cwd-relative file metadata as <code>{exists, file, directory, byteSize}</code>; null/empty paths stay false. <code>Math</code> exposes <code>PI</code>, <code>E</code>, <code>TAU</code>, abs/sign/truncate/floor/ceil/round (Int-preserving), sqrt/cbrt/exp/log/log2/log10/pow (Float), min/max variadic, and <code>random()</code> (Float [0,1)).</p>
 <p><a id="J-UNICODE-001"></a></p>
 <h2 id="string-indexing-unit-implemented"><a class="header" href="#string-indexing-unit-implemented">String indexing unit <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
-<p><strong>Availability:</strong> Available in Josh 0.1.0. Evidence: Unicode string <code>length</code>, <code>at</code>, and signed-index tests.</p>
-<p>String indexing counts Unicode scalar values, not UTF-8 bytes or grapheme clusters. Negative indexes count from the end. This policy applies to <code>length</code> and <code>at</code>; unsupported scalar positions return Null.</p>
+<p><strong>Availability:</strong> Available in Josh 0.1.0 with Unicode scalar positions; the unit policy changed to UTF-16 code units on 2026-08-16. Evidence: Unicode string <code>length</code>, <code>at</code>, signed-index, and range-slice tests.</p>
+<p>String indexing counts UTF-16 code units (JavaScript semantics), not UTF-8 bytes or grapheme clusters: <code>"😀".length</code> is 2. Josh strings are Rust strings and can only hold whole code points, so a position inside a surrogate pair resolves outward to the full code point — <code>"😀ab"[0]</code> and <code>"😀ab"[1]</code> are both <code>"😀"</code> instead of JS’s lone surrogates. Negative indexes count from the end. This policy applies to <code>length</code>, <code>at</code>, bracket indexing, and range slices; unsupported positions return Null.</p>
+<p><a id="J-EXPR-004"></a></p>
+<h2 id="range-slices-implemented"><a class="header" href="#range-slices-implemented">Range slices <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
+<p><strong>Availability:</strong> Available in development snapshots since 2026-08-16. Evidence: slice parse and semantics tests.</p>
+<p><code>a[b..c]</code> slices an array or a string with JavaScript <code>slice()</code> bound semantics:</p>
+<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+
+<pre><code class="language-josh">letters = ["a", "b", "c", "d", "e"]
+letters[0..2]    # ["a", "b"] — end-exclusive
+letters[2..]     # ["c", "d", "e"] — open end
+letters[..2]     # ["a", "b"] — open start
+letters[..]      # full copy (mutating it cannot touch the original)
+letters[-2..]    # ["d", "e"] — negative counts from the end
+"hello"[1..3]    # "el"
+"😀ab"[0..1]     # "😀" — bounds snap outward to whole code points
+</code></pre>
+<p>Out-of-range bounds clamp to the edges, and an inverted pair produces an empty slice. Slice bounds must be numbers (floats truncate toward zero); bytes do not support slicing yet. Inclusive <code>..=</code> and stride ranges are deliberately rejected — <code>a[0..2]</code> already covers exactly indices 0 and 1, and <code>Array.prototype.slice</code> (or the range form) stays the only slicing mechanism.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="argv-and-pipeline-boundaries"><a class="header" href="#argv-and-pipeline-boundaries">argv and pipeline boundaries</a></h1>
 <div class="status-coverage">
@@ -1686,7 +1710,7 @@ scripts/josh-e2e.sh target/debug/agent-terminal /Users/mbullington/Projects/josh
 </code></pre>
 <p>The 2026-08-15 verification passed Nix-shell format, warnings-denied Clippy, locked all-target build, 12 unit tests, 4 CLI integration tests, smoke, and the Josh scenario twice. Tests assert linked Ghostty identity, protocol/lifecycle/security boundaries, schema-v2 render facts and malformed-state rejection, response-budget maxima, exact renderer pixels and dimensions, all font faces/cursor variants, OSC 4/10/11/12 colors, DECSCUSR states, omitted screenshot paths, metadata-free encoding, and repeated bytes. The reviewed 128×32 feature fixture has PNG SHA-256 <code>b1aa287227011a11a50b57dde51d785deac5eaf827cff6a15349a4bc98240c96</code>. Both Josh runs produced byte-identical repeated renders and the same retained 640×384 RGBA SHA-256 <code>5956b699529a9d8e3167078e8682339c811c80e7f56cb4d8a69c67abd50d9428</code>.</p>
 <h2 id="cross-product-evidence"><a class="header" href="#cross-product-evidence">Cross-product evidence</a></h2>
-<p><code>scripts/josh-e2e.sh</code> builds an isolated HOME/XDG/PATH/runtime/root and launches Josh at 80×24. Each command must reach a later terminal revision ending at the configured prompt. Side effects distinguish taken command-chain branches from echoed input; exact byte comparisons cover every structured cardinality class, value serialization, all redirections, and complete ordered wildcard/bracket/recursive glob results. The script also checks language/functions/UFCS, semantic styles, deterministic PNG output, and explicit rejection of <code>&amp;</code>, <code>jobs</code>, <code>fg</code>, <code>bg</code>, <code>source</code>, <code>import</code>, <code>export</code>, and remote import. Final assertions require <code>sessions=[]</code>, no control sockets or temporary runtime, and no producer, external child, Josh, or daemon PID.</p>
+<p><code>scripts/josh-e2e.sh</code> builds an isolated HOME/XDG/PATH/runtime/root and launches Josh at 80×24. Each command must reach a later terminal revision ending at the configured prompt. Side effects distinguish taken command-chain branches from echoed input; exact byte comparisons cover every structured cardinality class, value serialization, all redirections, and complete ordered wildcard/bracket/recursive glob results. The script also checks language/functions/UFCS, semantic styles, deterministic PNG output, and explicit rejection of <code>&amp;</code>, <code>jobs</code>, <code>fg</code>, <code>bg</code>, <code>import</code>, <code>export</code>, and remote import. Final assertions require <code>sessions=[]</code>, no control sockets or temporary runtime, and no producer, external child, Josh, or daemon PID.</p>
 <h2 id="manual-evidence"><a class="header" href="#manual-evidence">Manual evidence</a></h2>
 <p><strong>Host command</strong></p>
 <pre><code class="language-sh">cd /Users/mbullington/Projects/josh-shell
@@ -1694,6 +1718,8 @@ python3 docs/tools/check-manual.py
 mdbook build docs
 </code></pre>
 <p>The checker builds a temporary mdBook and inspects all source and generated pages for SUMMARY reachability, links/fragments, literal fences, duplicate IDs, source-to-HTML code-block preservation, extracted runnable examples, capability/status drift, matrix provenance, table shape, and status-color contrast. The 2026-08-15 run passed 66 pages and 42 capabilities and extracted 26 runnable fences. The persistent build is <code>docs/book/index.html</code>; review the retained PNG at <code>../agent-terminal/target/josh-e2e/screenshot.png</code>.</p>
+<p>Man pages live in <code>docs/man/*.scd</code> (scdoc) with the generated roff committed; <code>scripts/build-man.sh</code> regenerates and soft-validates them. Keep the man page a summary — the manual remains the language reference.</p>
+<p><code>scripts/check-share.sh</code> runs the <code>share/*.josh</code> selftests and the regex golden-output gate; <code>scripts/regex-bench.josh</code> prints the fixed-corpus performance table used by interpreter-optimization work (timings vary; the <code>hits</code> checksum column must not).</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="change-grammar-or-runtime-behavior"><a class="header" href="#change-grammar-or-runtime-behavior">Change grammar or runtime behavior</a></h1>
 <div class="status-coverage">
@@ -1819,16 +1845,18 @@ shasum -a 256 target/josh-e2e/screenshot.png
 <tr><td><a id="J-OBJ-001-1"></a>J-OBJ-001</td><td>Prototypal namespaces</td><td>Josh</td><td>Implemented</td><td>Type prototypes, receiver-first prototype dispatch, member assignment, <code>Object</code> statics, sealed objects</td><td>Classes, implicit <code>this</code>, mixins</td><td><a href="#josh-evidence"><code>prototype_namespaces_methods_and_statics_are_first_class</code>, <code>member_assignment_updates_objects_in_place</code></a></td><td><a href="#J-OBJ-001">Manual</a></td><td>Development snapshot</td><td>2026-08-16</td></tr>
 <tr><td><a id="J-TILDE-001-1"></a>J-TILDE-001</td><td>Tilde expansion</td><td>Josh</td><td>Implemented</td><td>Leading unquoted <code>~</code>/<code>~/</code> at command-word starts</td><td><code>~user</code> and mid-word forms</td><td><a href="#josh-evidence">Tilde lexer/expansion tests</a></td><td><a href="#J-TILDE-001">Manual</a></td><td>Development snapshot</td><td>2026-08-16</td></tr>
 <tr><td><a id="J-ENV-001-1"></a>J-ENV-001</td><td><code>$NAME</code> fallback</td><td>Josh</td><td>Implemented</td><td>Lexical binding before inherited environment in command interpolation</td><td><code>env</code> object and export API</td><td><a href="#environment-boundary">Engine source behavior</a></td><td><a href="#J-ENV-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-14</td></tr>
-<tr><td><a id="J-STRUCT-001-1"></a>J-STRUCT-001</td><td>Structured streams and transformers</td><td>Josh</td><td>Implemented</td><td>Explicit byte/value transitions, function/map/filter/take/first/collect, value pipelines feeding scalar/array sources into closure stages, bounded cancellation, stable capture cardinality</td><td>Generic iterable or user-visible Stream value</td><td><a href="#josh-evidence"><code>structured_*</code> tests, <code>value_pipelines_stream_expressions_through_closure_stages</code>, and E2E</a></td><td><a href="#J-STRUCT-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-16</td></tr>
+<tr><td><a id="J-STRUCT-001-1"></a>J-STRUCT-001</td><td>Structured streams and transformers</td><td>Josh</td><td>Implemented</td><td>Explicit byte/value transitions, function/map/filter/take/takeLast/first/collect, value pipelines feeding scalar/array sources into closure stages, bounded cancellation, stable capture cardinality</td><td>Generic iterable or user-visible Stream value</td><td><a href="#josh-evidence"><code>structured_*</code> tests, <code>take_last_stage_returns_bounded_tail</code>, <code>value_pipelines_stream_expressions_through_closure_stages</code>, and E2E</a></td><td><a href="#J-STRUCT-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-16</td></tr>
 <tr><td><a id="J-FILES-001-1"></a>J-FILES-001</td><td>Redirections and globs</td><td>Josh</td><td>Implemented</td><td><code>&gt;</code>, <code>&gt;&gt;</code>, <code>&lt;</code>, <code>2&gt;</code>, <code>2&gt;&gt;</code>, <code>2&gt;&amp;1</code>, <code>&amp;&gt;</code>; left-to-right planning; sorted quote-aware globs and <code>glob()</code></td><td>Process substitution</td><td><a href="#josh-evidence"><code>redirections_*</code> and glob CLI tests</a></td><td><a href="#J-FILES-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
 <tr><td><a id="J-CF-001-1"></a>J-CF-001</td><td>Non-job control flow</td><td>Josh</td><td>Implemented</td><td><code>while</code>, <code>loop</code>, <code>try/catch</code>, return, break, continue, throw, status, command chains</td><td>No <code>for</code> production</td><td><a href="#josh-evidence"><code>typed_unwinding_*</code> and chain tests</a></td><td><a href="#J-CF-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
 <tr><td><a id="J-JOBS-001-1"></a>J-JOBS-001</td><td>Background jobs and job control</td><td>Josh</td><td>Planned</td><td>Background statements and terminal process-group control</td><td>No current <code>&amp;</code> execution</td><td><a href="#j-jobs-001">Tracker</a></td><td><a href="#J-JOBS-001">Manual</a></td><td>Project brief</td><td>2026-08-14</td></tr>
 <tr><td><a id="J-FUNC-001-1"></a>J-FUNC-001</td><td>Function execution and UFCS</td><td>Josh</td><td>Implemented</td><td>Declarations/arrows, snapshot closures, direct recursion, destructured/rest parameters, prototype-table methods with explicit receivers, lexical UFCS</td><td>No hoisting or <code>this</code></td><td><a href="#josh-evidence"><code>closures_*</code> and method tests, <code>prototype_namespaces_methods_and_statics_are_first_class</code></a></td><td><a href="#J-FUNC-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-16</td></tr>
-<tr><td><a id="J-MOD-001-1"></a>J-MOD-001</td><td>Modules and <code>source</code></td><td>Josh</td><td>Planned</td><td>Scoped imports/exports and current-scope source</td><td>URL modules need a security decision</td><td><a href="#j-mod-001">Tracker</a></td><td><a href="#J-MOD-001">Manual</a></td><td>Project brief</td><td>2026-08-14</td></tr>
-<tr><td><a id="J-CONFIG-001-1"></a>J-CONFIG-001</td><td>Configuration</td><td>Josh</td><td>Implemented</td><td>XDG <code>env.josh</code>/interactive <code>init.josh</code>, global lexical scope, prompt function, <code>--no-config</code>, error policy</td><td>General <code>source</code>, imports, or config schema</td><td><a href="#josh-evidence">Startup CLI and PTY tests</a></td><td><a href="#J-CONFIG-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="J-MOD-001-1"></a>J-MOD-001</td><td>Modules (<code>import</code>/<code>export</code>)</td><td>Josh</td><td>Planned</td><td>Scoped imports/exports; <code>source</code> graduated to J-MOD-002</td><td>URL modules need a security decision</td><td><a href="#j-mod-001">Tracker</a></td><td><a href="#J-MOD-001">Manual</a></td><td>Project brief</td><td>2026-08-14</td></tr>
+<tr><td><a id="J-MOD-002-1"></a>J-MOD-002</td><td><code>source</code> statement</td><td>Josh</td><td>Implemented</td><td>One-word path (quoting, variables, <code>~</code>), current-frame evaluation, strict parse gate, cycle rejection, boundary errors for <code>return</code>/<code>break</code>/<code>continue</code></td><td>Search paths, module identity, and caching</td><td><a href="#josh-evidence"><code>source_evaluates_in_current_frame_and_guards_cycles</code></a></td><td><a href="#J-MOD-002">Manual</a></td><td>Development snapshot</td><td>2026-08-16</td></tr>
+<tr><td><a id="J-CONFIG-001-1"></a>J-CONFIG-001</td><td>Configuration</td><td>Josh</td><td>Implemented</td><td>XDG <code>env.josh</code>/interactive <code>init.josh</code>, global lexical scope, prompt function, <code>--no-config</code>, error policy</td><td>Imports or a config schema</td><td><a href="#josh-evidence">Startup CLI and PTY tests</a></td><td><a href="#J-CONFIG-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
 <tr><td><a id="J-ENV-002-1"></a>J-ENV-002</td><td><code>env</code> namespace and export</td><td>Josh</td><td>Implemented</td><td><code>env.NAME</code> reads/writes the session environment; closure reads resolve dynamically; child pipelines inherit member-state-at-spawn; PATH exposes array and scalar views</td><td>Process-global mutation</td><td><a href="#josh-evidence"><code>environment_namespace_is_dynamic_exported_and_scalar_canonical</code>, <code>startup_environment_mutation_persists_for_path_lookup_and_children</code></a></td><td><a href="#J-ENV-002">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-16</td></tr>
 <tr><td><a id="J-BG-001"></a>J-BG-001</td><td>Job expression assignment</td><td>Josh</td><td>Unresolved</td><td>Choose whether/how a background job produces a value</td><td><code>j = sleep 100 &amp;</code> is not valid syntax</td><td><a href="#J-BG-001-1">Decision question</a></td><td><a href="#J-BG-001-1">Manual</a></td><td>Open</td><td>2026-08-14</td></tr>
-<tr><td><a id="J-UNICODE-001-1"></a>J-UNICODE-001</td><td>String indexing unit</td><td>Josh</td><td>Implemented</td><td>Unicode scalar <code>length</code>, signed indexing, and <code>at</code></td><td>Grapheme-cluster indexing</td><td><a href="#josh-evidence">Unicode method/index tests</a></td><td><a href="#J-UNICODE-001">Manual</a></td><td>Josh 0.1.0</td><td>2026-08-15</td></tr>
+<tr><td><a id="J-UNICODE-001-1"></a>J-UNICODE-001</td><td>String indexing unit</td><td>Josh</td><td>Implemented</td><td>UTF-16 code-unit <code>length</code>, signed indexing, and <code>at</code>; pair-interior positions snap to whole code points</td><td>Grapheme-cluster indexing and JS lone-surrogate returns</td><td><a href="#josh-evidence"><code>strings_use_javascript_utf16_positions</code></a></td><td><a href="#J-UNICODE-001">Manual</a></td><td>Development snapshot</td><td>2026-08-16</td></tr>
+<tr><td><a id="J-EXPR-004-1"></a>J-EXPR-004</td><td>Range slices</td><td>Josh</td><td>Implemented</td><td>End-exclusive <code>a[b..c]</code> on arrays and strings with negative, omitted, and clamped bounds; copies, never views</td><td>Inclusive <code>..=</code>, stride ranges, and byte slicing</td><td><a href="#josh-evidence"><code>range_slicing_follows_javascript_slice_semantics</code> and <code>range_slices_parse_with_optional_bounds</code></a></td><td><a href="#J-EXPR-004">Manual</a></td><td>Development snapshot</td><td>2026-08-16</td></tr>
 <tr><td><a id="AT-BUILD-001-1"></a>AT-BUILD-001</td><td>Pinned static build</td><td>agent-terminal</td><td>Implemented</td><td>Clean Ghostty tree digest, SHA, Zig 0.16.0, ReleaseFast, baseline CPU, SIMD off, static link</td><td>Initial Nix cache provisioning may be slow</td><td><a href="#AT-BUILD-001">Build identity and link inspection</a></td><td><a href="#AT-BUILD-001">Manual</a></td><td>agent-terminal 0.1.0; Ghostty d760ee96</td><td>2026-08-15</td></tr>
 <tr><td><a id="AT-CLI-001-1"></a>AT-CLI-001</td><td>Cross-invocation CLI</td><td>agent-terminal</td><td>Implemented</td><td>launch, snapshot, screenshot, type, key, resize, wait, list, close</td><td>No TCP or shared daemon</td><td><a href="#agent-terminal-evidence">Real CLI smoke</a></td><td><a href="#AT-CLI-001">Manual</a></td><td>agent-terminal 0.1.0</td><td>2026-08-15</td></tr>
 <tr><td><a id="AT-PTY-001-1"></a>AT-PTY-001</td><td>Real PTY and Ghostty state</td><td>agent-terminal</td><td>Implemented</td><td>One PTY, child, <code>libghostty-vt</code> terminal per daemon</td><td>No substitute ANSI parser</td><td><a href="#agent-terminal-evidence">Linked-library and real PTY tests</a></td><td><a href="#AT-PTY-001">Manual</a></td><td>agent-terminal 0.1.0; Ghostty d760ee96</td><td>2026-08-15</td></tr>

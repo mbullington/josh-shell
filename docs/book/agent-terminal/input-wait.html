@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8264fe8d.js";
+            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-39e943a2.js"></script>
@@ -189,7 +189,7 @@
 <h2 id="wait-conditions-implemented"><a class="header" href="#wait-conditions-implemented">Wait conditions <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span></a></h2>
 <p><strong>Availability:</strong> Available in agent-terminal 0.1.0. Evidence: the CLI smoke test and Josh scenario exercise daemon-side text and stability waits.</p>
 <p><code>--text</code> matches a substring of current Ghostty-formatted visible text. <code>--stable 200ms</code> succeeds after revision remains unchanged for that interval. PTY reads continue while clients wait. Timeout exits 124 and carries last snapshot metadata; child exit triggers one final check before an exited-before-condition error.</p>
-<p>Reads are not paints: a stable wait issued immediately after submitted input can succeed against the last fully painted pre-input frame. See the <a href="errata.html">errata</a> for the input-then-wait rule and measured settle budgets.</p>
+<p>Stability is measured from the later of the last painted revision and the last submitted <code>type</code>/<code>key</code> input, so a wait admitted immediately after input cannot satisfy until a full quiet interval passes with no new input or output. See the <a href="errata.html">errata</a> for measured settle budgets when polling snapshots without waits.</p>
 
                     </main>
 

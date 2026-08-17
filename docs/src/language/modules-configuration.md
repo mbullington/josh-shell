@@ -2,16 +2,27 @@
 
 <div class="status-coverage">
 
-**Status coverage:** [J-MOD-001](../status/matrix.md#J-MOD-001) — **Planned**; [J-CONFIG-001](../status/matrix.md#J-CONFIG-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
+**Status coverage:** [J-MOD-001](../status/matrix.md#J-MOD-001) — **Planned**; [J-MOD-002](../status/matrix.md#J-MOD-002) — **Implemented**; [J-CONFIG-001](../status/matrix.md#J-CONFIG-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
 
 </div>
 
 <a id="J-MOD-001"></a>
-## Modules and source <span class="status status--planned" aria-label="Status: Planned">Planned</span>
+## Modules <span class="status status--planned" aria-label="Status: Planned">Planned</span>
 
 **Availability:** Excluded from the current implementation. Tracking: [Planned work](../roadmap/planned.md#j-mod-001).
 
-`import`, `export`, and `source` are rejected. URL and remote modules are also unavailable; Josh has no dependency identity, integrity, cache, update, offline, or trust model for them.
+`import` and `export` are rejected. URL and remote modules are also unavailable; Josh has no dependency identity, integrity, cache, update, offline, or trust model for them. `source` is the deliberate include mechanism (below) instead of a module system.
+
+<a id="J-MOD-002"></a>
+## source statement <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
+
+**Availability:** Available in development snapshots since 2026-08-16. Evidence: runtime source tests.
+
+`source path.josh` reads a file, parses it under the strict policy, and evaluates it in the current frame — bash-style, with no new scope, no caching, and no module identity. `let` and `fn` declarations from the file are visible afterwards (aliases share object prototypes), which makes `source` the way to load shared helper files and startup configuration.
+
+- The path is one command word: quoting, `$variable`, captures, and a leading `~` behave like any command argument. Relative paths resolve against the working directory. More than one word is a parse error.
+- A file whose path is already being sourced (a cycle) fails with a type error; a missing or unreadable file is a catchable filesystem error; a file that fails the strict parse gate fails before anything runs.
+- `return`, `break`, and `continue` cannot escape the sourced file into the caller; they are type errors at the boundary. Loops and functions inside the file behave normally.
 
 <a id="J-CONFIG-001"></a>
 ## Configuration <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
@@ -46,4 +57,4 @@ prefix = "project"
 fn prompt() { return prefix + "> " }
 ```
 
-Dedicated startup files do not expose general source or module loading.
+Dedicated startup files are ordinary Josh source and may use `source` for explicit includes; module loading stays excluded.

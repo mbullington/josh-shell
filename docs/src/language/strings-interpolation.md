@@ -20,4 +20,4 @@ value=42
 
 Source strings are UTF-8. Captured process output may become Bytes when decoding fails, and Unix argv preserves those bytes. Displaying Bytes as an expression prints a size marker rather than decoding it.
 
-String length, signed indexing, and `at` count Unicode scalar values. They do not count UTF-8 bytes or extended grapheme clusters.
+String length, signed indexing, and `at` count UTF-16 code units (JavaScript semantics): `"😀".length` is 2. A position inside a surrogate pair resolves to the whole code point, since Josh strings cannot hold lone surrogates. See [String indexing unit](../reference/operators-values.md#J-UNICODE-001) and [Range slices](../reference/operators-values.md#J-EXPR-004).

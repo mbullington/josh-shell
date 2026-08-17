@@ -24,7 +24,7 @@ The script creates isolated HOME, XDG config, PATH, runtime, and file roots. `en
 - exact values and cardinalities for `text`, `json`, `lines`, `jsonl`, `chunks`, function, map/filter/take/first/collect, value-to-external serialization, and value-to-text serialization;
 - every redirection family with left-to-right descriptor behavior;
 - complete sorted wildcard, bracket, and recursive glob outputs, quoted literals, and no-match errors;
-- explicit rejection of `&`, `jobs`, `fg`, `bg`, `source`, `import`, `export`, and remote imports.
+- explicit rejection of `&`, `jobs`, `fg`, `bg`, `import`, `export`, and remote imports.
 
 Before each input, the script records the current terminal revision. It accepts completion only after a later revision whose last nonblank row is exactly the configured prompt, so echoed command text cannot satisfy an output assertion. Structured and glob results are compared as exact host-file bytes.
 

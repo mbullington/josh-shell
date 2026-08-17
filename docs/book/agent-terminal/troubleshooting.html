@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8264fe8d.js";
+            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-39e943a2.js"></script>
@@ -187,7 +187,7 @@
 <li><strong>Runtime path rejected:</strong> remove symlinks, fix ownership, use 0700 directories, and keep the path short enough for <code>sockaddr_un</code>.</li>
 <li><strong>Text wait times out:</strong> matching is case-sensitive and limited to current Ghostty-formatted visible text. Inspect the last revision metadata and a JSON snapshot.</li>
 <li><strong>Stable wait never completes:</strong> output is still advancing revision. Bound the child or increase the quiet duration and timeout.</li>
-<li><strong>Snapshot after a successful stable wait shows pre-input text:</strong> known wait-admission defect; do not wait immediately after submitting input. See the <a href="errata.html">errata</a> for the settle and polling rules.</li>
+<li><strong>Snapshot after a successful stable wait shows pre-input text:</strong> fixed defect in development builds before <code>ec1d958</code>; update agent-terminal. See the <a href="errata.html">errata</a>.</li>
 <li><strong>Exited child remains listed:</strong> final terminal state is retained by design. Run <code>close</code> to remove the session.</li>
 <li><strong>Screenshot shows U+FFFD:</strong> the grapheme is absent from the pinned JetBrains Mono faces. Host font fallback is disabled for deterministic output.</li>
 <li><strong>Repeated screenshots differ:</strong> wait for a stable revision, keep grid, palette, default colors, and cursor state fixed, and compare commands built from the same lockfile and font assets.</li>

@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8264fe8d.js";
+            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-39e943a2.js"></script>
@@ -185,29 +185,26 @@ runs against the Josh REPL. Each entry states the observed behavior, the rule
 to follow until it is fixed, and the evidence. Full investigation writeup lives
 outside the book at <code>docs/repl-integration-investigation.md</code> (repo root
 relative), with scenarios and harness under <code>/tmp/josh-repl-test/</code>.</p>
-<h2 id="1-a-stable-wait-can-satisfy-against-a-pre-input-frame"><a class="header" href="#1-a-stable-wait-can-satisfy-against-a-pre-input-frame">1. A stable wait can satisfy against a pre-input frame</a></h2>
-<p><strong>Affected:</strong> agent-terminal 0.1.0, <code>agent-terminal wait</code>.</p>
-<p><strong>Observed:</strong> <code>wait --stable</code> issued immediately after <code>type</code>/<code>key</code> can succeed
-while the next <code>snapshot --json</code> still shows the <em>pre-input</em> grid: the typed
-text is absent, the cursor sits at its old position, and the revision has not
-advanced. Reproduced 3/3 against the Josh REPL with 100–200 ms stable
-intervals.</p>
-<p><strong>Why it matters:</strong> <a href="input-wait.html">input-wait.md</a> says PTY reads continue
-while clients wait, but reads are not the same as paints. A wait admitted
-before the submitted input has been painted can satisfy its quiet interval
-against the last fully painted frame, and a snapshot taken right after the
-wait returns reflects that lag. Scripts that treat “wait succeeded” as “all
-submitted input is rendered” read a torn, pre-input state.</p>
-<p><strong>Rule until fixed:</strong> do not use <code>wait --stable</code> as the first operation after
-submitting input. Either sleep past observed paint latency (see entry 2) and
-then snapshot, or poll <code>snapshot --json</code> rows for the expected text with
-bounded retries. <code>wait --text</code> is less exposed because its final check matches
-post-input text, but follow it with a short sleep before asserting on the full
-grid.</p>
-<p><strong>Fix direction:</strong> serialize input submit → paint → wait-admission ordering,
-or record the input revision and reject wait admission until it has painted.
-Remove this entry and update <a href="input-wait.html">input-wait.md</a> when fixed.</p>
+<h2 id="1-fixed-stable-waits-could-satisfy-against-a-pre-input-frame"><a class="header" href="#1-fixed-stable-waits-could-satisfy-against-a-pre-input-frame">1. (Fixed) Stable waits could satisfy against a pre-input frame</a></h2>
+<p><strong>Affected:</strong> agent-terminal development builds before <code>ec1d958</code>
+(“daemon: gate stable waits on input submission time”, 2026-08-16).</p>
+<p><strong>Observed:</strong> <code>wait --stable</code> issued immediately after <code>type</code>/<code>key</code> satisfied
+its quiet interval against the last fully painted <em>pre-input</em> frame: the
+daemon’s stability source (<code>last_revision_at</code>) only advanced on PTY reads, so
+an idle session looked quiet the moment the wait was admitted. The next
+<code>snapshot --json</code> showed the pre-input grid — typed text absent, cursor at its
+old position. Reproduced 3/3 against the Josh REPL.</p>
+<p><strong>Fix:</strong> the session now stamps <code>last_input_at</code> after every successful
+<code>type</code>/<code>key</code> write, and the stability window is measured from
+<code>max(last_revision_at, last_input_at)</code>. A wait admitted immediately after
+input cannot satisfy until at least one quiet interval has passed with no new
+input <em>or</em> output. Regression: <code>stable_waits_account_for_recent_input</code> in
+<code>tests/cli_smoke.rs</code> (<code>type</code>, <code>wait --stable 150ms</code>, assert ≥150 ms elapsed
+and the typed marker visible in the post-wait snapshot), verified live against
+the Josh REPL. On current builds, wait-after-input is safe; scripts may still
+prefer the settle budgets in entry 2 when polling without waits.</p>
 <h2 id="2-settle-budgets-measured-latencies-and-recommended-waits"><a class="header" href="#2-settle-budgets-measured-latencies-and-recommended-waits">2. Settle budgets: measured latencies and recommended waits</a></h2>
+<p>Guidance entry; still applies when scripts poll snapshots without <code>wait</code>.</p>
 <p><strong>Observed:</strong> the Josh REPL renders a line submission in 4–8 ms of paint time,
 but the gap between CLI acknowledgment and the <em>last</em> painted revision can
 exceed 100 ms. Consequently a 100 ms revision quiet bound or a 100 ms sleep

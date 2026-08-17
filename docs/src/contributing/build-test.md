@@ -41,7 +41,7 @@ The 2026-08-15 verification passed Nix-shell format, warnings-denied Clippy, loc
 
 ## Cross-product evidence
 
-`scripts/josh-e2e.sh` builds an isolated HOME/XDG/PATH/runtime/root and launches Josh at 80×24. Each command must reach a later terminal revision ending at the configured prompt. Side effects distinguish taken command-chain branches from echoed input; exact byte comparisons cover every structured cardinality class, value serialization, all redirections, and complete ordered wildcard/bracket/recursive glob results. The script also checks language/functions/UFCS, semantic styles, deterministic PNG output, and explicit rejection of `&`, `jobs`, `fg`, `bg`, `source`, `import`, `export`, and remote import. Final assertions require `sessions=[]`, no control sockets or temporary runtime, and no producer, external child, Josh, or daemon PID.
+`scripts/josh-e2e.sh` builds an isolated HOME/XDG/PATH/runtime/root and launches Josh at 80×24. Each command must reach a later terminal revision ending at the configured prompt. Side effects distinguish taken command-chain branches from echoed input; exact byte comparisons cover every structured cardinality class, value serialization, all redirections, and complete ordered wildcard/bracket/recursive glob results. The script also checks language/functions/UFCS, semantic styles, deterministic PNG output, and explicit rejection of `&`, `jobs`, `fg`, `bg`, `import`, `export`, and remote import. Final assertions require `sessions=[]`, no control sockets or temporary runtime, and no producer, external child, Josh, or daemon PID.
 
 ## Manual evidence
 
@@ -53,3 +53,7 @@ mdbook build docs
 ```
 
 The checker builds a temporary mdBook and inspects all source and generated pages for SUMMARY reachability, links/fragments, literal fences, duplicate IDs, source-to-HTML code-block preservation, extracted runnable examples, capability/status drift, matrix provenance, table shape, and status-color contrast. The 2026-08-15 run passed 66 pages and 42 capabilities and extracted 26 runnable fences. The persistent build is `docs/book/index.html`; review the retained PNG at `../agent-terminal/target/josh-e2e/screenshot.png`.
+
+Man pages live in `docs/man/*.scd` (scdoc) with the generated roff committed; `scripts/build-man.sh` regenerates and soft-validates them. Keep the man page a summary — the manual remains the language reference.
+
+`scripts/check-share.sh` runs the `share/*.josh` selftests and the regex golden-output gate; `scripts/regex-bench.josh` prints the fixed-corpus performance table used by interpreter-optimization work (timings vary; the `hits` checksum column must not).

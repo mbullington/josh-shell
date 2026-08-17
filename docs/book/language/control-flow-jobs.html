@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8264fe8d.js";
+            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-39e943a2.js"></script>
@@ -195,7 +195,7 @@ if grep -q needle file.txt { printf 'found\n' }
 <p><code>if</code> and <code>try</code> produce values wherever an expression is legal: assignment right-hand sides, call arguments, captures, and pipeline sources. The <code>else</code> branch is required in expression position, and <code>try</code> still requires its <code>catch</code> block. As statements they behave exactly as before.</p>
 <p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
 
-<pre><code class="language-josh">size_label = if ($total &gt; 1000) { "large" } else { "small" }
+<pre><code class="language-josh">size_label = if (total &gt; 1000) { "large" } else { "small" }
 recovered = try { read_config() } catch (e) { defaults }
 </code></pre>
 <p><a id="J-CF-001"></a></p>

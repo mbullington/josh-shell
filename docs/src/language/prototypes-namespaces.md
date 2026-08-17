@@ -29,7 +29,7 @@ Every value has a type prototype the namespaces own: `"text".toUpperCase()` reso
 |---|---|
 | `Object` | `keys`, `entries`, `values`, `create(proto)`, `fromEntries`, `getPrototype`, `setPrototype`, `seal`, `isSealed` |
 | `String` | conversion `String(x)`; `String.prototype`: `at`, `contains`, `startsWith`, `endsWith`, `split`, `replace`, `replaceAll`, `trim`, `toUpperCase`, `toLowerCase` |
-| `Number` | conversion `Number(x)`; `Number.prototype`: `abs`, `ceil`, `floor`, `round`, `norm`; constants `NaN`, `MAX_VALUE`, `MIN_VALUE`, `MAX_INT`, `MIN_INT` |
+| `Number` | conversion `Number(x)`; `Number.prototype`: `abs`, `ceil`, `floor`, `round`, `norm`; constants `NaN`, `MAX_VALUE`, `MIN_VALUE`, `MAX_INT`, `MIN_INT`; `Number.isNaN(x)` (JavaScript semantics: true only for actual NaN, never coerced). `MIN_VALUE` follows JavaScript: the smallest positive denormal (5e-324), not the most-negative finite value |
 | `Boolean` | conversion `Boolean(x)` |
 | `Array` | conversion `Array(x)`; `Array.prototype`: `at`, `contains`, `map`, `filter`, `reduce`, `flat`, `join`, `slice`, plus `push`/`pop`/`reverse`/`sort`, which edit the array in place (JavaScript semantics: `push` returns the new length, `pop` the removed element or null, `reverse`/`sort` return the array itself) |
 | `Function` | never callable: constructing functions goes through `=>` |

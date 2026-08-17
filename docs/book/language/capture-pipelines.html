@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8264fe8d.js";
+            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-39e943a2.js"></script>
@@ -207,6 +207,7 @@
 <tr><td>values → function or <code>map fn</code></td><td>Call once per item and emit each return value</td></tr>
 <tr><td>values → <code>filter fn</code></td><td>Keep an item when the function result is truthy</td></tr>
 <tr><td>values → <code>take n</code></td><td>Emit at most nonnegative Int <code>n</code>, then cancel upstream</td></tr>
+<tr><td>values → <code>takeLast n</code></td><td>Emit the last nonnegative Int <code>n</code> items (bounded buffer)</td></tr>
 <tr><td>values → <code>first</code></td><td>Emit the first item, then cancel upstream</td></tr>
 <tr><td>values → <code>collect</code></td><td>Collect all items and emit one Array</td></tr>
 <tr><td>values → <code>text</code></td><td>Emit bytes with one LF between values and no final LF; String/Bytes stay raw and other data uses JSON</td></tr>
@@ -224,7 +225,7 @@
 <tbody>
 <tr><td>external bytes or values → <code>text</code> → bytes</td><td>Raw String/Bytes capture with trailing newline trimming</td></tr>
 <tr><td><code>json</code> or bytes → <code>text</code></td><td>One value</td></tr>
-<tr><td><code>lines</code>, <code>jsonl</code>, <code>chunks</code>, <code>filter</code>, or <code>take</code></td><td>Always Array, including zero or one item</td></tr>
+<tr><td><code>lines</code>, <code>jsonl</code>, <code>chunks</code>, <code>filter</code>, <code>take</code>, or <code>takeLast</code></td><td>Always Array, including zero or one item</td></tr>
 <tr><td>function or <code>map</code></td><td>Preserve upstream one/many cardinality</td></tr>
 <tr><td><code>first</code></td><td>First value, or Null for empty input</td></tr>
 <tr><td><code>collect</code></td><td>One Array, including an empty Array</td></tr>

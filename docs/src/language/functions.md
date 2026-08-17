@@ -46,7 +46,7 @@ Methods are nonmutating. An exact argument-count or argument-type mismatch is a 
 
 | Receiver | Member or method | Exact result |
 |---|---|---|
-| String | `.length`, `.length()` | Count Unicode scalar values |
+| String | `.length` | Count UTF-16 code units (JavaScript semantics); plain member, not callable |
 | String | `.contains(part)`, `.includes(part)` | Literal substring test |
 | String | `.startsWith(part)`, `.endsWith(part)` | Literal prefix/suffix test |
 | String | `.split(separator)` | Array of literal splits; an empty separator splits into Unicode scalar strings |
@@ -54,7 +54,7 @@ Methods are nonmutating. An exact argument-count or argument-type mismatch is a 
 | String | `.replaceAll(from, to)` | Replace every literal match |
 | String | `.trim()` | Remove leading and trailing Unicode whitespace |
 | String | `.toUpperCase()`, `.toLowerCase()` | Unicode case conversion |
-| String | `.at(index)` | One Unicode scalar String; negative indexes count from the end; otherwise Null |
+| String | `.at(index)` | One code-point String at a UTF-16 unit index (pair-interior snaps to the containing code point); negative indexes count from the end; otherwise Null |
 | Array | `.length`, `.length()` | Element count |
 | Array | `.at(index)` | Element at a signed index, otherwise Null |
 | Array | `.contains(value)`, `.includes(value)` | Structural equality search |

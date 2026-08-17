@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8264fe8d.js";
+            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-39e943a2.js"></script>
@@ -194,7 +194,7 @@ scripts/josh-e2e.sh target/debug/agent-terminal /Users/mbullington/Projects/josh
 <li>exact values and cardinalities for <code>text</code>, <code>json</code>, <code>lines</code>, <code>jsonl</code>, <code>chunks</code>, function, map/filter/take/first/collect, value-to-external serialization, and value-to-text serialization;</li>
 <li>every redirection family with left-to-right descriptor behavior;</li>
 <li>complete sorted wildcard, bracket, and recursive glob outputs, quoted literals, and no-match errors;</li>
-<li>explicit rejection of <code>&amp;</code>, <code>jobs</code>, <code>fg</code>, <code>bg</code>, <code>source</code>, <code>import</code>, <code>export</code>, and remote imports.</li>
+<li>explicit rejection of <code>&amp;</code>, <code>jobs</code>, <code>fg</code>, <code>bg</code>, <code>import</code>, <code>export</code>, and remote imports.</li>
 </ul>
 <p>Before each input, the script records the current terminal revision. It accepts completion only after a later revision whose last nonblank row is exactly the configured prompt, so echoed command text cannot satisfy an output assertion. Structured and glob results are compared as exact host-file bytes.</p>
 <p>It records <code>target/josh-e2e/snapshot.json</code> and <code>screenshot.png</code>. The schema-v2 snapshot asserts semantic style, wide-cell, background-only, captured palette/default/cursor state, prompt, running-process, and 80×24 grid facts. Each run renders the same revision twice and requires byte-identical 640×384 RGBA PNGs with no text/time metadata. The 2026-08-15 retained artifact has SHA-256 <code>5956b699529a9d8e3167078e8682339c811c80e7f56cb4d8a69c67abd50d9428</code>; both complete verification runs reproduced it.</p>

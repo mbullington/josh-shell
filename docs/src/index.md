@@ -10,7 +10,7 @@ Josh is a Unix-first JavaScript Object Shell. It combines external commands with
 
 `agent-terminal` is a separate Unix automation harness. Its cross-process CLI uses a real PTY and pinned `libghostty-vt`, exposes semantic snapshots, and renders deterministic PNG screenshots with pinned assets.
 
-Background jobs and modules/source remain Planned and are rejected. The [capability matrix](status/matrix.md) is the availability authority.
+Background jobs and `import`/`export` modules remain Planned and are rejected; `source` is the implemented include mechanism. The [capability matrix](status/matrix.md) is the availability authority.
 
 ## Choose a path
 

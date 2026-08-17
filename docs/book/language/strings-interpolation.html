@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8264fe8d.js";
+            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-39e943a2.js"></script>
@@ -190,7 +190,7 @@ literal $n
 value=42
 </code></pre>
 <p>Source strings are UTF-8. Captured process output may become Bytes when decoding fails, and Unix argv preserves those bytes. Displaying Bytes as an expression prints a size marker rather than decoding it.</p>
-<p>String length, signed indexing, and <code>at</code> count Unicode scalar values. They do not count UTF-8 bytes or extended grapheme clusters.</p>
+<p>String length, signed indexing, and <code>at</code> count UTF-16 code units (JavaScript semantics): <code>"😀".length</code> is 2. A position inside a surrogate pair resolves to the whole code point, since Josh strings cannot hold lone surrogates. See <a href="../reference/operators-values.html#J-UNICODE-001">String indexing unit</a> and <a href="../reference/operators-values.html#J-EXPR-004">Range slices</a>.</p>
 
                     </main>
 

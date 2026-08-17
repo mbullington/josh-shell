@@ -30,7 +30,7 @@ if grep -q needle file.txt { printf 'found\n' }
 <p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
 
 ```josh
-size_label = if ($total > 1000) { "large" } else { "small" }
+size_label = if (total > 1000) { "large" } else { "small" }
 recovered = try { read_config() } catch (e) { defaults }
 ```
 

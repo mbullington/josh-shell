@@ -36,7 +36,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8264fe8d.js";
+            window.path_to_searchindex_js = "../searchindex-d1844f06.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-39e943a2.js"></script>
@@ -212,7 +212,7 @@ printf '%s %s\n' (snapshot(1)) ("ok".suffix("!"))
 <tr><th>Receiver</th><th>Member or method</th><th>Exact result</th></tr>
 </thead>
 <tbody>
-<tr><td>String</td><td><code>.length</code>, <code>.length()</code></td><td>Count Unicode scalar values</td></tr>
+<tr><td>String</td><td><code>.length</code></td><td>Count UTF-16 code units (JavaScript semantics); plain member, not callable</td></tr>
 <tr><td>String</td><td><code>.contains(part)</code>, <code>.includes(part)</code></td><td>Literal substring test</td></tr>
 <tr><td>String</td><td><code>.startsWith(part)</code>, <code>.endsWith(part)</code></td><td>Literal prefix/suffix test</td></tr>
 <tr><td>String</td><td><code>.split(separator)</code></td><td>Array of literal splits; an empty separator splits into Unicode scalar strings</td></tr>
@@ -220,7 +220,7 @@ printf '%s %s\n' (snapshot(1)) ("ok".suffix("!"))
 <tr><td>String</td><td><code>.replaceAll(from, to)</code></td><td>Replace every literal match</td></tr>
 <tr><td>String</td><td><code>.trim()</code></td><td>Remove leading and trailing Unicode whitespace</td></tr>
 <tr><td>String</td><td><code>.toUpperCase()</code>, <code>.toLowerCase()</code></td><td>Unicode case conversion</td></tr>
-<tr><td>String</td><td><code>.at(index)</code></td><td>One Unicode scalar String; negative indexes count from the end; otherwise Null</td></tr>
+<tr><td>String</td><td><code>.at(index)</code></td><td>One code-point String at a UTF-16 unit index (pair-interior snaps to the containing code point); negative indexes count from the end; otherwise Null</td></tr>
 <tr><td>Array</td><td><code>.length</code>, <code>.length()</code></td><td>Element count</td></tr>
 <tr><td>Array</td><td><code>.at(index)</code></td><td>Element at a signed index, otherwise Null</td></tr>
 <tr><td>Array</td><td><code>.contains(value)</code>, <code>.includes(value)</code></td><td>Structural equality search</td></tr>
