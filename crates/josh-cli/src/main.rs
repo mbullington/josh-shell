@@ -1,5 +1,8 @@
 use std::{env, ffi::OsString, fs, io, path::PathBuf, process::ExitCode, sync::Arc};
 
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 use josh_exec::ProcessHost;
 use josh_interactive::{print_engine_error, run_repl};
 use josh_runtime::{Engine, EngineError, RunResult};

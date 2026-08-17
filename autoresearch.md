@@ -37,6 +37,7 @@ microseconds of Josh evaluation on this machine.
 
 - `crates/josh-runtime/src/**` — evaluator, Value repr, frames, natives
 - `crates/josh-streams/src/**`, `crates/josh-exec/src/**` — pipeline plumbing
+- `crates/josh-cli/src/main.rs` + `Cargo.toml` files — allocator/build-level tuning
 - `crates/josh-syntax/src/**` — lexer/parser (only if they show on the profile)
 - `autoresearch.md`, `autoresearch.ideas.md` (working notes/backlog only)
 

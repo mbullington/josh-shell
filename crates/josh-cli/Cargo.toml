@@ -13,6 +13,7 @@ path = "src/main.rs"
 josh-exec.workspace = true
 josh-interactive.workspace = true
 josh-runtime.workspace = true
+mimalloc = "0.1"
 
 [dev-dependencies]
 nix.workspace = true
