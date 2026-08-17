@@ -1,0 +1,51 @@
+# regex-bench.josh — fixed-corpus performance harness for share/regex.josh.
+# Prints one stable line per case:  <case>  iters=<n>  total_ms=<n>  hits=<n>
+# `hits` is the semantic checksum: it must not change when the engine evolves.
+# Timings vary run to run; compare like-for-like (same machine, same iters).
+source share/regex.josh
+
+fn bench_repeat_str(s, n) {
+    let out = ""
+    let i = 0
+    while (i < n) { out += s; i += 1 }
+    return out
+}
+
+let hay = bench_repeat_str("hay hay nothing here hay ", 60) + "needle"
+let doc = bench_repeat_str("Report 2026-08: revenue ok, velocity up. ", 25)
+let words = bench_repeat_str("alpha beta gamma delta eps zeta error? ", 40)
+let mixed = bench_repeat_str("abc12 x9-zw6011 q00 p8 r314159 xy42 zz ", 36)
+let line = "route=api/version/hops=4096"
+let arun = bench_repeat_str("a", 60)
+let emoji = bench_repeat_str("😀🐍🦀", 60)
+let prose = bench_repeat_str("on 2026-08-16 the audit noted 1999-12-31 again; ", 30)
+
+let cases = [
+    {name: "literal-long", pattern: "needle", subject: hay, iters: 10},
+    {name: "literal-anchored", pattern: "^Report 2026", subject: doc, iters: 50},
+    {name: "alternation", pattern: "error|warning|critical", subject: words, iters: 15},
+    {name: "classes-bounds", pattern: "[a-z]+[0-9]{2,4}", subject: mixed, iters: 25},
+    {name: "groups-anchored", pattern: "^([a-z]+)=([a-z/]+)=(\\d+)$", subject: line, iters: 100},
+    {name: "nfa-stress", pattern: "^(a|aa)+$", subject: arun, iters: 50},
+    {name: "astral-group", pattern: "^(😀|🐍|🦀)+$", subject: emoji, iters: 40},
+    {name: "date-extract", pattern: "(\\d{4})-(\\d{2})-(\\d{2})", subject: prose, iters: 25}
+]
+
+echo "case iters total_ms hits len"
+let ci = 0
+while (ci < cases.length) {
+    let case = cases[ci]
+    let i = 0
+    let hits = 0
+    let t0 = Date.now()
+    while (i < case.iters) {
+        # compile + match every iteration: no caching, honest interpreter work
+        let re = regex(case.pattern)
+        let result = re.match(case.subject)
+        if (result.matched) { hits += 1 }
+        i += 1
+    }
+    let total_ms = Date.now() - t0
+    echo "BENCH" $((case.name)) "iters=" $((case.iters)) "ms=" $((total_ms)) "hits=" $((hits)) "len=" $((case.subject.length))
+    ci += 1
+}

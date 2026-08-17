@@ -1,0 +1,128 @@
+# ============================================================================
+# assert.josh v0.1 — assertion helpers for Josh scripts, tests, and selftests
+# purpose:   assert/assert_eq/assert_ne/assert_throws with assert-kinded throws
+# usage:     source share/assert.josh;     assert_eq(2 + 2, 4, "math")
+# deps:      (none)
+# license:   MIT-0 / public domain — no attribution required
+# caveat:    no stability promises; copy this file into your project (stb model)
+# selftest:  assert_selftest() returns true or throws
+# ============================================================================
+
+fn assert_fail(message) {
+    throw {kind: "assert", message: message}
+}
+
+# assert(cond, msg?) — the blunt instrument.
+fn assert(cond, msg) {
+    if (!cond) {
+        throw {kind: "assert", message: "assertion failed" + msg}
+    }
+}
+
+# assert_true/false with optional custom message.
+fn assert_true(cond, msg) {
+    if (!cond) {
+        throw {kind: "assert", message: "expected true" + msg}
+    }
+}
+
+fn assert_false(cond, msg) {
+    if (cond) {
+        throw {kind: "assert", message: "expected false" + msg}
+    }
+}
+
+# assert_eq(expected, actual, msg) — strict (===) equality. Messages carry both
+# scalar sides when they convert cleanly; use detail() to dodge conversion
+# failures on non-scalar values.
+fn assert_eq(expected, actual, msg) {
+    if (expected !== actual) {
+        throw {kind: "assert", message: msg + " — expected " + assert_detail(expected) + ", got " + assert_detail(actual)}
+    }
+}
+
+fn assert_ne(expected, actual, msg) {
+    if (expected === actual) {
+        throw {kind: "assert", message: msg + " — both sides were " + assert_detail(actual)}
+    }
+}
+
+fn assert_null(actual, msg) {
+    if (actual !== null) {
+        throw {kind: "assert", message: msg + " — expected null, got " + assert_detail(actual)}
+    }
+}
+
+fn assert_not_null(actual, msg) {
+    if (actual === null) {
+        throw {kind: "assert", message: msg + " — expected a value, got null"}
+    }
+}
+
+# assert_throws(f, kind, msg) — f must throw a value whose .kind equals kind
+# (or any value at all when kind is null).
+fn assert_throws(f, kind, msg) {
+    caught = try { f(); null } catch (e) { e }
+    if (caught === null) {
+        throw {kind: "assert", message: msg + " — expected a throw, got none"}
+    }
+    if (kind !== null) {
+        if (caught.kind !== kind) {
+            throw {kind: "assert", message: msg + " — expected kind " + kind + ", got " + caught.kind}
+        }
+    }
+}
+
+# Try to render a value for error messages; fall back to a shape hint.
+fn assert_detail(value) {
+    let rendered = try { assert_stringify(value) } catch (e) { "<unprintable>" }
+    if (rendered === null) {
+        return "<null>"
+    }
+    return rendered
+}
+
+# Scalar-friendly stringify: String() covers ints, floats, bools, strings,
+# errors; null does not convert, so probe it first.
+fn assert_stringify(value) {
+    if (value === null) {
+        return "null"
+    }
+    return String(value)
+}
+
+fn assert_selftest() {
+    assert(1 === 1, "")
+    assert_true(2 > 1, "")
+    assert_false(2 < 1, "")
+    assert_eq(4, 2 + 2, "int math")
+    assert_eq("ab", "a" + "b", "string concat")
+    assert_ne(1, 2, "")
+    assert_null(null, "")
+    assert_not_null(0, "")
+
+    # assert_throws catches assert-kinded throws and typed engine errors alike.
+    assert_throws(() => { throw {kind: "demo", message: "x"} }, "demo", "kind routing")
+    assert_throws(() => { throw 7 }, null, "any throw")
+    assert_throws(() => { 9223372036854775807 + 1 }, "type", "checked arithmetic surfaces as type error")
+    assert_throws(() => { 10 % 0 }, "type", "integer remainder by zero is a type error")
+
+    # A passed-in kind filter must reject the wrong kind (so assert_throws
+    # itself is verifiable).
+    let wrong_kind_was_caught = try {
+        assert_throws(() => { throw {kind: "alpha", message: "x"} }, "beta", "")
+        false
+    } catch (e) {
+        e.kind === "assert"
+    }
+    assert(wrong_kind_was_caught, "assert_throws enforces kind")
+
+    # The message argument is documented as optional across the API; appending
+    # "" keeps cbuilt string concatenation total. Verify null conversions
+    # stay out of assert_detail's way.
+    assert_eq("null", assert_detail(null), "detail renders null")
+    assert_eq("42", assert_detail(42), "detail renders ints")
+    assert_eq("x", assert_detail("x"), "detail renders strings")
+
+    return true
+}

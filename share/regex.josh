@@ -1,0 +1,779 @@
+# ============================================================================
+# regex.josh v0.1 — RE2-flavored regular expressions in pure Josh
+# purpose:   small, honest regex engine (Thompson NFA / Pike VM) — no shelling
+#            out, no caches, no FFI. Linear time in subject length.
+# usage:     source share/regex.josh
+#            re = regex("([a-z]+)([0-9]+)")
+#            re.test("abc123")      # => true
+#            re.match("xxabc123!")  # => {matched: true, text: "abc123",
+#                                    #     start: 2, end: 8, groups: [...]}
+# deps:      (library core: none;  regex_selftest: assert.josh)
+# license:   MIT-0 / public domain — no attribution required
+# caveat:    no stability promises; copy this file into your project (stb model)
+#            `regex.josh` is josh-shell's canonical performance benchmark; the
+#            copy in this repo is maintained with golden-output coverage.
+#
+# SYNTAX (RE2-compatible subset):
+#   literals        most chars match themselves
+#   .               any char except newline "\n" (RE2 default)
+#   [abc] [^abc]    character classes; ranges with `-`; escape `]` and `\` inside
+#   \d \w \s (+DWS) digit / word / space classes (RE2 tables, ASCII)
+#   \n \t \r \\ ... escapes: \. \* \+ \? \( \) \[ \] \{ \} \| \^ \$ \/
+#   ^ $             text anchors (both modes; no /m multiline flag)
+#   ( ) (?: )       capturing and non-capturing groups; max depth 64
+#   a|b             alternation, leftmost-first preference
+#   * + ? {m} {m,} {m,n}   greedy repeaters; repetition bounds max 1000
+# REJECTED, like RE2 (or narrower by choice): \b \B, backrefs, lookarounds,
+#   lazy/non-greedy markers, inline flags, octal/hex escapes, \A \z \G, possessives.
+# SEMANTICS: leftmost-first (PCRE/RE2) match. Positions reported by match()
+#   are UTF-16 code-unit indexes into the subject — exactly Josh's string
+#   indexing semantics — so result[0..1] slicing composes with `subject[start..end]`.
+#   Internally the engine matches over Unicode scalar values (subject.split("")).
+# ============================================================================
+
+# --- instruction opcodes (small stable ints; insts are [op, a, b] arrays) ---
+let RE_OP_CHAR = 0
+let RE_OP_ANY = 1
+let RE_OP_CLASS = 2
+let RE_OP_MATCH = 3
+let RE_OP_JMP = 4
+let RE_OP_SPLIT = 5
+let RE_OP_SAVE = 6
+let RE_OP_ASSERT_START = 7
+let RE_OP_ASSERT_END = 8
+
+let RE_MAX_REPEAT = 1000
+let RE_MAX_GROUP_DEPTH = 64
+
+let RE_DIGITS = {"0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9}
+
+# Predefined class tables as range lists + single-char sets.
+fn re_class_digit() {
+    return {ranges: [["0", "9"]], singles: {}, negated: false}
+}
+fn re_class_word() {
+    return {ranges: [["0", "9"], ["a", "z"], ["A", "Z"], ["_", "_"]], singles: {}, negated: false}
+}
+fn re_class_space() {
+    return {ranges: [], singles: {" ": true, "\t": true, "\n": true, "\r": true}, negated: false}
+}
+
+fn re_class_has(cls, ch) {
+    let found = false
+    if (cls.singles[ch] === true) {
+        found = true
+    }
+    let i = 0
+    while ((!found) && (i < cls.ranges.length)) {
+        let r = cls.ranges[i]
+        if ((ch >= r[0]) && (ch <= r[1])) {
+            found = true
+        }
+        i += 1
+    }
+    if (cls.negated) {
+        return !found
+    }
+    return found
+}
+
+# --- errors ---
+fn re_fail(message) {
+    throw {kind: "regex", message: message}
+}
+
+# --- parser -------------------------------------------------------------
+# State: {src: <char array>, pos: <int>, ngroups: <int>, depth: <int>}
+# Every parse function consumes from st and RETURNS a fragment: an array of
+# instruction arrays whose internal jump offsets are RELATIVE to their own
+# positions, so fragments concatenate without patching.
+
+let re_parser = {}
+
+re_parser.peek = (st) => st.src[st.pos]
+
+re_parser.next = (st) => {
+    let ch = st.src[st.pos]
+    st.pos = st.pos + 1
+    return ch
+}
+
+re_parser.expect = (st, ch, what) => {
+    if (re_parser.next(st) !== ch) {
+        re_fail("regex error: expected " + what + " at index " + String(st.pos))
+    }
+}
+
+# digits: object lookup returns null for missing keys; probe null-ness directly.
+re_parser.as_digit = (ch) => {
+    let d = RE_DIGITS[ch]
+    if (d === null) {
+        re_fail("regex error: expected a digit in repetition bound")
+    }
+    return d
+}
+
+# parse_alternation := concat ('|' concat)*
+re_parser.parse_alternation = (st, depth) => {
+    if (depth > RE_MAX_GROUP_DEPTH) {
+        re_fail("regex error: group nesting deeper than " + String(RE_MAX_GROUP_DEPTH))
+    }
+    let combined = re_parser.parse_concatenation(st, depth)
+    while (re_parser.peek(st) === "|") {
+        st.pos = st.pos + 1
+        let left = combined
+        let right = re_parser.parse_concatenation(st, depth)
+        combined = []
+        combined.push([RE_OP_SPLIT, 1, left.length + 2])
+        let i = 0
+        while (i < left.length) { combined.push(left[i]); i += 1 }
+        combined.push([RE_OP_JMP, right.length + 1])
+        i = 0
+        while (i < right.length) { combined.push(right[i]); i += 1 }
+    }
+    return combined
+}
+
+# parse_concatenation := piece*
+re_parser.parse_concatenation = (st, depth) => {
+    let out = []
+    let ch = re_parser.peek(st)
+    while ((ch !== null) && (ch !== "|") && (ch !== ")")) {
+        let frag = re_parser.parse_piece(st, depth)
+        let i = 0
+        while (i < frag.length) { out.push(frag[i]); i += 1 }
+        ch = re_parser.peek(st)
+    }
+    return out
+}
+
+# piece := atom quantifier?  (a second consecutive quantifier is rejected;
+# a `{` that does not scan as a bound is a literal `{`, Perl/RE2 style)
+re_parser.parse_piece = (st, depth) => {
+    let atom = re_parser.parse_atom(st, depth)
+    let wrapped_once = false
+    let ch = re_parser.peek(st)
+    if ((ch === "*") || (ch === "+") || (ch === "?")) {
+        st.pos = st.pos + 1
+        wrapped_once = true
+        if (ch === "*") {
+            atom = re_parser.wrap_star(st, atom)
+        } else if (ch === "+") {
+            atom = re_parser.wrap_plus(st, atom)
+        } else {
+            atom = re_parser.wrap_optional(st, atom)
+        }
+    } else if (ch === "{") {
+        let braced = re_parser.wrap_repeat(st, atom)
+        if (braced !== null) {
+            atom = braced
+            wrapped_once = true
+        } else {
+            # literal `{`: fold it into the atom as an ordinary char
+            st.pos = st.pos + 1
+            atom.push([RE_OP_CHAR, "{"])
+        }
+    }
+    if (wrapped_once) {
+        let after = re_parser.peek(st)
+        if ((after === "*") || (after === "+") || (after === "?")) {
+            re_fail("regex error: double quantifier (`" + after + "` directly follows one)")
+        }
+        if ((after === "{") && (re_parser.wrap_repeat(st, atom) !== null)) {
+            re_fail("regex error: double quantifier (`{...}` directly follows one)")
+        }
+    }
+    return atom
+}
+
+# star: SPLIT(1, len+2) ; frag ; JMP(-(len+1))
+re_parser.wrap_star = (st, frag) => {
+    let out = [[RE_OP_SPLIT, 1, frag.length + 2]]
+    let i = 0
+    while (i < frag.length) { out.push(frag[i]); i += 1 }
+    out.push([RE_OP_JMP, 0 - (frag.length + 1)])
+    return out
+}
+
+# plus: frag ; SPLIT(-len, 1)
+re_parser.wrap_plus = (st, frag) => {
+    let out = []
+    let i = 0
+    while (i < frag.length) { out.push(frag[i]); i += 1 }
+    out.push([RE_OP_SPLIT, 0 - frag.length, 1])
+    return out
+}
+
+# optional: SPLIT(1, len+1) ; frag
+re_parser.wrap_optional = (st, frag) => {
+    let out = [[RE_OP_SPLIT, 1, frag.length + 1]]
+    let i = 0
+    while (i < frag.length) { out.push(frag[i]); i += 1 }
+    return out
+}
+
+# {m} {m,} {m,n} — expands to concatenated copies. Returns null when the
+# `{` does not scan as a bound, leaving st.pos untouched (literal-brace fallback).
+re_parser.wrap_repeat = (st, frag) => {
+    let save = st.pos
+    st.pos = st.pos + 1
+    let m = re_parser.scan_number(st)
+    if (m === null) {
+        st.pos = save
+        return null
+    }
+    let n = m
+    let open = false
+    let ch = re_parser.next(st)
+    if (ch === ",") {
+        open = true
+        let scanned = re_parser.scan_number(st)
+        if (scanned !== null) {
+            n = scanned
+            open = false
+        }
+        ch = re_parser.next(st)
+    }
+    if (ch !== "}") {
+        st.pos = save
+        return null
+    }
+    if ((!open) && (n < m)) {
+        re_fail("regex error: repetition {" + String(m) + "," + String(n) + "} is backwards")
+    }
+    if ((m > RE_MAX_REPEAT) || (n > RE_MAX_REPEAT)) {
+        re_fail("regex error: repetition bound above " + String(RE_MAX_REPEAT))
+    }
+    let out = []
+    let i = 0
+    while (i < m) {
+        let j = 0
+        while (j < frag.length) { out.push(frag[j]); j += 1 }
+        i += 1
+    }
+    if (open) {
+        # {m,} = m copies, then a star tail.
+        let tail = re_parser.wrap_star(st, frag)
+        let j = 0
+        while (j < tail.length) { out.push(tail[j]); j += 1 }
+    } else {
+        # optional tail copies: (?: frag)? repeated (n - m)
+        let k = m
+        while (k < n) {
+            let opt = re_parser.wrap_optional(st, frag)
+            let j = 0
+            while (j < opt.length) { out.push(opt[j]); j += 1 }
+            k += 1
+        }
+    }
+    return out
+}
+
+# scan an unsigned decimal; returns null if there are no digits at all.
+re_parser.scan_number = (st) => {
+    let value = 0
+    let seen = false
+    let ch = re_parser.peek(st)
+    while ((ch !== null) && (RE_DIGITS[ch] !== null)) {
+        value = value * 10 + RE_DIGITS[ch]
+        seen = true
+        st.pos = st.pos + 1
+        ch = re_parser.peek(st)
+    }
+    if (!seen) {
+        return null
+    }
+    return value
+}
+
+re_parser.parse_atom = (st, depth) => {
+    let ch = re_parser.next(st)
+    if (ch === "(") {
+        let capturing = true
+        if (re_parser.peek(st) === "?") {
+            st.pos = st.pos + 1
+            let marker = re_parser.next(st)
+            if (marker === ":") {
+                capturing = false
+            } else if (marker === "=") {
+                re_fail("regex error: lookahead (?=...) is not supported (RE2 rejects it too)")
+            } else if (marker === "!") {
+                re_fail("regex error: lookahead (?!...) is not supported (RE2 rejects it too)")
+            } else if (marker === "<") {
+                re_fail("regex error: lookbehind is not supported (RE2 rejects it too)")
+            } else {
+                re_fail("regex error: unknown (?... group marker '" + String(marker) + "'")
+            }
+        }
+        let slot = 0
+        if (capturing) {
+            slot = st.ngroups
+            st.ngroups = st.ngroups + 1
+        }
+        let body = re_parser.parse_alternation(st, depth + 1)
+        re_parser.expect(st, ")", "`)` to close group")
+        if (!capturing) {
+            return body
+        }
+        # slots 0 and 1 hold the whole match; capture groups start at slot 2
+        let out = [[RE_OP_SAVE, 2 + slot * 2]]
+        let i = 0
+        while (i < body.length) { out.push(body[i]); i += 1 }
+        out.push([RE_OP_SAVE, 2 + slot * 2 + 1])
+        return out
+    }
+    if (ch === "[") {
+        return re_parser.parse_class(st)
+    }
+    if (ch === ".") {
+        return [[RE_OP_ANY]]
+    }
+    if (ch === "^") {
+        return [[RE_OP_ASSERT_START]]
+    }
+    if (ch === "$") {
+        return [[RE_OP_ASSERT_END]]
+    }
+    if (ch === "\\") {
+        return re_parser.parse_escape_atom(st)
+    }
+    if ((ch === "*") || (ch === "+") || (ch === "?")) {
+        re_fail("regex error: `" + ch + "` follows nothing")
+    }
+    if (ch === ")") {
+        re_fail("regex error: `)` has no opening `(`")
+    }
+    if (ch === null) {
+        re_fail("regex error: unexpected end of pattern")
+    }
+    return [[RE_OP_CHAR, ch]]
+}
+
+# An escape at expression level: predefined class or literal char.
+re_parser.parse_escape_atom = (st) => {
+    let ch = re_parser.next(st)
+    if ((ch === null)) {
+        re_fail("regex error: trailing \\ at end of pattern")
+    }
+    let cls = re_parser.predefined(ch)
+    if (cls !== null) {
+        return [[RE_OP_CLASS, cls]]
+    }
+    return [[RE_OP_CHAR, re_parser.escape_char(st, ch)]]
+}
+
+# predefined returns a class object or null.
+re_parser.predefined = (ch) => {
+    if (ch === "d") { return re_class_digit() }
+    if (ch === "w") { return re_class_word() }
+    if (ch === "s") { return re_class_space() }
+    if (ch === "D") { let c = re_class_digit(); c.negated = true; return c }
+    if (ch === "W") { let c = re_class_word(); c.negated = true; return c }
+    if (ch === "S") { let c = re_class_space(); c.negated = true; return c }
+    return null
+}
+
+# Map an escaped char to the literal it represents; reject unsupported escapes.
+re_parser.escape_char = (st, ch) => {
+    if (ch === "n" ) { return "\n" }
+    if (ch === "t" ) { return "\t" }
+    if (ch === "r" ) { return "\r" }
+    if ((ch === "b") || (ch === "B")) {
+        re_fail("regex error: word boundaries \\" + ch + " are not supported yet")
+    }
+    if (RE_DIGITS[ch] !== null) {
+        re_fail("regex error: backreferences \\" + ch + " are not supported (RE2 rejects them too)")
+    }
+    if ((ch === "A") || (ch === "z") || (ch === "G") || (ch === "x") || (ch === "u")) {
+        re_fail("regex error: escape \\" + ch + " is not supported")
+    }
+    # RE2/Perl rule of thumb: punctuation escapes to itself.
+    return ch
+}
+
+# class := '[' '^'? item* ']' ; item := escape | char | char '-' char
+# `]` always ends the class (escape it as `\]`). A `-` is a range operator only
+# between two item chars; leading or trailing it matches itself.
+re_parser.parse_class = (st) => {
+    let negated = false
+    if (re_parser.peek(st) === "^") {
+        st.pos = st.pos + 1
+        negated = true
+    }
+    let cls = {ranges: [], singles: {}, negated: negated}
+    let saw_any = false
+    while (true) {
+        let ch = re_parser.next(st)
+        if (ch === null) {
+            re_fail("regex error: `[` class is missing its `]`")
+        }
+        if (ch === "]") {
+            if (!saw_any) {
+                re_fail("regex error: empty `[]` class (write `\\]` for a literal bracket)")
+            }
+            break
+        }
+        saw_any = true
+        let lo = ch
+        if (ch === "\\") {
+            let esc = re_parser.next(st)
+            let predef = re_parser.predefined(esc)
+            if (predef !== null) {
+                # fold a predefined class in and continue with the next item
+                let i = 0
+                while (i < predef.ranges.length) { cls.ranges.push(predef.ranges[i]); i += 1 }
+                let keys = Object.keys(predef.singles)
+                i = 0
+                while (i < keys.length) { cls.singles[keys[i]] = true; i += 1 }
+                continue
+            }
+            lo = re_parser.escape_char(st, esc)
+        }
+        if ((re_parser.peek(st) === "-") && (st.src[st.pos + 1] !== "]") && (st.src[st.pos + 1] !== null)) {
+            st.pos = st.pos + 1
+            let hi = re_parser.next(st)
+            if (hi === "\\") {
+                let esc2 = re_parser.next(st)
+                if (re_parser.predefined(esc2) !== null) {
+                    re_fail("regex error: predefined class cannot end a range (expand it with `-`)")
+                }
+                hi = re_parser.escape_char(st, esc2)
+            }
+            if (hi < lo) {
+                re_fail("regex error: class range [" + lo + "-" + hi + "] is backwards")
+            }
+            cls.ranges.push([lo, hi])
+        } else {
+            cls.singles[lo] = true
+        }
+    }
+    return [[RE_OP_CLASS, cls]]
+}
+
+# --- compiler entry ---------------------------------------------------------
+fn re_compile(source) {
+    let chars = source.split("")
+    if (chars.length === 0) {
+        re_fail("regex error: empty pattern (match-everything is `.*`)")
+    }
+    let st = {src: chars, pos: 0, ngroups: 0}
+    let prog = re_parser.parse_alternation(st, 0)
+    if (st.pos !== chars.length) {
+        re_fail("regex error: unexpected `" + chars[st.pos] + "` at index " + String(st.pos))
+    }
+    prog.push([RE_OP_MATCH])
+    return {prog: prog, ngroups: st.ngroups}
+}
+
+# --- Pike VM ----------------------------------------------------------------
+
+fn re_fresh_caps(nslots, start) {
+    let caps = []
+    let i = 0
+    while (i < nslots) { caps.push(0 - 1); i += 1 }
+    return re_caps_set(caps, 0, start)
+}
+
+# caps with caps[idx] = value; arrays are append-only, so rebuild via slices.
+fn re_caps_set(caps, idx, value) {
+    let out = caps[0..idx]
+    out.push(value)
+    let rest = caps[(idx + 1)..]
+    let i = 0
+    while (i < rest.length) { out.push(rest[i]); i += 1 }
+    return out
+}
+
+# Follow epsilon edges (jmp/split/save/assert) from pc, appending live threads
+# [pc, caps] to list. Iterative: Josh recursion would explode on long patterns.
+fn re_add_thread(prog, pc, sp, caps, subject_len, list, added) {
+    let stack = [[pc, caps]]
+    while (stack.length > 0) {
+        let item = stack.pop()
+        let pc2 = item[0]
+        let caps2 = item[1]
+        let key = "p" + String(pc2)
+        if (added[key] !== true) {
+            added[key] = true
+            let inst = prog[pc2]
+            let op = inst[0]
+            if (op === RE_OP_JMP) {
+                stack.push([pc2 + inst[1], caps2])
+            } else if (op === RE_OP_SPLIT) {
+                # pop order: inst[1] (preferred) is explored first
+                stack.push([pc2 + inst[2], caps2])
+                stack.push([pc2 + inst[1], caps2])
+            } else if (op === RE_OP_SAVE) {
+                stack.push([pc2 + 1, re_caps_set(caps2, inst[1], sp)])
+            } else if (op === RE_OP_ASSERT_START) {
+                if (sp === 0) { stack.push([pc2 + 1, caps2]) }
+            } else if (op === RE_OP_ASSERT_END) {
+                if (sp === subject_len) { stack.push([pc2 + 1, caps2]) }
+            } else {
+                list.push([pc2, caps2])
+            }
+        }
+    }
+}
+
+# Run prog against chars (array of one-codepoint strings) starting anywhere.
+# Returns a caps array (2*(ngroups+1) char counts) or null.
+fn re_run(prog, ngroups, chars) {
+    let n = chars.length
+    let nslots = (ngroups + 1) * 2
+    let sp = 0
+    let clist = []
+    let added_cur = {}
+    let matched = null
+    while (sp <= n) {
+        # inject the unanchored start thread (lowest priority for this step);
+        # once matched, surviving threads outrank any new start, so stop.
+        if (matched === null) {
+            re_add_thread(prog, 0, sp, re_fresh_caps(nslots, sp), n, clist, added_cur)
+        }
+        let nlist = []
+        let added_next = {}
+        let ti = 0
+        while (ti < clist.length) {
+            let t = clist[ti]
+            let inst = prog[t[0]]
+            let op = inst[0]
+            if (op === RE_OP_MATCH) {
+                # leftmost-first: a later match only comes from a surviving
+                # higher-priority thread, so it REPLACES the earlier one.
+                matched = re_caps_set(t[1], 1, sp)
+                ti = clist.length
+            } else if ((op === RE_OP_CHAR) && (sp < n) && (chars[sp] === inst[1])) {
+                re_add_thread(prog, t[0] + 1, sp + 1, t[1], n, nlist, added_next)
+            } else if ((op === RE_OP_ANY) && (sp < n) && (chars[sp] !== "\n")) {
+                re_add_thread(prog, t[0] + 1, sp + 1, t[1], n, nlist, added_next)
+            } else if ((op === RE_OP_CLASS) && (sp < n) && (re_class_has(inst[1], chars[sp]))) {
+                re_add_thread(prog, t[0] + 1, sp + 1, t[1], n, nlist, added_next)
+            }
+            ti += 1
+        }
+        clist = nlist
+        added_cur = added_next
+        sp += 1
+        if ((clist.length === 0) && (matched !== null)) { break }
+    }
+    return matched
+}
+
+# --- public view ------------------------------------------------------------
+
+# Convert char-index captures into the public result: positions are UTF-16
+# code-unit indexes into subject (Josh string semantics), text slices by chars.
+fn re_build_result(prog, ngroups, subject) {
+    let chars = subject.split("")
+    let caps = re_run(prog, ngroups, chars)
+    if (caps === null) {
+        return {matched: false}
+    }
+    # char index -> UTF-16 unit index map (plus total at index n)
+    let units = []
+    let u = 0
+    let i = 0
+    while (i < chars.length) {
+        units.push(u)
+        u += chars[i].length
+        i += 1
+    }
+    units.push(u)
+    let text = chars[caps[0]..caps[1]].join("")
+    let groups = []
+    let g = 0
+    while (g < ngroups) {
+        let a = caps[2 + g * 2]
+        let b = caps[3 + g * 2]
+        if ((a < 0) || (b < 0)) {
+            groups.push(null)
+        } else {
+            groups.push({text: chars[a..b].join(""), start: units[a], end: units[b]})
+        }
+        g += 1
+    }
+    return {matched: true, text: text, start: units[caps[0]], end: units[caps[1]], groups: groups}
+}
+
+# regex(source) — compile once per call on purpose: no caches, no hidden state.
+fn regex(source) {
+    let comp = re_compile(source)
+    let prog = comp.prog
+    let ngroups = comp.ngroups
+    let re = {source: source}
+    re.test = (subject) => (re_run(prog, ngroups, subject.split("")) !== null)
+    re.match = (subject) => re_build_result(prog, ngroups, subject)
+    return re
+}
+
+# --- golden output (stable, committed, CI-diffed) ----------------------------
+
+# deterministic one-line rendering of a match result for the golden file
+fn re_fmt_result(result) {
+    if (!result.matched) {
+        return "matched=false"
+    }
+    let line = "matched=true text=<" + result.text + "> start=" + String(result.start) + " end=" + String(result.end) + " groups=["
+    let i = 0
+    while (i < result.groups.length) {
+        let gr = result.groups[i]
+        if (i > 0) { line += " " }
+        if (gr === null) {
+            line += "null"
+        } else {
+            line += "<" + gr.text + ">@" + String(gr.start) + ".." + String(gr.end)
+        }
+        i += 1
+    }
+    return line + "]"
+}
+
+fn regex_golden() {
+    let cases = [
+        ["abc", "zabc", "plain literal scan"],
+        ["^abc$", "abc", "anchored exact"],
+        ["a.c", "a!c", "dot non-newline"],
+        ["[a-z]+[0-9]{2,3}", "xkcd42!", "classes and bounds"],
+        ["[0-9]{4}-[0-9]{2}-[0-9]{2}", "on 2026-08-16 ok", "date shape"],
+        ["(a|b)*c", "zababc", "alternation star"],
+        ["^(\\w+)=(\\w+)$", "key=value", "word group pair"],
+        ["(a+)(b*)", "zaabb", "adjacent greedy groups"],
+        ["(a|ab)(c|bcd)", "abcd", "leftmost-first preference"],
+        ["\\d{3,}", "id 12345 done", "open upper bound"],
+        ["x?", "noex", "optional empty match"],
+        ["^😀+$", "😀😀😀", "astral anchor run"],
+        ["[é-ø]+", "ñôõê!", "unicode range class"],
+        ["(?:ab)+c", "zzababc", "non-capturing group"],
+        ["a$", "ba", "end anchor"],
+        ["[^0-9]+", "abc123", "negated class"]
+    ]
+    let i = 0
+    while (i < cases.length) {
+        let c = cases[i]
+        let re = regex(c[0])
+        let label = c[2]
+        let pat = c[0]
+        let subj = c[1]
+        let line = re_fmt_result(re.match(subj))
+        let verdict = String(re.test(subj))
+        echo "case $i $label"
+        echo "  pattern=<${pat}> subject=<${subj}>"
+        echo "  ${line} test=${verdict}"
+        i += 1
+    }
+    # rejected-syntax corpus: each must throw kind "regex"
+    let banned = ["\\1", "\\bword", "(?=x)", "(?!x)", "(?<=x)", "(?<!x)", "a{3,1}", "a**", "(", "[", "a{1001}", "[]"]
+    i = 0
+    while (i < banned.length) {
+        let kind = try { regex(banned[i]); "accepted" } catch (e) { e.kind }
+        let pat = banned[i]
+        echo "banned $i pattern=<${pat}> kind=${kind}"
+        i += 1
+    }
+    return true
+}
+
+# --- selftest --------------------------------------------------------------
+
+fn regex_selftest() {
+    # literals, anchors
+    assert_true(regex("abc").test("xxabcxx"), "literal scan")
+    assert_false(regex("^abc").test("xxabc"), "start anchor")
+    assert_false(regex("abc$").test("abcxx"), "end anchor")
+    assert_true(regex("^abc$").test("abc"), "full anchor")
+    assert_true(regex("^$").test(""), "empty subject anchors")
+
+    # dot
+    assert_true(regex("a.c").test("a!c"), "dot matches non-newline")
+    assert_false(regex("a.c").test("a\nc"), "dot rejects newline")
+
+    # classes
+    assert_true(regex("[abc]+").test("zxcba"), "class run")
+    assert_true(regex("[^abc]+").test("xyz"), "negated class")
+    assert_false(regex("^[^abc]+$").test("xyza"), "negated class stops")
+    assert_true(regex("[a-z]+").test("hello"), "range class")
+    assert_true(regex("[\\]\\-]+").test("]-]"), "escaped bracket and dash")
+    assert_true(regex("\\w+\\s\\d+").test("abc 12"), "predefined classes")
+    assert_true(regex("\\D+").test("ab-"), "negated digit class")
+    assert_true(regex("[\\d,]+").test("12,34"), "predefined inside class")
+
+    # alternation and leftmost-first preference (RE2/PCRE semantics)
+    let alt = regex("a|ab").match("xab")
+    assert_true(alt.matched, "alt matches")
+    assert_eq("a", alt.text, "leftmost-first picks the first alternative")
+    let alt2 = regex("(a|ab)(c|bcd)").match("abcd")
+    assert_eq("a", alt2.groups[0].text, "group 1 leftmost-first")
+    assert_eq("bcd", alt2.groups[1].text, "group 2 continues")
+
+    # repeaters
+    assert_true(regex("a*").test(""), "star matches empty")
+    assert_true(regex("a*").test("aaa"), "star matches run")
+    assert_false(regex("^a+$").test(""), "plus needs one")
+    assert_true(regex("^a+$").test("aa"), "plus run")
+    assert_true(regex("colou?r").test("color"), "optional present")
+    assert_true(regex("colou?r").test("colour"), "optional absent")
+    assert_true(regex("^ab{3}$").test("abbb"), "{m} exact")
+    assert_true(regex("^ab{2,}$").test("abbbb"), "{m,} open")
+    assert_false(regex("^ab{2,3}$").test("abbbb"), "{m,n} upper bound")
+    assert_true(regex("^[^abc]+$").test("z"), "negated class matches non-class chars")
+    assert_true(regex("^ab{2,3}$").test("abb"), "{m,n} lower bound")
+    assert_true(regex("a{0}b").test("b"), "{0} elides")
+    assert_true(regex("^a{2}bc$").test("aabc"), "literal brace fallback avoided")
+
+    # groups and captures
+    let pair = regex("^(\\w+)=(\\w+)$").match("k=v")
+    assert_true(pair.matched, "pair matches")
+    assert_eq("k=v", pair.text, "whole match text")
+    assert_eq("k", pair.groups[0].text, "group 1")
+    assert_eq("v", pair.groups[1].text, "group 2")
+    assert_eq(0, pair.start, "unit start")
+    assert_eq(3, pair.end, "unit end")
+    let opt_group = regex("a(b)?c").match("ac")
+    assert_true(opt_group.matched, "optional group matches")
+    assert_null(opt_group.groups[0], "unparticipating group is null")
+
+    # UTF-16 unit positions: position answers slice the subject correctly
+    let emoji = regex("a+").match("😀aa😀")
+    assert_true(emoji.matched, "astral subject matches")
+    assert_eq("aa", emoji.text, "text by chars")
+    assert_eq(2, emoji.start, "😀 costs two UTF-16 units")
+    assert_eq(4, emoji.end, "unit end mirrors")
+    let subject = "😀aa😀"
+    let re_emoji = regex("a+")
+    let m = re_emoji.match(subject)
+    let sliced = subject[m.start..m.end]
+    assert_eq("aa", sliced, "reported units slice the subject")
+    assert_true(regex("^(😀|🐍)+$").test("😀🐍😀🐍"), "astral alternation run")
+    assert_true(regex("[é-ø]+").test("ñôõ"), "unicode scalar ranges work")
+
+    # linear-time sanity: (a|aa)* over many a's must finish quickly and not crash
+    let many = 0
+    let asubject = ""
+    while (many < 40) { asubject += "a"; many += 1 }
+    assert_false(regex("^(a|aa)+b$").test(asubject), "exponential-looking pattern stays linear")
+    assert_true(regex("^(a|aa)+$").test(asubject), "alternation plus over a-run")
+
+    # banned constructs reject with kind regex
+    assert_throws(() => regex("\\1"), "regex", "backreference banned")
+    assert_throws(() => regex("\\b"), "regex", "word boundary banned")
+    assert_throws(() => regex("(?=x)"), "regex", "lookahead banned")
+    assert_throws(() => regex("(?!x)"), "regex", "negative lookahead banned")
+    assert_throws(() => regex("(?<=x)"), "regex", "lookbehind banned")
+    assert_throws(() => regex("(?<!x)"), "regex", "negative lookbehind banned")
+    assert_throws(() => regex("a{3,1}"), "regex", "backwards repetition bounds")
+    assert_throws(() => regex("a**"), "regex", "double quantifier")
+    assert_throws(() => regex("a{1001}"), "regex", "repetition bound cap")
+    assert_throws(() => regex("("), "regex", "unclosed group")
+    assert_throws(() => regex(")"), "regex", "stray close paren")
+    assert_throws(() => regex("["), "regex", "unclosed class")
+    assert_throws(() => regex("[]"), "regex", "empty class")
+    assert_throws(() => regex("\\"), "regex", "trailing escape")
+    assert_throws(() => regex(""), "regex", "empty pattern")
+
+    # literal-brace fallback (Perl/RE2 style)
+    assert_true(regex("a{b").test("xa{by"), "unclosed brace is a literal")
+    assert_true(regex("a{2,1!").test("a{2,1!"), "malformed brace is literal")
+
+    return true
+}

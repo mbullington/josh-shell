@@ -1,0 +1,60 @@
+case 0 plain literal scan
+  pattern=<abc> subject=<zabc>
+  matched=true text=<abc> start=1 end=4 groups=[] test=true
+case 1 anchored exact
+  pattern=<^abc$> subject=<abc>
+  matched=true text=<abc> start=0 end=3 groups=[] test=true
+case 2 dot non-newline
+  pattern=<a.c> subject=<a!c>
+  matched=true text=<a!c> start=0 end=3 groups=[] test=true
+case 3 classes and bounds
+  pattern=<[a-z]+[0-9]{2,3}> subject=<xkcd42!>
+  matched=true text=<xkcd42> start=0 end=6 groups=[] test=true
+case 4 date shape
+  pattern=<[0-9]{4}-[0-9]{2}-[0-9]{2}> subject=<on 2026-08-16 ok>
+  matched=true text=<2026-08-16> start=3 end=13 groups=[] test=true
+case 5 alternation star
+  pattern=<(a|b)*c> subject=<zababc>
+  matched=true text=<ababc> start=1 end=6 groups=[<b>@4..5] test=true
+case 6 word group pair
+  pattern=<^(\w+)=(\w+)$> subject=<key=value>
+  matched=true text=<key=value> start=0 end=9 groups=[<key>@0..3 <value>@4..9] test=true
+case 7 adjacent greedy groups
+  pattern=<(a+)(b*)> subject=<zaabb>
+  matched=true text=<aabb> start=1 end=5 groups=[<aa>@1..3 <bb>@3..5] test=true
+case 8 leftmost-first preference
+  pattern=<(a|ab)(c|bcd)> subject=<abcd>
+  matched=true text=<abcd> start=0 end=4 groups=[<a>@0..1 <bcd>@1..4] test=true
+case 9 open upper bound
+  pattern=<\d{3,}> subject=<id 12345 done>
+  matched=true text=<12345> start=3 end=8 groups=[] test=true
+case 10 optional empty match
+  pattern=<x?> subject=<noex>
+  matched=true text=<> start=0 end=0 groups=[] test=true
+case 11 astral anchor run
+  pattern=<^😀+$> subject=<😀😀😀>
+  matched=true text=<😀😀😀> start=0 end=6 groups=[] test=true
+case 12 unicode range class
+  pattern=<[é-ø]+> subject=<ñôõê!>
+  matched=true text=<ñôõê> start=0 end=4 groups=[] test=true
+case 13 non-capturing group
+  pattern=<(?:ab)+c> subject=<zzababc>
+  matched=true text=<ababc> start=2 end=7 groups=[] test=true
+case 14 end anchor
+  pattern=<a$> subject=<ba>
+  matched=true text=<a> start=1 end=2 groups=[] test=true
+case 15 negated class
+  pattern=<[^0-9]+> subject=<abc123>
+  matched=true text=<abc> start=0 end=3 groups=[] test=true
+banned 0 pattern=<\1> kind=regex
+banned 1 pattern=<\bword> kind=regex
+banned 2 pattern=<(?=x)> kind=regex
+banned 3 pattern=<(?!x)> kind=regex
+banned 4 pattern=<(?<=x)> kind=regex
+banned 5 pattern=<(?<!x)> kind=regex
+banned 6 pattern=<a{3,1}> kind=regex
+banned 7 pattern=<a**> kind=regex
+banned 8 pattern=<(> kind=regex
+banned 9 pattern=<[> kind=regex
+banned 10 pattern=<a{1001}> kind=regex
+banned 11 pattern=<[]> kind=regex
