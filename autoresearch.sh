@@ -4,6 +4,11 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# Use the committed PGO profile when present (regenerate via scripts/build-pgo.sh).
+if [ -f josh.profdata ]; then
+    export RUSTFLAGS="${RUSTFLAGS:+$RUSTFLAGS }-Cprofile-use=$PWD/josh.profdata"
+fi
+
 cargo build --release --quiet
 
 out="$(target/release/josh --no-config scripts/regex-bench.josh)"
