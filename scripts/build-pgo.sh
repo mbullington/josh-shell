@@ -2,6 +2,7 @@
 # Regenerate josh.profdata by training on the regex benchmark, then build the
 # PGO-optimized release binary. Requires llvm-tools (rustup component add llvm-tools).
 set -eu
+cd "$(dirname "$0")/.."
 PGO_DIR="$(mktemp -d)"
 trap 'rm -rf "$PGO_DIR"' EXIT
 RUSTFLAGS="-Cprofile-generate=$PGO_DIR" cargo build --release

@@ -1,6 +1,6 @@
 ---
 name: josh-shell
-description: Write, edit, and debug Josh scripts (.josh), including share/*.josh libraries and Josh configuration (env.josh, init.josh). Use whenever a task involves the Josh language or its shell runtime — writing regex.josh-style pure-computation libraries, wiring pipelines and captures, fixing [P1xx] parse diagnostics, adding a source-include, or running/autoresearching Josh performance. Even for small edits, Josh's dual command/expression mode bites; read this before writing the file.
+description: Write, edit, and debug Josh scripts (.josh), including share/*.josh libraries and Josh configuration (env.josh, init.josh). Use whenever a task involves the Josh language or its shell runtime — writing regex.josh-style pure-computation libraries, wiring pipelines and captures, fixing [P1xx] parse diagnostics, adding a source-include, or benchmarking Josh performance. Even for small edits, Josh's dual command/expression mode bites; read this before writing the file.
 ---
 
 # Josh: the JavaScript Object Shell

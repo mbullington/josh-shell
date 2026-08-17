@@ -13,6 +13,8 @@ cargo run
 
 The editor language server is a separate binary: `cargo install --path crates/josh-cli` installs `josh`, `cargo install --path crates/josh-lsp` installs `josh-lsp`, and `josh lsp` looks for the server next to the `josh` binary first, then on `PATH`.
 
+For the fully optimized binary, run `./scripts/build-pgo.sh` (requires `rustup component add llvm-tools`): it instruments a build, trains `josh.profdata` on `scripts/regex-bench.josh`, and rebuilds with `-Cprofile-use`. The checked-in `josh.profdata` is the current training result; plain `cargo build --release` does not apply it unless `-Cprofile-use` is passed in `RUSTFLAGS`.
+
 Use `--no-config` for reproducible automation. Otherwise Josh runs `$XDG_CONFIG_HOME/josh/env.josh` (or `~/.config/josh/env.josh`) for every session and `init.josh` for interactive sessions. A zero-argument `prompt` function may return the prompt string. `JOSH_HISTORY` selects the history file.
 
 ## Implemented
