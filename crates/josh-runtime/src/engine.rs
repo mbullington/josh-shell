@@ -1370,7 +1370,11 @@ impl Engine {
     /// or an object's custom prototype chain, ending at the root prototype.
     /// Includes a cycle guard for hand-built prototype loops.
     pub(crate) fn resolve_prototype_member(&self, receiver: &Value, name: &str) -> Option<Value> {
-        let mut visited: Vec<*const ObjectValue> = Vec::new();
+        // Prototype chains are tiny; a fixed window serves as the cycle
+        // guard (any cycle short enough to matter repeats within it).
+        const MAX_PROTOTYPE_DEPTH: usize = 16;
+        let mut visited = [std::ptr::null::<ObjectValue>(); MAX_PROTOTYPE_DEPTH];
+        let mut depth = 0;
         let mut current = match receiver {
             Value::Object(object) => object.prototype(),
             Value::String(_) => Some(self.prototypes.string.clone()),
@@ -1389,10 +1393,11 @@ impl Engine {
                 return None;
             };
             let pointer = Arc::as_ptr(&object);
-            if visited.contains(&pointer) {
+            if depth >= MAX_PROTOTYPE_DEPTH || visited[..depth].contains(&pointer) {
                 return None;
             }
-            visited.push(pointer);
+            visited[depth] = pointer;
+            depth += 1;
             if let Some(member) = object.get(name) {
                 return Some(member);
             }
