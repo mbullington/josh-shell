@@ -1699,6 +1699,11 @@ impl Engine {
     }
 
     fn bind_pattern(&mut self, pattern: &BindingPattern, value: Value) -> EvalResult<()> {
+        if let BindingPattern::Name { name, .. } = pattern {
+            reject_reserved_name(name)?;
+            self.current_frame().insert(name.clone(), value);
+            return Ok(());
+        }
         reject_reserved_pattern(pattern)?;
         let mut bindings = Vec::new();
         collect_bindings(pattern, value, &mut bindings)?;
