@@ -1,11 +1,5 @@
 # Diagnose a failed command
 
-<div class="status-coverage">
-
-**Status coverage:** [J-ERR-001](../status/matrix.md#J-ERR-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 Read failures from the outside inward:
 
 1. **Parse diagnostics** include a stable code, byte span, expected-token set when applicable, and an EOF-causation flag used by the REPL.
@@ -13,7 +7,7 @@ Read failures from the outside inward:
 3. **Spawn errors** identify the resolved stage that the operating system could not start.
 4. **Command/pipeline failures** retain ordered stage outcomes with exit code or signal.
 
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 ```console
 $ josh --no-config -c 'sh -c "exit 9"'

@@ -1,19 +1,11 @@
 # Control flow and jobs
 
-<div class="status-coverage">
-
-**Status coverage:** [J-RUN-006](../status/matrix.md#J-RUN-006) — **Implemented**; [J-EXPR-003](../status/matrix.md#J-EXPR-003) — **Implemented**; [J-CF-001](../status/matrix.md#J-CF-001) — **Implemented**; [J-JOBS-001](../status/matrix.md#J-JOBS-001) — **Planned**; [J-BG-001](../status/matrix.md#J-BG-001) — **Unresolved**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 <a id="J-RUN-006"></a>
-## If statements <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in Josh 0.1.0. Evidence: parser and evaluator tests for expression/command conditions, else-if, and `else`.
+## If statements
 
 A parenthesized condition is an expression and uses Josh truthiness. An unparenthesized condition is a command pipeline ending before an unquoted standalone `{`. A completed nonzero command condition is false. Planning, interpolation, spawn, stream, and type errors propagate; they are not false.
 
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 ```josh
 if (3 > 2) { printf 'yes\n' } else { printf 'no\n' }
@@ -21,13 +13,11 @@ if grep -q needle file.txt { printf 'found\n' }
 ```
 
 <a id="J-EXPR-003"></a>
-## If and try as expressions <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in the current development snapshot. Evidence: parser tests for expression-position `if`/`try` and runtime tests for produced values.
+## If and try as expressions
 
 `if` and `try` produce values wherever an expression is legal: assignment right-hand sides, call arguments, captures, and pipeline sources. The `else` branch is required in expression position, and `try` still requires its `catch` block. As statements they behave exactly as before.
 
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 ```josh
 size_label = if (total > 1000) { "large" } else { "small" }
@@ -35,9 +25,7 @@ recovered = try { read_config() } catch (e) { defaults }
 ```
 
 <a id="J-CF-001"></a>
-## Non-job control flow <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in Josh 0.1.0. Evidence: typed-unwinding, process-error, status, chain, and cross-product tests.
+## Non-job control flow
 
 | Form | Behavior |
 |---|---|
@@ -63,7 +51,7 @@ Command-mode `&&` and `||` short-circuit on the completed Status: `&&` runs its 
 
 Josh has no `for` production. At statement head, `for` remains an ordinary command word and may resolve through PATH.
 
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 ```josh
 fn count() {
@@ -79,8 +67,6 @@ try { sh -c 'exit 7' } catch (problem) { printf '%s\n' (problem.status.code) }
 ```
 
 <a id="J-JOBS-001"></a>
-## Background jobs <span class="status status--planned" aria-label="Status: Planned">Planned</span>
-
-**Availability:** Excluded from the current implementation. Tracking: [Planned work](../roadmap/planned.md#j-jobs-001).
+## Background jobs
 
 `&`, `jobs`, `fg`, and `bg` are rejected. Background execution, a job table, terminal process-group transfer, and Job values are not partially implemented. The syntax and value shape for assigning a background operation remain [Unresolved](../roadmap/unresolved.md#J-BG-001).

@@ -1,15 +1,7 @@
 # Deterministic PNG screenshots
 
-<div class="status-coverage">
-
-**Status coverage:** [AT-PNG-001](../status/matrix.md#AT-PNG-001) — **Implemented**; [AT-SNAP-001](../status/matrix.md#AT-SNAP-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 <a id="AT-PNG-001"></a>
-## Pixel renderer <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in agent-terminal 0.1.0. Evidence: reviewed exact-pixel and fixed-digest fixtures, real Ghostty OSC/DECSCUSR and CLI tests, and repeated byte comparisons in `scripts/josh-e2e.sh`.
+## Pixel renderer
 
 `agent-terminal screenshot [SESSION] [PATH] [--json]` requests schema-v2 semantic state from the selected live daemon, copies it into the client, validates the complete response, and renders there. It does not parse ANSI or scrape formatter text. Omitting PATH writes the platform temporary directory's `agent-terminal-SESSION.png`. Relative paths use the client's working directory. The write truncates an existing file; parent directories are not created.
 
@@ -33,7 +25,7 @@ Before allocating or painting, the client validates response/request IDs, handsh
 
 Determinism means identical semantic state, binary, lockfile, embedded font bytes, and frozen visible blink phase produce identical PNG bytes. A changing terminal revision, captured color/palette/cursor state, cursor location, grid, or build input may produce a different image. Wait for stability before comparing a live session.
 
-<p class="example-label example-label--implemented"><strong>Implemented CLI sequence · Runnable with agent-terminal 0.1.0</strong></p>
+<p class="example-label"><strong>CLI sequence · runnable with agent-terminal 0.1.0</strong></p>
 
 ```sh
 agent-terminal wait "$id" --stable 200ms --timeout 5s

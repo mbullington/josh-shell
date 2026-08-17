@@ -1,15 +1,7 @@
 # agent-terminal daemon
 
-<div class="status-coverage">
-
-**Status coverage:** [AT-PTY-001](../status/matrix.md#AT-PTY-001) — **Implemented**; [AT-PROTO-001](../status/matrix.md#AT-PROTO-001) — **Implemented**; [AT-LIFE-001](../status/matrix.md#AT-LIFE-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 <a id="AT-PTY-001"></a>
-## PTY and Ghostty ownership <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in agent-terminal 0.1.0. Evidence: linked-library identity tests plus real PTY, semantic snapshot, input, resize, and lifecycle smoke checks.
+## PTY and Ghostty ownership
 
 The child receives three duplicated PTY slave descriptors. Pre-exec creates a session, sets the controlling terminal, and establishes the child process group. Environment preserves caller entries while setting conservative terminal identity variables and fixed initial dimensions.
 

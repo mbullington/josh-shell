@@ -1,11 +1,5 @@
 # Errors
 
-<div class="status-coverage">
-
-**Status coverage:** [J-ERR-001](../status/matrix.md#J-ERR-001) — **Implemented**; [J-CF-001](../status/matrix.md#J-CF-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 Josh is error-first. A completed nonzero external command raises a structured Error by default. Pipelines use pipefail. Batch execution stops and exits nonzero; interactive execution prints the error and returns to the prompt.
 
 Errors cover parsing, undefined identifiers, type failures, excluded capabilities, command lookup, spawn, command/pipeline status, stream decode/JSON, redirection planning, glob no-match, capture, and `cd`. Process failures retain ordered stage outcomes.

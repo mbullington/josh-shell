@@ -1,15 +1,7 @@
 # Parser and parse result
 
-<div class="status-coverage">
-
-**Status coverage:** [J-PARSE-001](../status/matrix.md#J-PARSE-001) — **Implemented**; [J-PARSE-004](../status/matrix.md#J-PARSE-004) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 <a id="J-PARSE-001"></a>
-## One lossless tolerant parse <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in Josh 0.1.0. Evidence: source reconstruction, UTF-8 boundary, AST-shape, diagnostics, and strict-policy tests.
+## One lossless tolerant parse
 
 The public operation returns `Parse { source, tokens, program, diagnostics, completeness }`. Source is shared `Arc<str>`. Concrete tokens include trivia, lexical mode, and UTF-8 byte span; token slices partition source exactly. Semantic AST nodes have spans and can represent zero-width Missing or source-covering Error nodes.
 

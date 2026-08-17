@@ -1,11 +1,5 @@
 # Write and run a script
 
-<div class="status-coverage">
-
-**Status coverage:** [J-CLI-001](../status/matrix.md#J-CLI-001) — **Implemented**; [J-RUN-005](../status/matrix.md#J-RUN-005) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 Create a UTF-8 file. Scripts, `-c`, and accepted REPL lines all pass through `Engine::run_source`; they do not have separate parsers or evaluators.
 
 **Host command**

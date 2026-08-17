@@ -1,15 +1,7 @@
 # agent-terminal security
 
-<div class="status-coverage">
-
-**Status coverage:** [AT-SEC-001](../status/matrix.md#AT-SEC-001) — **Implemented**; [AT-LIFE-001](../status/matrix.md#AT-LIFE-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 <a id="AT-SEC-001"></a>
-## Local trust boundary <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in agent-terminal 0.1.0. Evidence: the real CLI smoke test asserts owner-only runtime/session directories and control sockets.
+## Local trust boundary
 
 Launching a command grants ordinary local code-execution authority. agent-terminal is not a sandbox. Never expose its control socket through TCP, a web service, or an untrusted same-user boundary.
 

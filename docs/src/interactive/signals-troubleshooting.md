@@ -1,15 +1,7 @@
 # Signals and troubleshooting
 
-<div class="status-coverage">
-
-**Status coverage:** [J-REPL-005](../status/matrix.md#J-REPL-005) — **Implemented**; [J-JOBS-001](../status/matrix.md#J-JOBS-001) — **Planned**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 <a id="J-REPL-005"></a>
-## Clean interruption <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in Josh 0.1.0. Evidence: Ctrl-C PTY probes for partial input and a foreground child.
+## Clean interruption
 
 Ctrl-C while editing discards the current input and redraws a fresh prompt. Ctrl-D on an empty buffer exits. While a command or structured graph runs, Josh's caught SIGINT marks that active execution as cancelled. Josh stops and joins in-shell workers, terminates and reaps external child process groups—including commands called by stream functions—and then returns to the prompt. The evaluator itself polls the same cancellation state at statement and loop boundaries, so Ctrl-C also unwinds pure-Josh computation (`loop {}`, long `while` runs) promptly instead of waiting for a subprocess to appear. Ctrl-Z on a foreground pipeline kills it and prints a 'suspended jobs are not supported' diagnostic; job control remains deliberately out of scope (J-JOBS-001).
 

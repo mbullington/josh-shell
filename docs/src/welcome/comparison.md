@@ -1,11 +1,5 @@
 # Josh compared with other shells
 
-<div class="status-coverage">
-
-**Status coverage:** This page makes no product-availability claims. It compares design boundaries; use the [capability matrix](../status/matrix.md) for availability.
-
-</div>
-
 Josh borrows familiar command invocation, pipelines, redirections, globbing, status chains, and functions from Unix shells, but it does not claim POSIX compatibility. The grammar and expansion rules differ, and background job control is unavailable, so POSIX shell scripts do not automatically run in Josh.
 
 Its expression surface looks JavaScript-shaped, but Josh has no JavaScript event loop, Promise, `async`/`await`, npm, prototypes, classes, `this`, or coercive `==`. Strict equality uses `===` and `!==`. Runtime semantics are designed for deterministic shell data rather than browser or Node.js objects.

@@ -1,19 +1,11 @@
 # Editing and multiline input
 
-<div class="status-coverage">
-
-**Status coverage:** [J-REPL-001](../status/matrix.md#J-REPL-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 <a id="J-REPL-001"></a>
-## Parser-driven editing <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in Josh 0.1.0. Evidence: Reedline validator tests and PTY multiline probes.
+## Parser-driven editing
 
 The main prompt is `josh> ` and the continuation prompt is `...> `. Reedline handles cursor movement and ordinary editing. On validation, Josh parses the whole buffer once and requests continuation only for `Completeness::Incomplete`.
 
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 ```console
 josh> (1 +

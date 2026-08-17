@@ -1,11 +1,5 @@
 # Josh's model
 
-<div class="status-coverage">
-
-**Status coverage:** [J-PARSE-002](../status/matrix.md#J-PARSE-002) — **Implemented**; [J-STRUCT-001](../status/matrix.md#J-STRUCT-001) — **Implemented**. See [status conventions](status-conventions.md).
-
-</div>
-
 Josh classifies each statement as command mode or expression mode from source shape, tokens, and adjacency—not runtime values. A bare command head such as `git` starts command mode. Assignment or an adjacent call/member/index continuation starts expression mode.
 
 Command mode treats words as argv. Expression mode gives operators arithmetic or logical meaning. Parentheses preceded by whitespace insert one evaluated expression into a command argument list.

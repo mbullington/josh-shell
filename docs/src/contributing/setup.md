@@ -1,11 +1,5 @@
 # Development setup and repository map
 
-<div class="status-coverage">
-
-**Status coverage:** This page makes no product-availability claims. Setup commands do not promote capabilities.
-
-</div>
-
 Josh is a six-crate Rust workspace. Rust/Cargo and common Unix test utilities are required.
 
 | Path | Ownership |
@@ -20,4 +14,4 @@ Josh is a six-crate Rust workspace. Rust/Cargo and common Unix test utilities ar
 
 The sibling `/Users/mbullington/Projects/agent-terminal` tree separates CLI/client, daemon, protocol, runtime paths, PTY, semantic Ghostty FFI, and client-side PNG renderer. `vendor/ghostty`, Zig 0.16.0, renderer crates, and four font faces are pinned build inputs. `scripts/smoke.sh` proves the core terminal slice; `scripts/josh-e2e.sh` proves the complete cross-product scenario.
 
-The manual is a conventional mdBook under `docs`: hand-edited `src/SUMMARY.md`, Markdown source, `theme/status.css`, and deterministic `tools/check-manual.py`. The checker validates page reachability, links/fragments, capability/status consistency, fence labeling/extraction, generated code blocks, duplicate IDs, literal fences, the agent-terminal wait row, and status-color contrast. It uses no custom JavaScript.
+The manual is a conventional mdBook under `docs`: hand-edited `src/SUMMARY.md`, Markdown source, and deterministic `tools/check-manual.py`. The checker validates page reachability, links/fragments, fence labeling/extraction, generated code blocks, duplicate IDs, literal fences, and the agent-terminal wait row. It uses no custom JavaScript.

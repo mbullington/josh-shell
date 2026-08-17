@@ -1,15 +1,7 @@
 # argv and pipeline boundaries
 
-<div class="status-coverage">
-
-**Status coverage:** [J-ARGV-001](../status/matrix.md#J-ARGV-001) — **Implemented**; [J-RUN-003](../status/matrix.md#J-RUN-003) — **Implemented**; [J-STRUCT-001](../status/matrix.md#J-STRUCT-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 <a id="J-ARGV-001"></a>
-## Command-word conversion <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in Josh 0.1.0. Evidence: argv, glob, tilde, structured-stream, and invalid-UTF-8 tests.
+## Command-word conversion
 
 | Source shape | Result |
 |---|---|
@@ -33,7 +25,8 @@ There is no shell word splitting. Quotes suppress glob and tilde expansion. Only
 | bytes → `text` | One String, or Bytes for invalid UTF-8 |
 | bytes → `json` | One parsed JSON value |
 | bytes → `lines`/`jsonl`/`chunks` | Streaming values with many cardinality |
-| bytes → function/`map` | Pre-spawn planning error with an explicit-transformer hint |
+| bytes → function | Bounded collect into one Bytes value; the function runs once after upstream closes. Byte streams never decode implicitly — the function chooses `String(bytes)` or byte-level work |
+| bytes → `map fn` | Pre-spawn planning error with an explicit-transformer hint |
 | values → function/`map`/`filter` | One call per item; map emits return values and filter emits retained input values |
 | values → `take`/`first` | Bounded output and upstream cancellation |
 | values → `collect` | One Array value |

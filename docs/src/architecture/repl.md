@@ -1,11 +1,5 @@
 # Reedline integration
 
-<div class="status-coverage">
-
-**Status coverage:** [J-REPL-001](../status/matrix.md#J-REPL-001) — **Implemented**; [J-REPL-002](../status/matrix.md#J-REPL-002) — **Implemented**; [J-REPL-003](../status/matrix.md#J-REPL-003) — **Implemented**; [J-REPL-004](../status/matrix.md#J-REPL-004) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 ## Reedline ownership
 
 The REPL adapter is outside parser and runtime modules. `ReplAnalyzer` exposes parse and completion-context operations. Validator maps only Incomplete to continuation. Highlighter and completer independently parse immutable buffers and use UTF-8 byte spans.

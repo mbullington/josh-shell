@@ -1,15 +1,7 @@
 # Install agent-terminal
 
-<div class="status-coverage">
-
-**Status coverage:** [AT-BUILD-001](../status/matrix.md#AT-BUILD-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 <a id="AT-BUILD-001"></a>
-## Pinned static build <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in agent-terminal 0.1.0. Evidence: exact Ghostty pin and Zig 0.16.0 checks, linked-library identity tests, and `otool`/`nm` static-link inspection.
+## Pinned static build
 
 The repository vendors Ghostty as a git submodule. `build.rs` refuses a missing or mismatched revision, a dirty source tree, a mismatched tree digest, and a different Zig version. The static archive is keyed by the verified tree digest and build profile. Checked-in narrow bindings keep bindgen out of normal builds.
 

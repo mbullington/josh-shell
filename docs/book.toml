@@ -1,6 +1,6 @@
 [book]
 title = "Josh Manual"
-description = "The status-safe manual for Josh and agent-terminal"
+description = "The manual for Josh and agent-terminal"
 authors = ["Josh contributors"]
 language = "en"
 src = "src"
@@ -12,7 +12,6 @@ create-missing = false
 [output.html]
 default-theme = "light"
 preferred-dark-theme = "navy"
-additional-css = ["theme/status.css"]
 no-section-label = false
 
 [output.html.print]

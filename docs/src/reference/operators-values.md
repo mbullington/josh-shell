@@ -1,15 +1,7 @@
 # Operators and values
 
-<div class="status-coverage">
-
-**Status coverage:** [J-EXPR-001](../status/matrix.md#J-EXPR-001) — **Implemented**; [J-EXPR-004](../status/matrix.md#J-EXPR-004) — **Implemented**; [J-NAMES-001](../status/matrix.md#J-NAMES-001) — **Implemented**; [J-UNICODE-001](../status/matrix.md#J-UNICODE-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 <a id="J-EXPR-001"></a>
-## Implemented expression values <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in Josh 0.1.0. Evidence: parser/evaluator tests for values, operators, access, spread, destructuring, `if`/`try` expressions, member assignment, and namespace converters.
+## Expression values
 
 Values are Null, Bool, Int, Float, String, Bytes, Array, insertion-ordered Object, Function, Error, and Status. Arrays/objects are Arc-backed. Object overwrite retains the original key position. Data, errors, and statuses compare structurally; user functions compare by identity.
 
@@ -32,33 +24,27 @@ Arrays/objects support literals and spread. `let` and parameters support nested 
 `object.key = value` and `object[index] = value` assign existing or new fields on object values in place and evaluate to the assigned value; they are errors on other kinds.
 
 <a id="J-NAMES-001"></a>
-## Builtin namespaces and prototypes <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in Josh 0.1.0. Evidence: `prototype_namespaces_methods_and_statics_are_first_class`, `file_date_and_math_namespaces_cover_the_flattened_surface`, and the namespace runtime tests.
+## Builtin namespaces and prototypes
 
 Scalar converters live as namespace callables: `String(1)`, `Number("42")`, `Boolean([])`, `Array(...)`, `error(...)`, and `glob("pattern")`. Calling `Object(...)` is a type error; objects come from literals. `Number(value)` keeps Josh's conversion rules (`int`/`float` arguments; strings choose Int when the text is integral, otherwise Float, then error) and rejects bool, null, object, function, error, and status inputs.
 
-Methods sit on prototype tables owned by the namespaces (full method lists live in [prototypes and namespaces](../language/prototypes-namespaces.md)). `String.prototype` carries `at`/`contains`/`startsWith`/`endsWith`/`split`/`replace`/`replaceAll`/`trim`/`toUpperCase`/`toLowerCase`, `Number.prototype` carries `abs`/`ceil`/`floor`/`round`/`norm`, and `Array.prototype` carries `at`/`contains`/`map`/`filter`/`reduce`/`flat`/`join`/`slice` plus `push`/`pop`/`reverse`/`sort`, which edit the array in place JavaScript-style — every alias observes the edit; `push` returns the new length, `pop` the removed element (null when empty), and `reverse`/`sort` the array itself. `.length` answers directly on arrays, strings, and bytes as a builtin member read (not a prototype function). Extending PATH is three steps because `env.PATH` reads materialize a fresh array: `paths = env.PATH; paths.push("/new/dir"); env.PATH = paths`. Method lookup is own fields first, then the receiver's custom prototype chain, then its type prototype, then Null. Prototype entries receive the receiver as the first argument (creators use `(this, ...)`-style parameters); `+` does not dispatch through tables. Object literals chain off the root `Object.prototype`, which currently starts empty — enumeration goes through the `Object.keys`/`Object.values`/`Object.entries` statics until the root table grows members.
+Methods sit on prototype tables owned by the namespaces (full method lists live in [prototypes and namespaces](../language/prototypes-namespaces.md)). `String.prototype` carries `at`/`contains`/`startsWith`/`endsWith`/`split`/`replace`/`replaceAll`/`trim`/`toUpperCase`/`toLowerCase`, `Number.prototype` carries `abs`/`ceil`/`floor`/`round`/`norm`, and `Array.prototype` carries `at`/`contains`/`map`/`filter`/`reduce`/`flat`/`join` plus `push`/`pop`/`reverse`/`sort`, which edit the array in place JavaScript-style — every alias observes the edit; `push` returns the new length, `pop` the removed element (null when empty), and `reverse`/`sort` the array itself. `.length` answers directly on arrays, strings, and bytes as a builtin member read (not a prototype function). Extending PATH is three steps because `env.PATH` reads materialize a fresh array: `paths = env.PATH; paths.push("/new/dir"); env.PATH = paths`. Method lookup is own fields first, then the receiver's custom prototype chain, then its type prototype, then Null. Prototype entries receive the receiver as the first argument (creators use `(this, ...)`-style parameters); `+` does not dispatch through tables. Object literals chain off the root `Object.prototype`, which currently starts empty — enumeration goes through the `Object.keys`/`Object.values`/`Object.entries` statics until the root table grows members.
 
 `Object.keys(o)`, `Object.values(o)`, `Object.entries(o)`, `Object.freeze(o)`, and `Object.isFrozen(o)` cover statics; `Object.freeze` seals an object against member assignment, and `Object.isFrozen` reports it. `Object.prototype` itself is immutable, so anonymous objects cannot mutate the shared tables.
 
 `Date.now()` returns epoch-milliseconds Int, `Date.fromTimestamp(value)` parses epoch numbers or RFC3339 timestamps into `{timestamp millis, epochSeconds, timezone, text, datetimeComponents}`, and `Date.toTimestamp(value)` formats them back to ISO-8601 UTC (Int/Float/text input). `File.exists(path)` / `File.stat(path)` report basic cwd-relative file metadata as `{exists, file, directory, byteSize}`; null/empty paths stay false. `Math` exposes `PI`, `E`, `TAU`, abs/sign/truncate/floor/ceil/round (Int-preserving), sqrt/cbrt/exp/log/log2/log10/pow (Float), min/max variadic, and `random()` (Float [0,1)).
 
 <a id="J-UNICODE-001"></a>
-## String indexing unit <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in Josh 0.1.0 with Unicode scalar positions; the unit policy changed to UTF-16 code units on 2026-08-16. Evidence: Unicode string `length`, `at`, signed-index, and range-slice tests.
+## String indexing unit
 
 String indexing counts UTF-16 code units (JavaScript semantics), not UTF-8 bytes or grapheme clusters: `"😀".length` is 2. Josh strings are Rust strings and can only hold whole code points, so a position inside a surrogate pair resolves outward to the full code point — `"😀ab"[0]` and `"😀ab"[1]` are both `"😀"` instead of JS's lone surrogates. Negative indexes count from the end. This policy applies to `length`, `at`, bracket indexing, and range slices; unsupported positions return Null.
 
 <a id="J-EXPR-004"></a>
-## Range slices <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in development snapshots since 2026-08-16. Evidence: slice parse and semantics tests.
+## Range slices
 
 `a[b..c]` slices an array or a string with JavaScript `slice()` bound semantics:
 
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 ```josh
 letters = ["a", "b", "c", "d", "e"]

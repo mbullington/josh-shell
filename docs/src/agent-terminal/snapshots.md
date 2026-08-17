@@ -1,15 +1,7 @@
 # Semantic snapshots
 
-<div class="status-coverage">
-
-**Status coverage:** [AT-SNAP-001](../status/matrix.md#AT-SNAP-001) — **Implemented**; [AT-PNG-001](../status/matrix.md#AT-PNG-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 <a id="AT-SNAP-001"></a>
-## Visible semantic state <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in agent-terminal 0.1.0. Evidence: real CLI tests assert Ghostty title, text, fixed grids, row/cell/style facts, wide cells, and background-only cells.
+## Visible semantic state
 
 Default `snapshot` output starts with session, grid, cursor, revision, and process metadata, followed by Ghostty-formatted visible plain text. `--json` emits semantic schema v2.
 

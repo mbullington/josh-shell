@@ -1,15 +1,7 @@
 # Files, redirections, and globs
 
-<div class="status-coverage">
-
-**Status coverage:** [J-FILES-001](../status/matrix.md#J-FILES-001) — **Implemented**; [J-TILDE-001](../status/matrix.md#J-TILDE-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 <a id="J-FILES-001"></a>
-## Redirections and glob expansion <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in Josh 0.1.0. Evidence: descriptor-order, pre-spawn validation, glob policy, and cross-product tests.
+## Redirections and glob expansion
 
 Redirections attach to the external command stage they follow:
 
@@ -29,7 +21,7 @@ Josh first evaluates every stage, expands argv/globs, and resolves every externa
 
 A target must evaluate to exactly one path. Array/object targets error. An unquoted glob target is allowed only when it matches exactly one path; zero matches is a glob error and multiple matches violate the one-path rule. Redirections on `cd`, `exit`, lexical functions, or in-shell transformer stages are unsupported.
 
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 ```josh
 sh -c 'printf out; printf err >&2' > output.txt 2>&1
@@ -40,7 +32,7 @@ Unquoted command words expand `*`, `?`, bracket classes, and `**` before invocat
 
 `glob(pattern)` accepts one String, applies the same matching, sorting, and no-match policy, and returns an Array of String paths on valid UTF-8 platforms or Bytes where a Unix path is not valid UTF-8.
 
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 ```josh
 printf '%s\n' **/*.md
@@ -51,13 +43,11 @@ files = glob("crates/**/*.rs")
 REPL file completion and execution-time glob expansion are separate features.
 
 <a id="J-TILDE-001"></a>
-## Tilde expansion <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in the current development snapshot. Evidence: lexer and expansion tests for `~` and `~/` at word starts.
+## Tilde expansion
 
 An unquoted leading `~` alone or followed by `/` expands to the session's home directory: the session `HOME` when exported, else the per-process home at startup. Other forms (`~user`, `~+`, mid-word tildes) never expand and stay literal text.
 
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 ```josh
 cd ~/Projects

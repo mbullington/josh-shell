@@ -1,15 +1,7 @@
 # Disambiguation catalog
 
-<div class="status-coverage">
-
-**Status coverage:** [J-PARSE-003](../status/matrix.md#J-PARSE-003) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 <a id="J-PARSE-003"></a>
-## Statement-head outcomes <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in Josh 0.1.0. Evidence: `ambiguity_corpus_has_stable_statement_shapes` and `if_condition_variants_are_explicit` goldens.
+## Statement-head outcomes
 
 | Source | Committed interpretation | Parse result |
 |---|---|---|

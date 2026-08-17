@@ -1,24 +1,14 @@
 # Functions, arrows, and UFCS
 
-<div class="status-coverage">
-
-**Status coverage:** [J-EXPR-002](../status/matrix.md#J-EXPR-002) — **Implemented**; [J-FUNC-001](../status/matrix.md#J-FUNC-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 <a id="J-EXPR-002"></a>
-## Function-shaped syntax <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in Josh 0.1.0. Evidence: AST and evaluator tests for calls, member/index access, arrows, declarations, spread, and destructuring.
+## Function-shaped syntax
 
 Calls require adjacency: `value(args)`, `value.member`, and `value[index]`. A space before `(` instead makes the parenthesized expression a command argument. Arrows accept one bare parameter or a parenthesized parameter list. Their body is one expression or a block.
 
 <a id="J-FUNC-001"></a>
-## Function execution and UFCS <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
+## Function execution and UFCS
 
-**Availability:** Available in Josh 0.1.0. Evidence: closure, recursion, method, command-position, and UFCS tests.
-
-`fn name(params) { ... }` and arrow functions share one Function value. A closure copies all visible lexical bindings when it is created; later reassignment outside the closure does not change that snapshot. Named functions rebind themselves while called, so direct recursion works without cyclic ownership. Declarations are source-ordered, not hoisted, and mutual forward recursion is unavailable.
+`fn name(params) { ... }` and arrow functions share one Function value. A closure copies all visible lexical bindings when it is created; later reassignment outside the closure does not change that snapshot. Named functions rebind themselves while called, so direct recursion works without cyclic ownership. Declarations are source-ordered, not hoisted, but calls resolve names when invoked, so functions defined later in the same script can call back into earlier ones (mutual recursion included). Scope is lexical: a running function sees its own parameters, its captured snapshot, and shared top-level bindings — it can neither see nor rewrite bindings owned by another active function.
 
 Parameters allow nested array/object destructuring and one trailing rest pattern. Missing arguments bind Null; extra arguments are ignored. `...array` expands a call argument list. Spreading any other value is a type error. `return` without a value returns Null. `break` and `continue` cannot cross a function boundary.
 
@@ -30,7 +20,7 @@ A visible lexical function in command position runs before PATH lookup and recei
 
 A prototype method therefore wins over a same-named lexical function, and an own field wins over a prototype method. Josh has no `this`, classes, or hoisting; the builtin prototype tables are the only shared method registry, and prototype methods declare the receiver explicitly with first-argument parameters (for example `(this, ...)`).
 
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 ```josh
 x = 10
@@ -63,7 +53,6 @@ Methods are nonmutating. An exact argument-count or argument-type mismatch is a 
 | Array | `.reduce(fn[, initial])` | Calls `fn(accumulator, item, index, array)`; an empty Array without `initial` errors |
 | Array | `.flat([depth])` | Flatten nested Arrays; default depth 1; depth must be a nonnegative Int |
 | Array | `.join([separator])` | Scalar-string elements joined with `,` or the String separator |
-| Array | `.slice([start[, end]])` | Half-open signed/clamped range copied into a new Array |
 | Object | `.keys()` | Keys in insertion order |
 | Object | `.entries()` | `[key, value]` pairs in insertion order |
 

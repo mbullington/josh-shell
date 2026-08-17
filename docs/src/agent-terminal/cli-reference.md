@@ -1,15 +1,7 @@
 # agent-terminal CLI reference
 
-<div class="status-coverage">
-
-**Status coverage:** [AT-CLI-001](../status/matrix.md#AT-CLI-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 <a id="AT-CLI-001"></a>
-## Command surface <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in agent-terminal 0.1.0. Evidence: the real cross-invocation CLI smoke test and [`scripts/josh-e2e.sh`](josh-scenario.md#AT-JOSH-001).
+## Command surface
 
 | Command | Source-defined usage | Output |
 |---|---|---|

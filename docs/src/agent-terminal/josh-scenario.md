@@ -1,15 +1,7 @@
 # Automate the complete Josh scenario
 
-<div class="status-coverage">
-
-**Status coverage:** [AT-JOSH-001](../status/matrix.md#AT-JOSH-001) — **Implemented**; [J-REPL-001](../status/matrix.md#J-REPL-001) — **Implemented**; [AT-PNG-001](../status/matrix.md#AT-PNG-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 <a id="AT-JOSH-001"></a>
-## Cross-product scenario <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in agent-terminal 0.1.0 with Josh 0.1.0. Evidence: `scripts/josh-e2e.sh` drives the real fixed-grid REPL and verifies artifacts and cleanup.
+## Cross-product scenario
 
 **Host command**
 ```sh

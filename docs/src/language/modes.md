@@ -1,15 +1,7 @@
 # Command mode and expression mode
 
-<div class="status-coverage">
-
-**Status coverage:** [J-PARSE-002](../status/matrix.md#J-PARSE-002) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 <a id="J-PARSE-002"></a>
-## Deterministic mode selection <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in Josh 0.1.0. Evidence: statement-shape goldens and lossless token-mode tests.
+## Deterministic mode selection
 
 At statement position, a shell word that is not exactly a JavaScript identifier starts a command. An identifier starts assignment when the next significant token is `=`, `+=`, or `-=`. It starts an expression for an adjacent `(`, `.`, or `[`, or for `=>` with or without trivia. `let` and `if` route to dedicated productions. `for` is an ordinary command word, not a keyword.
 

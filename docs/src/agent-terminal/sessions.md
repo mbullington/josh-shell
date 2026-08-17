@@ -1,15 +1,7 @@
 # Sessions and process lifecycle
 
-<div class="status-coverage">
-
-**Status coverage:** [AT-LIFE-001](../status/matrix.md#AT-LIFE-001) — **Implemented**; [AT-PTY-001](../status/matrix.md#AT-PTY-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 <a id="AT-LIFE-001"></a>
-## One daemon per session <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in agent-terminal 0.1.0. Evidence: cross-invocation smoke and Josh scenarios launch, inspect, close, and directly verify daemon and child reaping.
+## One daemon per session
 
 `launch` starts the same executable in hidden daemon mode under `setsid()`, waits up to five seconds for a protocol handshake, then sends argv, cwd, dimensions, and inherited environment. It executes argv directly; no shell expansion occurs unless the caller explicitly launches a shell.
 

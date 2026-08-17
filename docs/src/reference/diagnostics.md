@@ -1,15 +1,7 @@
 # Diagnostics and exit behavior
 
-<div class="status-coverage">
-
-**Status coverage:** [J-ERR-001](../status/matrix.md#J-ERR-001) — **Implemented**; [J-PARSE-004](../status/matrix.md#J-PARSE-004) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 <a id="J-ERR-001"></a>
-## Diagnostic and process errors <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in Josh 0.1.0. Evidence: parser diagnostic-code assertions, batch CLI tests, and ordered process-outcome tests.
+## Diagnostic and process errors
 
 | Code | Meaning |
 |---|---|

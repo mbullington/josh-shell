@@ -1,15 +1,7 @@
 # Josh command-line interface
 
-<div class="status-coverage">
-
-**Status coverage:** [J-CLI-001](../status/matrix.md#J-CLI-001) — **Implemented**; [J-CONFIG-001](../status/matrix.md#J-CONFIG-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 <a id="J-CLI-001"></a>
-## CLI entry points <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in Josh 0.1.0. Evidence: help/version, command/script, config, error, and exit-policy tests.
+## CLI entry points
 
 **Host command**
 ```text

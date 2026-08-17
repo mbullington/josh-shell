@@ -1,11 +1,5 @@
 # Glossary
 
-<div class="status-coverage">
-
-**Status coverage:** This page makes no product-availability claims. Definitions do not imply implementation.
-
-</div>
-
 **Josh** — JavaScript Object Shell, a Unix-first shell with a JavaScript-shaped deterministic data language.
 
 **Command mode** — lexical/parser context in which bare words form command argv and shell operators delimit pipelines/statements.

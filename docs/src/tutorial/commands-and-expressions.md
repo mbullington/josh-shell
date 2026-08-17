@@ -1,14 +1,8 @@
 # Commands and expressions
 
-<div class="status-coverage">
-
-**Status coverage:** [J-PARSE-002](../status/matrix.md#J-PARSE-002) — **Implemented**; [J-EXPR-001](../status/matrix.md#J-EXPR-001) — **Implemented**; [J-CF-001](../status/matrix.md#J-CF-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 At statement position, `printf hello` is a command: every bare word is argv text. `(20 + 22)` begins an expression. Assignment also selects expression mode for its right-hand side.
 
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 ```console
 josh> total = 20 + 22
@@ -23,7 +17,7 @@ Expression mode evaluates Null, booleans, numbers, strings, arrays, objects, fun
 
 At command level, `&&` and `||` form a status chain rather than argv. They run the right pipeline after success or failure respectively. A completed nonzero status is handled by the chain; lookup, interpolation, spawn, and type errors still propagate.
 
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 ```console
 josh> sh -c 'exit 7' || printf 'recovered\n'

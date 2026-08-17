@@ -1,16 +1,10 @@
 # Snapshot and protocol schemas
 
-<div class="status-coverage">
-
-**Status coverage:** [AT-SNAP-001](../status/matrix.md#AT-SNAP-001) — **Implemented**; [AT-PROTO-001](../status/matrix.md#AT-PROTO-001) — **Implemented**; [AT-PNG-001](../status/matrix.md#AT-PNG-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 ## Semantic snapshot schema v2
 
 A snapshot has `schema_version`, `session_id`, `revision`, tagged `process`, `cols`, `rows`, captured `default_foreground`, `default_background`, the active 256-entry `palette`, `cursor`, optional `title`, `active_screen`, formatter `text`, `row_data`, `cells`, and deduplicated `styles`. The color fields are Ghostty render state copied by the daemon, not client theme substitutions.
 
-<p class="example-label example-label--implemented"><strong>Implemented JSON shape · Emitted by agent-terminal 0.1.0</strong></p>
+<p class="example-label"><strong>JSON shape · emitted by agent-terminal 0.1.0</strong></p>
 
 ```json
 {
@@ -49,9 +43,7 @@ Rows carry `index`, `wrap`, `wrap_continuation`, `semantic_prompt` (`none`, `pro
 Screenshot JSON is a command result, not schema v2. It contains `path`, `session_id`, `revision`, `width`, `height`, `bytes`, `dpi`, `cell_width`, and `cell_height`. PNG bytes carry no session metadata.
 
 <a id="AT-PROTO-001"></a>
-## NDJSON protocol v1 <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in agent-terminal 0.1.0. Evidence: fresh CLI processes handshake and exchange typed launch, input, wait, snapshot, resize, list, and close requests in the smoke tests.
+## NDJSON protocol v1
 
 Requests carry `protocol_version: 1`, `request_id`, and a tagged command. Responses repeat the version and request ID and contain either a tagged result or `{code, message, details?}` error. Handshake returns CLI version, protocol version, Ghostty SHA, daemon PID, session ID, and process state.
 

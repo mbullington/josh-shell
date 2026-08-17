@@ -1,11 +1,5 @@
 # Install and build
 
-<div class="status-coverage">
-
-**Status coverage:** [J-CLI-001](../status/matrix.md#J-CLI-001) — **Implemented**; [AT-BUILD-001](../status/matrix.md#AT-BUILD-001) — **Implemented**. See [status conventions](status-conventions.md).
-
-</div>
-
 Josh is a six-crate Rust workspace with one `josh` binary. The repository lockfile pins Rust dependencies.
 
 <a id="J-CLI-001-install"></a>

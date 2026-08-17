@@ -1,11 +1,5 @@
 # Build and test
 
-<div class="status-coverage">
-
-**Status coverage:** [J-CLI-001](../status/matrix.md#J-CLI-001) — **Implemented**; [AT-BUILD-001](../status/matrix.md#AT-BUILD-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 Use separate Cargo target directories to run independent checks concurrently. Otherwise serialize Cargo commands that share `target`, and always serialize terminal scripts that own sockets or process lifecycles.
 
 ## Josh evidence
@@ -52,7 +46,7 @@ python3 docs/tools/check-manual.py
 mdbook build docs
 ```
 
-The checker builds a temporary mdBook and inspects all source and generated pages for SUMMARY reachability, links/fragments, literal fences, duplicate IDs, source-to-HTML code-block preservation, extracted runnable examples, capability/status drift, matrix provenance, table shape, and status-color contrast. The 2026-08-15 run passed 66 pages and 42 capabilities and extracted 26 runnable fences. The persistent build is `docs/book/index.html`; review the retained PNG at `../agent-terminal/target/josh-e2e/screenshot.png`.
+The checker builds a temporary mdBook (when mdbook is on PATH) and inspects all source and generated pages for SUMMARY reachability, links/fragments, fence labeling, literal fences, duplicate IDs, source-to-HTML code-block preservation, extracted runnable examples, and table shape. The persistent build is `docs/book/index.html`; review the retained PNG at `../agent-terminal/target/josh-e2e/screenshot.png`.
 
 Man pages live in `docs/man/*.scd` (scdoc) with the generated roff committed; `scripts/build-man.sh` regenerates and soft-validates them. Keep the man page a summary — the manual remains the language reference.
 

@@ -1,11 +1,5 @@
 # agent-terminal troubleshooting
 
-<div class="status-coverage">
-
-**Status coverage:** [AT-BUILD-001](../status/matrix.md#AT-BUILD-001) — **Implemented**; [AT-LIFE-001](../status/matrix.md#AT-LIFE-001) — **Implemented**; [AT-WAIT-001](../status/matrix.md#AT-WAIT-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 - **Zig version check times out:** let the pinned Nix fetch complete, then rerun `test "$(nix develop -c zig version)" = 0.16.0`. Do not use system Zig or replace Ghostty.
 - **Ghostty revision mismatch:** run `git submodule update --init --recursive` and verify the exact full SHA. Do not move the pin without reviewing bindings and schemas.
 - **No session or ambiguous session:** run `agent-terminal list`; pass a full ID or unique prefix of at least eight hex characters.

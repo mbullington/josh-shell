@@ -1,7 +1,6 @@
 # Summary
 
 - [Welcome to Josh](index.md)
-  - [Status conventions](welcome/status-conventions.md)
   - [Install and build](welcome/install.md)
   - [Josh's model](welcome/mental-model.md)
   - [Josh compared with other shells](welcome/comparison.md)
@@ -63,7 +62,6 @@
   - [Change grammar or runtime behavior](contributing/changes.md)
   - [Interactive tests and documentation](contributing/interactive-docs.md)
   - [Release verification](contributing/release-checklist.md)
-- [Capability status](status/matrix.md)
 - [Roadmap](roadmap/index.md)
   - [Verified 0.1.0 scope](roadmap/vertical-slice.md)
   - [Planned work](roadmap/planned.md)

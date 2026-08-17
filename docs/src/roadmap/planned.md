@@ -1,11 +1,5 @@
 # Planned work
 
-<div class="status-coverage">
-
-**Status coverage:** [J-JOBS-001](../status/matrix.md#J-JOBS-001) — **Planned**; [J-MOD-001](../status/matrix.md#J-MOD-001) — **Planned**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 ## J-JOBS-001
 
 Background statements and terminal job control require process-group transfer, status ownership, signal routing, cleanup, a job table, and Job values. Job-value assignment syntax remains [Unresolved](unresolved.md#J-BG-001). Current `&`, `jobs`, `fg`, and `bg` forms are rejected; no partial background execution is available.

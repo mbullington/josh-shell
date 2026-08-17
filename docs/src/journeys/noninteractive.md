@@ -1,11 +1,5 @@
 # Use Josh noninteractively
 
-<div class="status-coverage">
-
-**Status coverage:** [J-CLI-001](../status/matrix.md#J-CLI-001) — **Implemented**; [J-ERR-001](../status/matrix.md#J-ERR-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 Use `-c` for one source argument and a path for a UTF-8 script. Both stop on the first error. Neither accepts trailing positional arguments in Josh 0.1.0.
 
 **Host command**

@@ -1,19 +1,11 @@
 # Prototypes and namespaces
 
-<div class="status-coverage">
-
-**Status coverage:** [J-OBJ-001](../status/matrix.md#J-OBJ-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 <a id="J-OBJ-001"></a>
-## Prototypal method lookup and builtin namespaces <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in the current development snapshot. Evidence: prototype namespace, conversion, member assignment, and cycle-rejection tests.
+## Prototypal method lookup and builtin namespaces
 
 Josh has no classes or implicit `this`. Objects are ordered key/value maps with an optional prototype link, and method lookup walks: the object's own fields → the object's prototype chain → the value's *type prototype*. A method found on a prototype is called with the receiver passed as the first argument.
 
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 ```josh
 Animal = { legs: 4 }
@@ -45,7 +37,7 @@ Rules that stay constant:
 - `Object.setPrototype` refuses cycles; `Object.seal` prevents adding new keys to that object while existing keys stay writable.
 - `o.name = value` and `o[key] = value` mutate objects in place anywhere an expression position was already a statement; assignments target objects only.
 
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 ```josh
 cfg = { retries: 0 }

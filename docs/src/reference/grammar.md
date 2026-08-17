@@ -1,14 +1,8 @@
 # Lexical modes and grammar
 
-<div class="status-coverage">
-
-**Status coverage:** [J-PARSE-001](../status/matrix.md#J-PARSE-001) — **Implemented**; [J-PARSE-002](../status/matrix.md#J-PARSE-002) — **Implemented**; [J-PARSE-004](../status/matrix.md#J-PARSE-004) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 This descriptive EBNF summarizes the implemented slice; the hand-written parser is authoritative. Newline separates command statements and is trivia where expression parsing permits it.
 
-<p class="example-label example-label--implemented"><strong>Implemented grammar summary · Runnable forms only where runtime capability also exists</strong></p>
+<p class="example-label"><strong>Grammar summary</strong></p>
 
 ```text
 program       = { separator | statement } ;
@@ -30,8 +24,6 @@ Expression precedence, low to high: ternary; `||`; `&&`; equality; ordering; `+`
 `for`, jobs, modules, and `source` are not productions. Reserved/excluded forms produce diagnostics rather than argv.
 
 <a id="J-PARSE-004"></a>
-## Completeness and strict policy <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in Josh 0.1.0. Evidence: EOF-classification and strict/tolerant identity tests.
+## Completeness and strict policy
 
 `Complete` means no error diagnostics. `Incomplete` means every error is caused by EOF after appendable missing syntax. Any hard error makes the result `Invalid`. `Parse::strict_program()` accepts only Complete/no-error parses and returns references to the same AST or diagnostics; it never reparses.

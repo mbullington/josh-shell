@@ -1,22 +1,12 @@
 # Modules and configuration
 
-<div class="status-coverage">
-
-**Status coverage:** [J-MOD-001](../status/matrix.md#J-MOD-001) — **Planned**; [J-MOD-002](../status/matrix.md#J-MOD-002) — **Implemented**; [J-CONFIG-001](../status/matrix.md#J-CONFIG-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 <a id="J-MOD-001"></a>
-## Modules <span class="status status--planned" aria-label="Status: Planned">Planned</span>
-
-**Availability:** Excluded from the current implementation. Tracking: [Planned work](../roadmap/planned.md#j-mod-001).
+## Modules
 
 `import` and `export` are rejected. URL and remote modules are also unavailable; Josh has no dependency identity, integrity, cache, update, offline, or trust model for them. `source` is the deliberate include mechanism (below) instead of a module system.
 
 <a id="J-MOD-002"></a>
-## source statement <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in development snapshots since 2026-08-16. Evidence: runtime source tests.
+## source statement
 
 `source path.josh` reads a file, parses it under the strict policy, and evaluates it in the current frame — bash-style, with no new scope, no caching, and no module identity. `let` and `fn` declarations from the file are visible afterwards (aliases share object prototypes), which makes `source` the way to load shared helper files and startup configuration.
 
@@ -25,9 +15,7 @@
 - `return`, `break`, and `continue` cannot escape the sourced file into the caller; they are type errors at the boundary. Loops and functions inside the file behave normally.
 
 <a id="J-CONFIG-001"></a>
-## Configuration <span class="status status--implemented" aria-label="Status: Implemented">Implemented</span>
-
-**Availability:** Available in Josh 0.1.0. Evidence: batch startup, fallback path, interactive prompt, error-policy, and cross-product tests.
+## Configuration
 
 Josh chooses one config root before running requested source:
 
@@ -50,7 +38,7 @@ A visible lexical function named `prompt` controls the interactive primary promp
 
 `JOSH_HISTORY` selects the Reedline history path. Without it, Josh uses `$HOME/.josh_history`, or `./.josh_history` when HOME is absent.
 
-<p class="example-label example-label--implemented"><strong>Runnable example · Implemented</strong></p>
+<p class="example-label"><strong>Runnable example</strong></p>
 
 ```josh
 prefix = "project"

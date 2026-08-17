@@ -1,11 +1,5 @@
 # Runtime and pipelines
 
-<div class="status-coverage">
-
-**Status coverage:** [J-RUN-001](../status/matrix.md#J-RUN-001) — **Implemented**; [J-RUN-003](../status/matrix.md#J-RUN-003) — **Implemented**; [J-RUN-004](../status/matrix.md#J-RUN-004) — **Implemented**; [J-STRUCT-001](../status/matrix.md#J-STRUCT-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 The workspace separates syntax, runtime values/evaluation, process execution, structured streams, interactive editing, and CLI composition. `josh-runtime` owns the consumer-facing `ExecutionHost` contract; `josh-exec` implements it without a dependency cycle.
 
 `Engine` owns lexical frames, closures, and typed control-flow unwinding. It parses once, applies strict policy, evaluates statements in order, and stops on uncaught errors or explicit exit. Ordinary compound values are Arc-backed; resource execution state stays outside Value.

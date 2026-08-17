@@ -1,11 +1,5 @@
 # User journeys
 
-<div class="status-coverage">
-
-**Status coverage:** This page makes no product-availability claims. Each journey links to the relevant capability status.
-
-</div>
-
 Journeys start from an outcome rather than a language construct:
 
 - [Run external programs](external-commands.md) explains resolution and argv.

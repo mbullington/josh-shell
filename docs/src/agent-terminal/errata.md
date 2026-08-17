@@ -1,11 +1,5 @@
 # agent-terminal errata
 
-<div class="status-coverage">
-
-**Status coverage:** [AT-WAIT-001](../status/matrix.md#AT-WAIT-001) — **Implemented** (qualified by erratum 1 below); [AT-INPUT-001](../status/matrix.md#AT-INPUT-001) — **Implemented**. See [status conventions](../welcome/status-conventions.md).
-
-</div>
-
 Known behavioral defects and empirical guidance, recorded from real automation
 runs against the Josh REPL. Each entry states the observed behavior, the rule
 to follow until it is fixed, and the evidence. Full investigation writeup lives
