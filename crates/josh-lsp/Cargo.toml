@@ -1,0 +1,14 @@
+[package]
+name = "josh-lsp"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Errors-only LSP server for Josh, mapped from josh-syntax diagnostics"
+
+[dependencies]
+josh-syntax.workspace = true
+tokio = { version = "1", features = ["rt", "io-std"] }
+tower-lsp = "0.20"
+
+[lints]
+workspace = true

@@ -20,6 +20,7 @@ fn main() -> ExitCode {
 enum Mode {
     Interactive,
     Command(OsString),
+    Lsp,
     Script(OsString),
     Help,
     Version,
@@ -35,6 +36,13 @@ fn run() -> Result<i32, String> {
         Mode::Version => {
             println!("josh {}", env!("CARGO_PKG_VERSION"));
             return Ok(0);
+        }
+        // The LSP server runs before terminal/ProcessHost setup and startup
+        // files: stdout must carry nothing but protocol frames.
+        Mode::Lsp => {
+            return josh_lsp::run()
+                .map(|()| 0)
+                .map_err(|error| format!("lsp server failed: {error}"));
         }
         _ => {}
     }
@@ -61,7 +69,7 @@ fn run() -> Result<i32, String> {
                 .map_err(|error| format!("cannot read {}: {error}", path.to_string_lossy()))?;
             run_noninteractive(&mut engine, Arc::<str>::from(source))
         }
-        Mode::Help | Mode::Version => unreachable!("handled before startup"),
+        Mode::Help | Mode::Version | Mode::Lsp => unreachable!("handled before startup"),
     }
 }
 
@@ -83,6 +91,7 @@ fn parse_args() -> Result<(Mode, bool), String> {
             args.next()
                 .ok_or_else(|| "-c requires a source argument".to_owned())?,
         ),
+        Some(arg) if arg == "lsp" => Mode::Lsp,
         Some(flag) if flag.to_string_lossy().starts_with('-') => {
             return Err(format!("unknown option: {}", flag.to_string_lossy()));
         }
@@ -189,6 +198,6 @@ fn run_noninteractive(engine: &mut Engine, source: Arc<str>) -> Result<i32, Stri
 
 fn print_help() {
     println!(
-        "Josh — JavaScript Object Shell\n\nUsage:\n  josh [--no-config]\n  josh [--no-config] -c <source>\n  josh [--no-config] <script.josh>\n\nOptions:\n  --no-config  Skip env.josh and interactive init.josh startup files\n  -h, --help   Show this help\n  -V, --version\n               Show the version\n\nJosh supports external commands and structured pipelines, redirections and globs,\nvariables, functions/closures/UFCS, and non-job control flow. Jobs and modules are unavailable."
+        "Josh — JavaScript Object Shell\n\nUsage:\n  josh [--no-config]\n  josh [--no-config] -c <source>\n  josh [--no-config] <script.josh>\n  josh lsp\n\nOptions:\n  --no-config  Skip env.josh and interactive init.josh startup files\n  -h, --help   Show this help\n  -V, --version\n               Show the version\n\nJosh supports external commands and structured pipelines, redirections and globs,\nvariables, functions/closures/UFCS, and non-job control flow. Jobs and modules are unavailable.\n\nThe lsp subcommand serves the errors-only language server over stdin/stdout\nfor editor integrations (see editors/vscode/)."
     );
 }

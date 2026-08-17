@@ -1,0 +1,72 @@
+{
+  "name": "josh",
+  "displayName": "Josh",
+  "description": "Josh shell language support: syntax highlighting and parser diagnostics from the josh binary itself.",
+  "version": "0.1.0",
+  "publisher": "josh",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "josh",
+        "aliases": [
+          "Josh",
+          "josh"
+        ],
+        "extensions": [
+          ".josh"
+        ],
+        "firstLine": "^#!.*\\bjosh\\b",
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "josh",
+        "scopeName": "source.josh",
+        "path": "./syntaxes/josh.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Josh",
+      "properties": {
+        "josh.server.command": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "josh",
+            "lsp"
+          ],
+          "markdownDescription": "Command (argv array) used to start the Josh language server. The default runs `josh lsp` from your PATH. The server speaks stdio only."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/check-grammar.mjs",
+    "package": "npm run test && npm run build && vsce package --allow-missing-repository"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.5.0",
+    "vscode-languageclient": "^9.0.1",
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.3.2"
+  }
+}
