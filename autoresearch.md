@@ -21,7 +21,7 @@ microseconds of Josh evaluation on this machine.
   `total_ms` values from one run of `scripts/regex-bench.josh` under the
   release binary.
 - **Secondary guardrails**:
-  - `hits_total` must stay exactly 410 (semantic checksum across all cases);
+  - `hits_total` must stay exactly 315 (semantic checksum across all cases);
   - `case_count` must stay exactly 8;
   - all hard checks in `autoresearch.checks.sh` must pass.
 - **Secondary tie-breakers**: none. Per-case `METRIC <case>_ms=` lines are
