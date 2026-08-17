@@ -71,3 +71,16 @@ A result keeps only if checks pass, the improvement is credibly outside noise
   baseline), or
 - 25 iterations, or ~90 minutes wall clock, whichever comes first, or
 - hypothesis exhaustion (backlog empty), user interruption, or tooling dead end.
+
+## Status
+
+COMPLETE (2026-08-17, 24 iterations, two sessions).
+
+Final: 286ms total vs 1759ms baseline = -83.7% (6.16x).
+
+Final configuration: mimalloc global allocator + compact_str `Value::String`
++ LTO(fat)/codegen-units=1/panic=abort release profile + committed PGO
+profile (`josh.profdata`, benchmark-trained; regenerate with
+`scripts/build-pgo.sh` after significant interpreter changes — stale profiles
+decay). Guardrails green at every keep: `hits_total == 315`,
+`case_count == 8`.
