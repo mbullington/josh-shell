@@ -27,3 +27,29 @@ Ordered guesses by expected impact (profile first; do not trust this order):
 
 Dump per-case evidence before choosing: literal-long vs astral-group vs
 date-extract stress different paths (scan vs captures vs units map).
+
+## Session 2 learnings (experiments 9-19, best 408ms / -76.8%)
+
+### Measured NO-GOs (do not retry without changing preconditions)
+- Capture-env memoization cache: hashmap-of-lookup loses to direct small-scan (+9%).
+- Uniform sorted-Vec Frame (binary search): per-call binary+memmove inserts lose (+4%).
+- Frame free-list pooling: +7% under mimalloc — allocation elimination is NEUTRAL-TO-NEGATIVE once mimalloc is in; only real-work removal wins.
+- Rc/RefCell instead of Arc/RwLock: INFEASIBLE by design — josh-streams moves
+  Stage::Source(Vec<Value>) across thread::spawn workers; Value must stay Send.
+
+### Confirmed config
+- mimalloc global allocator: -27% alone, STILL -25% after SSO (ablation measured).
+- compact_str::CompactString Value::String: neutral under mimalloc, -3.3% under system alloc.
+- Ablation datapoint: system+SSO=549, mimalloc+SSO=408-413, system+Arc<str>=568.
+
+### Structural swings (out of bounded-iteration scope; dedicated branch candidates)
+- Interned identifier slots (Symbol u32 in AST, frames as Vec<Value>):
+  breaks josh-syntax Display roundtrip (Display has no symbol-table context);
+  needs Display redesign or dual storage. Est. kills Frame::get (~8%) + memcmp (~2%).
+- AST arena flattening (Vec<Node> + u32 indices): fixes eval_expr tree-walk
+  dispatch (~19%) + pointer-chase; same Display/roundtrip constraint + engine-wide rewrite.
+- Bytecode/slot VM: the real endgame for the flat-dispatch plateau; arenas and
+  interned slots fall out naturally there.
+
+### Caveats
+- macOS thermal drift = ±2-3% per run; keep decisions need 2 samples below ~2% deltas.
