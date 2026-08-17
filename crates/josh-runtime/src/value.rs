@@ -24,6 +24,10 @@ impl Frame {
         Self::Small(Vec::new())
     }
 
+    pub(crate) fn with_capacity(capacity: usize) -> Self {
+        Self::Small(Vec::with_capacity(capacity))
+    }
+
     pub(crate) fn get(&self, name: &str) -> Option<&Value> {
         match self {
             Self::Small(entries) => entries

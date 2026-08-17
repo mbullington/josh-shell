@@ -1402,7 +1402,7 @@ impl Engine {
     }
 
     fn eval_call_args(&mut self, args: &[CallArg]) -> EvalResult<Vec<Value>> {
-        let mut values = Vec::new();
+        let mut values = Vec::with_capacity(args.len());
         for arg in args {
             match arg {
                 CallArg::Value(expr) => values.push(self.eval_expr(expr)?),
@@ -1441,7 +1441,8 @@ impl Engine {
                 captures,
             } => {
                 self.frames.push(Arc::clone(captures));
-                self.frames.push(Arc::new(Frame::new()));
+                self.frames
+                    .push(Arc::new(Frame::with_capacity(params.len())));
                 if let Some(name) = name {
                     let already_bound = self
                         .frames
