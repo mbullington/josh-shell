@@ -71,6 +71,7 @@ pub enum PlannedStage {
     Map(Arc<FunctionValue>),
     Filter(Arc<FunctionValue>),
     Take(usize),
+    TakeLast(usize),
     First,
     Collect,
 }
@@ -172,6 +173,7 @@ enum Stage {
     Map(Arc<FunctionValue>),
     Filter(Arc<FunctionValue>),
     Take(usize),
+    TakeLast(usize),
     First,
     Collect,
 }
@@ -643,6 +645,11 @@ fn resolve(
                 cardinality = Cardinality::Many;
                 (Stage::Take(count), Port::Values)
             }
+            PlannedStage::TakeLast(count) => {
+                require_values(index, port)?;
+                cardinality = Cardinality::Many;
+                (Stage::TakeLast(count), Port::Values)
+            }
             PlannedStage::First => {
                 require_values(index, port)?;
                 cardinality = Cardinality::One;
@@ -944,6 +951,29 @@ fn run_worker(
                 if index + 1 == count {
                     early.store(true, Ordering::Release);
                     cancellation.cancel();
+                    break;
+                }
+            }
+            Ok(())
+        }
+        (Stage::TakeLast(count), Input::Values(input), Output::Values(output)) => {
+            if count == 0 {
+                early.store(true, Ordering::Release);
+                cancellation.cancel();
+                return Ok(());
+            }
+            let mut tail = std::collections::VecDeque::with_capacity(count);
+            for value in input {
+                if cancellation.is_cancelled() {
+                    break;
+                }
+                if tail.len() == count {
+                    tail.pop_front();
+                }
+                tail.push_back(value.value.clone());
+            }
+            for value in tail {
+                if !send_value(&output, value, cancellation, early) {
                     break;
                 }
             }

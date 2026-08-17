@@ -127,6 +127,9 @@ impl ExecutionHost for ProcessHost {
                         PreflightStage::Ready(PlannedStage::Filter(function))
                     }
                     StreamStage::Take(count) => PreflightStage::Ready(PlannedStage::Take(count)),
+                    StreamStage::TakeLast(count) => {
+                        PreflightStage::Ready(PlannedStage::TakeLast(count))
+                    }
                     StreamStage::First => PreflightStage::Ready(PlannedStage::First),
                     StreamStage::Collect => PreflightStage::Ready(PlannedStage::Collect),
                 })

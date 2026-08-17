@@ -117,6 +117,7 @@ pub enum StreamStage {
     Map(Arc<FunctionValue>),
     Filter(Arc<FunctionValue>),
     Take(usize),
+    TakeLast(usize),
     First,
     Collect,
 }

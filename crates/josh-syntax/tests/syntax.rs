@@ -425,14 +425,9 @@ fn advanced_recovery_stays_lossless_and_classifies_eof_only_failures() {
     }
 
     assert!(matches!(one("for item"), Statement::Command(_)));
-    for source in [
-        "import thing",
-        "export thing",
-        "source file",
-        "jobs",
-        "fg",
-        "bg",
-    ] {
+    // Deliberately excluded surfaces; `source` graduated from this list
+    // when it became the bash-style script-loading statement.
+    for source in ["import thing", "export thing", "jobs", "fg", "bg"] {
         assert_eq!(
             parse(source).completeness,
             Completeness::Invalid,
@@ -440,4 +435,46 @@ fn advanced_recovery_stays_lossless_and_classifies_eof_only_failures() {
         );
     }
     assert_eq!(parse("sleep 1 &").completeness, Completeness::Invalid);
+}
+
+#[test]
+fn range_slices_parse_with_optional_bounds() {
+    let Statement::Expr(Expr::Slice { start, end, .. }) = one("a[0..2]") else {
+        panic!("a[0..2] must parse as a slice")
+    };
+    assert!(matches!(*start.expect("start"), Expr::Int(0, _)));
+    assert!(matches!(*end.expect("end"), Expr::Int(2, _)));
+
+    let Statement::Expr(Expr::Slice { start, end, .. }) = one("a[..]") else {
+        panic!("a[..] must parse as a slice")
+    };
+    assert!(start.is_none() && end.is_none());
+
+    let Statement::Expr(Expr::Slice { start, end, .. }) = one("a[..2]") else {
+        panic!("a[..2] must parse as a slice")
+    };
+    assert!(start.is_none() && end.is_some());
+
+    let Statement::Expr(Expr::Slice { start, end, .. }) = one("a[1..]") else {
+        panic!("a[1..] must parse as a slice")
+    };
+    assert!(start.is_some() && end.is_none());
+
+    // Number literals split cleanly from the `..` token.
+    assert!(parse("a[0..2]").diagnostics.is_empty());
+    assert!(parse("a[1.5..3]").diagnostics.is_empty());
+    // Inclusive `..=` is rejected with a dedicated diagnostic.
+    let parsed = parse("a[0..=2]");
+    assert!(
+        parsed
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == "P182"),
+        "{:?}",
+        parsed.diagnostics
+    );
+    // Bracket indexing without `..` stays an Index expression.
+    let Statement::Expr(Expr::Index { .. }) = one("a[0]") else {
+        panic!("a[0] must stay an index expression")
+    };
 }

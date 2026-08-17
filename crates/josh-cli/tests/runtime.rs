@@ -13,8 +13,8 @@ use std::{
 use josh_exec::{ProcessHost, plan, run};
 use josh_runtime::{
     CancellationToken, Captured, CommandSpec, Engine, EngineError, ExecutionError, ExecutionHost,
-    ExecutionResult, MaterializationLimit, RunResult, ShellContext, ShellContextError,
-    StageOutcome, StreamStage, Value,
+    ExecutionResult, MaterializationLimit, RunResult, ShellContext, ShellContextError, StreamStage,
+    Value,
 };
 use tempfile::tempdir;
 
@@ -1519,4 +1519,162 @@ fn status_and_command_chains_suppress_only_completed_failures() {
         engine.run_source("sh -c 'exit 7'"),
         Err(EngineError::Uncaught(Value::Error(_)))
     ));
+}
+
+#[test]
+fn take_last_stage_returns_bounded_tail() {
+    let mut engine = Engine::new(ProcessHost::default());
+    assert_eq!(
+        evaluated(&mut engine, "v = [1, 2, 3, 4] | takeLast 2\n(v)"),
+        Value::array(vec![Value::Int(3), Value::Int(4)])
+    );
+    assert_eq!(
+        evaluated(&mut engine, "v = [1, 2] | takeLast 5\n(v)"),
+        Value::array(vec![Value::Int(1), Value::Int(2)])
+    );
+    assert_eq!(
+        evaluated(&mut engine, "v = [1, 2] | takeLast 0\n(v)"),
+        Value::array(Vec::new())
+    );
+    assert_eq!(
+        evaluated(&mut engine, "v = $(seq 1 1000 | lines | takeLast 2)\n(v)"),
+        Value::array(vec![string("999"), string("1000")])
+    );
+}
+
+#[test]
+fn number_namespace_matches_javascript_boundaries() {
+    let mut engine = Engine::new(ProcessHost::default());
+    assert_eq!(
+        evaluated(&mut engine, "(Number.MIN_VALUE)"),
+        Value::Float(f64::from_bits(1))
+    );
+    assert_eq!(
+        evaluated(&mut engine, "(Number.MIN_VALUE > 0.0)"),
+        Value::Bool(true)
+    );
+    assert_eq!(
+        evaluated(&mut engine, "(Number.MAX_VALUE)"),
+        Value::Float(f64::MAX)
+    );
+    assert_eq!(
+        evaluated(&mut engine, "(Number.isNaN(Number.NaN))"),
+        Value::Bool(true)
+    );
+    assert_eq!(
+        evaluated(&mut engine, "(Number.isNaN(3))"),
+        Value::Bool(false)
+    );
+    // JavaScript semantics: no coercion, objects are never NaN.
+    assert_eq!(
+        evaluated(&mut engine, "(Number.isNaN(\"x\"))"),
+        Value::Bool(false)
+    );
+}
+
+#[test]
+fn source_evaluates_in_current_frame_and_guards_cycles() {
+    let dir = tempdir().expect("tempdir");
+    std::fs::write(
+        dir.path().join("lib.josh"),
+        "let greeting = \"from lib\"\nfn shared() { return 41 }\n",
+    )
+    .expect("write lib");
+    std::fs::write(dir.path().join("a.josh"), "source b.josh\n").expect("write a");
+    std::fs::write(dir.path().join("b.josh"), "source a.josh\n").expect("write b");
+    std::fs::write(dir.path().join("broken.josh"), "let x = \n").expect("write broken");
+    std::fs::write(dir.path().join("top-return.josh"), "return 3\n").expect("write top-return");
+
+    let context = ShellContext::new(dir.path(), []);
+    let mut engine = Engine::with_shell_context(ProcessHost::default(), context);
+    // Bindings land in the caller's frame.
+    assert_eq!(
+        evaluated(&mut engine, "source lib.josh\n(shared() + 1)"),
+        Value::Int(42)
+    );
+    assert_eq!(
+        evaluated(&mut engine, "(greeting)"),
+        Value::String(Arc::from("from lib"))
+    );
+    // Cycles fail instead of recursing forever.
+    let Err(EngineError::Type(message)) = engine.run_source("source a.josh") else {
+        panic!("cycle must be a type error")
+    };
+    assert!(message.contains("cycle"), "{message}");
+    // A sourced file must parse under the strict policy.
+    assert!(matches!(
+        engine.run_source("source broken.josh"),
+        Err(EngineError::Parse(_))
+    ));
+    // Control flow cannot escape the sourced file's boundary.
+    let Err(EngineError::Type(message)) = engine.run_source("source top-return.josh") else {
+        panic!("stray return must be a type error")
+    };
+    assert!(message.contains("return"), "{message}");
+    // Missing files are filesystem errors.
+    assert!(matches!(
+        engine.run_source("source missing-file.josh"),
+        Err(EngineError::Filesystem(_))
+    ));
+}
+
+#[test]
+fn range_slicing_follows_javascript_slice_semantics() {
+    let mut engine = Engine::new(ProcessHost::default());
+    assert_eq!(
+        evaluated(&mut engine, "([10, 20, 30, 40, 50][0..2])"),
+        Value::array(vec![Value::Int(10), Value::Int(20)])
+    );
+    assert_eq!(
+        evaluated(&mut engine, "([10, 20, 30][1..])"),
+        Value::array(vec![Value::Int(20), Value::Int(30)])
+    );
+    assert_eq!(
+        evaluated(&mut engine, "([10, 20, 30][..2])"),
+        Value::array(vec![Value::Int(10), Value::Int(20)])
+    );
+    // Negative bounds count from the end; empty and clamped stay JS-like.
+    assert_eq!(
+        evaluated(&mut engine, "([10, 20, 30][-2..])"),
+        Value::array(vec![Value::Int(20), Value::Int(30)])
+    );
+    assert_eq!(
+        evaluated(&mut engine, "([1, 2, 3][2..1].length)"),
+        Value::Int(0)
+    );
+    assert_eq!(
+        evaluated(&mut engine, "([1, 2, 3][-99..99].length)"),
+        Value::Int(3)
+    );
+    // `a[..]` produces an independent copy, not a shared view.
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            "a = [1, 2, 3]; b = a[..]; b.push(4)\n(a.length)"
+        ),
+        Value::Int(3)
+    );
+    // Strings use the same surface.
+    assert_eq!(evaluated(&mut engine, "(\"hello\"[1..3])"), string("el"));
+    assert_eq!(evaluated(&mut engine, "(\"hello\"[-2..])"), string("lo"));
+}
+
+#[test]
+fn strings_use_javascript_utf16_positions() {
+    let mut engine = Engine::new(ProcessHost::default());
+    // Length and position count UTF-16 code units, not scalars or bytes.
+    assert_eq!(evaluated(&mut engine, "(\"😀ab\".length)"), Value::Int(4));
+    assert_eq!(evaluated(&mut engine, "(\"😀ab\"[2])"), string("a"));
+    // A unit index inside a surrogate pair snaps to the whole code point,
+    // because Josh (like Rust) cannot hold a lone surrogate.
+    assert_eq!(evaluated(&mut engine, "(\"😀ab\"[0])"), string("😀"));
+    assert_eq!(evaluated(&mut engine, "(\"😀ab\"[1])"), string("😀"));
+    assert_eq!(evaluated(&mut engine, "(\"😀ab\".at(1))"), string("😀"));
+    assert_eq!(evaluated(&mut engine, "(\"😀ab\"[4])"), Value::Null);
+    assert_eq!(evaluated(&mut engine, "(\"😀ab\"[-1])"), string("b"));
+    // Slice bounds snap outward to whole scalars.
+    assert_eq!(evaluated(&mut engine, "(\"😀ab\"[0..1])"), string("😀"));
+    assert_eq!(evaluated(&mut engine, "(\"😀ab\"[1..2])"), string("😀"));
+    assert_eq!(evaluated(&mut engine, "(\"😀ab\"[2..4])"), string("ab"));
+    assert_eq!(evaluated(&mut engine, "(\"😀ab\"[..])"), string("😀ab"));
 }

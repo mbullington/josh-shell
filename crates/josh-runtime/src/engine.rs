@@ -34,6 +34,8 @@ pub enum EngineError {
     Undefined { name: String },
     #[error("{0}")]
     Type(String),
+    #[error("{0}")]
+    Filesystem(String),
     #[error("{0} is planned but not implemented")]
     Unsupported(String),
     #[error(transparent)]
@@ -51,6 +53,7 @@ impl EngineError {
         let kind = match &self {
             Self::Undefined { .. } => "undefined",
             Self::Type(_) => "type",
+            Self::Filesystem(_) => "filesystem",
             Self::Unsupported(_) => "unsupported",
             Self::Process(_) => "process",
             Self::ShellContext(ShellContextError::ChangeDirectory { .. }) => "filesystem",
@@ -122,6 +125,10 @@ pub struct Engine {
     frames: Vec<Frame>,
     execution_cancellation: CancellationToken,
     prototypes: crate::natives::Prototypes,
+    /// Canonical paths of `source` files currently being evaluated; a file
+    /// that sources one of them again is a cycle and fails instead of
+    /// recursing forever.
+    source_stack: Vec<PathBuf>,
 }
 
 impl Engine {
@@ -168,6 +175,7 @@ impl Engine {
             frames: vec![root],
             execution_cancellation,
             prototypes,
+            source_stack: Vec::new(),
         }
     }
 
@@ -438,6 +446,7 @@ impl Engine {
                 self.current_frame().insert(name.clone(), function.clone());
                 Ok(function)
             }
+            Statement::Source { path, .. } => self.eval_source_statement(path),
             Statement::Expr(expr) => self.eval_expr(expr),
             Statement::While {
                 condition, body, ..
@@ -478,6 +487,54 @@ impl Engine {
             Statement::Missing { .. } | Statement::Error { .. } => {
                 Err(type_error("cannot evaluate a recovered syntax node"))
             }
+        }
+    }
+
+    /// `source <path>`: parse and evaluate a script file in the *current*
+    /// frame (no new scope), bash-style. Paths resolve against the working
+    /// directory; quoting, variables, captures, and `~` behave like command
+    /// words. Sourced files must parse cleanly under the strict policy.
+    fn eval_source_statement(&mut self, word: &CommandWord) -> EvalResult<Value> {
+        let bytes = self.eval_redirection_target(word).map_err(|unwind| {
+            // Reuse the exactly-one-path word evaluation; reword its arity
+            // complaint so the error says `source`, not `redirection`.
+            match unwind {
+                Unwind::Error(EngineError::Type(message)) => Unwind::Error(EngineError::Type(
+                    message.replace("redirection target", "source path"),
+                )),
+                other => other,
+            }
+        })?;
+        let path = os_string_from_bytes(bytes)
+            .map_err(|error| type_error(format!("source path is not valid: {error}")))?;
+        let path = PathBuf::from(path);
+        let resolved = if path.is_absolute() {
+            path
+        } else {
+            self.context.snapshot().cwd().join(path)
+        };
+        let canonical = std::fs::canonicalize(&resolved).unwrap_or_else(|_| resolved.clone());
+        if self.source_stack.contains(&canonical) {
+            return Err(type_error(format!(
+                "source cycle detected at {}",
+                canonical.display()
+            )));
+        }
+        let text = std::fs::read_to_string(&canonical).map_err(|error| {
+            EngineError::Filesystem(format!("source: {}: {error}", canonical.display()))
+        })?;
+        let parsed = parse(text);
+        let program = parsed
+            .strict_program()
+            .map_err(|diagnostics| EngineError::Parse(diagnostics.to_vec()))?;
+        self.source_stack.push(canonical);
+        let result = self.eval_program(program);
+        self.source_stack.pop();
+        match result {
+            Err(Unwind::Return(_)) => Err(type_error("return cannot cross a source boundary")),
+            Err(Unwind::Break) => Err(type_error("break cannot cross a source boundary")),
+            Err(Unwind::Continue) => Err(type_error("continue cannot cross a source boundary")),
+            result => result,
         }
     }
 
@@ -592,7 +649,7 @@ impl Engine {
             Some("json" | "lines" | "jsonl" | "chunks") => StreamShape::BytesToValues,
             Some(name) if parse_chunks_name(name).is_some() => StreamShape::BytesToValues,
             Some("map" | "filter") => StreamShape::Function,
-            Some("take" | "first" | "collect") => StreamShape::Values,
+            Some("take" | "takeLast" | "first" | "collect") => StreamShape::Values,
             Some(name) if matches!(self.resolve_lexical(name), Some(Value::Function(_))) => {
                 StreamShape::Function
             }
@@ -636,6 +693,7 @@ impl Engine {
                         | "map"
                         | "filter"
                         | "take"
+                        | "takeLast"
                         | "chunks"
                 ) || parse_chunks_name(name).is_some()
                     || matches!(self.resolve_lexical(name), Some(Value::Function(_)))
@@ -701,6 +759,15 @@ impl Engine {
                 Ok(StreamStage::Take(self.eval_nonnegative_size(
                     index,
                     "take",
+                    &stage.words[1],
+                    true,
+                )?))
+            }
+            Some("takeLast") => {
+                expect_stream_arity(index, "takeLast", &stage.words, 2)?;
+                Ok(StreamStage::TakeLast(self.eval_nonnegative_size(
+                    index,
+                    "takeLast",
                     &stage.words[1],
                     true,
                 )?))
@@ -1195,6 +1262,12 @@ impl Engine {
                 let index = self.eval_expr(index)?;
                 self.index_value(&object, &index)
             }
+            Expr::Slice {
+                object, start, end, ..
+            } => {
+                let object = self.eval_expr(object)?;
+                self.eval_slice(&object, start.as_deref(), end.as_deref())
+            }
             Expr::Arrow { params, body, .. } => {
                 for param in params {
                     reject_reserved_pattern(param)?;
@@ -1410,8 +1483,10 @@ impl Engine {
         }
         match value {
             Value::Array(values) if name == "length" => return usize_value(values.len()),
+            // JavaScript semantics: string length is UTF-16 code units, not
+            // scalar values or bytes, so "😀".length == 2.
             Value::String(value) if name == "length" => {
-                return usize_value(value.chars().count());
+                return usize_value(utf16_length(value));
             }
             Value::Bytes(value) if name == "length" => return usize_value(value.len()),
             Value::Status(status) => {
@@ -1471,6 +1546,64 @@ impl Engine {
                 index.type_name()
             ))),
         }
+    }
+
+    /// `a[b..c]` with JavaScript `slice()` bound semantics: negative counts
+    /// from the end, bounds clamp into range, an inverted pair is empty.
+    /// String bounds are UTF-16 code units snapping outward to scalars.
+    fn eval_slice(
+        &mut self,
+        object: &Value,
+        start: Option<&Expr>,
+        end: Option<&Expr>,
+    ) -> EvalResult<Value> {
+        match object {
+            Value::String(text) => {
+                let (lo, hi) = self.eval_slice_bounds(start, end, utf16_length(text) as i64)?;
+                let (Some(lo), Some(hi)) = (utf16_floor_byte(text, lo), utf16_ceil_byte(text, hi))
+                else {
+                    return Err(type_error("slice bounds are out of range"));
+                };
+                Ok(Value::String(Arc::from(&text[lo..hi])))
+            }
+            Value::Array(items) => {
+                let (lo, hi) = self.eval_slice_bounds(start, end, items.len() as i64)?;
+                Ok(Value::array(items.snapshot()[lo..hi].to_vec()))
+            }
+            Value::Null => Err(type_error("cannot slice null")),
+            _ => Err(type_error(format!("cannot slice {}", object.type_name()))),
+        }
+    }
+
+    fn eval_slice_bounds(
+        &mut self,
+        start: Option<&Expr>,
+        end: Option<&Expr>,
+        len: i64,
+    ) -> EvalResult<(usize, usize)> {
+        let bound = |engine: &mut Self, expr: &Expr| -> EvalResult<i64> {
+            match engine.eval_expr(expr)? {
+                Value::Int(index) => Ok(index),
+                Value::Float(index) => Ok(index as i64),
+                _ => Err(type_error("slice bounds must be numbers")),
+            }
+        };
+        let resolve = |index: i64| -> usize {
+            if index < 0 {
+                (len + index).max(0) as usize
+            } else {
+                index.min(len) as usize
+            }
+        };
+        let lo = match start {
+            Some(start) => resolve(bound(self, start)?),
+            None => 0,
+        };
+        let hi = match end {
+            Some(end) => resolve(bound(self, end)?),
+            None => len.max(0) as usize,
+        };
+        Ok((lo, hi.max(lo)))
     }
 
     #[allow(clippy::too_many_lines)]
@@ -1709,6 +1842,7 @@ fn stream_shape(stage: &StreamStage) -> StreamShape {
         StreamStage::Function(_) | StreamStage::Map(_) => StreamShape::Function,
         StreamStage::Filter(_)
         | StreamStage::Take(_)
+        | StreamStage::TakeLast(_)
         | StreamStage::First
         | StreamStage::Collect => StreamShape::Values,
     }
@@ -1980,16 +2114,11 @@ fn collect_bindings(
                 collect_bindings(pattern, object.get(key).unwrap_or(Value::Null), output)?;
             }
             if let Some(pattern) = rest {
-                let remainder = ObjectValue::from_entries(
-                    object
+                let remainder = ObjectValue::from_entries(object.iter().filter(|(key, _)| {
+                    !entries
                         .iter()
-                        .filter(|(key, _)| {
-                            !entries
-                                .iter()
-                                .any(|(used, _)| used.as_str() == key.as_ref())
-                        })
-                        .map(|(key, value)| (key, value)),
-                );
+                        .any(|(used, _)| used.as_str() == key.as_ref())
+                }));
                 collect_bindings(pattern, Value::Object(Arc::new(remainder)), output)?;
             }
         }
@@ -2121,9 +2250,62 @@ pub(crate) fn sequence_at<T>(values: &[T], index: i64) -> Option<&T> {
 }
 
 pub(crate) fn string_at(value: &str, index: i64) -> Value {
-    let characters = value.chars().collect::<Vec<_>>();
-    sequence_at(&characters, index).map_or(Value::Null, |character| {
-        Value::String(Arc::from(character.to_string()))
+    // JavaScript semantics: positions are UTF-16 code units. A unit inside
+    // a surrogate pair resolves to the whole code point, because Rust
+    // strings cannot hold a lone surrogate.
+    let len = i64::try_from(utf16_length(value)).unwrap_or(i64::MAX);
+    let index = if index < 0 { len + index } else { index };
+    if index < 0 || index >= len {
+        return Value::Null;
+    }
+    utf16_floor_byte(value, index as usize)
+        .and_then(|byte| value[byte..].chars().next())
+        .map_or(Value::Null, |character| {
+            Value::String(Arc::from(character.to_string()))
+        })
+}
+
+// Strings index and slice in UTF-16 code units (JavaScript semantics):
+// "😀".length is 2 and `s[0]` is "😀", and a unit index inside a
+// surrogate pair clamps to the whole scalar since Rust strings cannot
+// hold lone surrogates.
+fn utf16_length(value: &str) -> usize {
+    value.chars().map(char::len_utf16).sum()
+}
+
+/// Byte offset of the scalar that starts or contains UTF-16 unit `unit`,
+/// and whether `unit` sits exactly on that scalar's start.
+fn utf16_unit_boundary(value: &str, unit: usize) -> Option<(usize, bool)> {
+    let mut units = 0usize;
+    for (byte, ch) in value.char_indices() {
+        let end = units + ch.len_utf16();
+        if unit < end {
+            return Some((byte, unit == units));
+        }
+        units = end;
+    }
+    if unit == units {
+        Some((value.len(), true))
+    } else {
+        None
+    }
+}
+
+fn utf16_floor_byte(value: &str, unit: usize) -> Option<usize> {
+    utf16_unit_boundary(value, unit).map(|(byte, _)| byte)
+}
+
+fn utf16_ceil_byte(value: &str, unit: usize) -> Option<usize> {
+    utf16_unit_boundary(value, unit).map(|(byte, boundary)| {
+        if boundary {
+            byte
+        } else {
+            byte + value[byte..]
+                .chars()
+                .next()
+                .expect("interior UTF-16 unit implies a nonempty scalar")
+                .len_utf8()
+        }
     })
 }
 

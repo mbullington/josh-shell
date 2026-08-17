@@ -74,6 +74,7 @@ pub enum TokenKind {
     Comma,
     Dot,
     Ellipsis,
+    DotDot,
     Colon,
     Question,
     LeftParen,
@@ -207,6 +208,12 @@ pub enum Statement {
         pipeline: Pipeline,
         span: Span,
     },
+    /// `source <path>`: evaluate a script file in the current frame
+    /// (bash-style; there is no module system).
+    Source {
+        path: CommandWord,
+        span: Span,
+    },
     Assignment {
         name: String,
         op: AssignOp,
@@ -273,6 +280,7 @@ impl Statement {
             Self::Command(x) => x.span,
             Self::CommandChain { span, .. }
             | Self::Status { span, .. }
+            | Self::Source { span, .. }
             | Self::Assignment { span, .. }
             | Self::MemberAssignment { span, .. }
             | Self::EnvironmentAssignment { span, .. }
@@ -465,6 +473,14 @@ pub enum Expr {
         index: Box<Expr>,
         span: Span,
     },
+    /// `a[b..c]` range slice: end-exclusive, each bound optional and
+    /// possibly negative. The only slicing mechanism in the language.
+    Slice {
+        object: Box<Expr>,
+        start: Option<Box<Expr>>,
+        end: Option<Box<Expr>>,
+        span: Span,
+    },
     Arrow {
         params: Vec<BindingPattern>,
         body: FunctionBody,
@@ -516,6 +532,7 @@ impl Expr {
             | Self::Call { span, .. }
             | Self::Member { span, .. }
             | Self::Index { span, .. }
+            | Self::Slice { span, .. }
             | Self::Arrow { span, .. }
             | Self::Ternary { span, .. }
             | Self::Capture { span, .. } => *span,
@@ -728,6 +745,9 @@ impl Parser {
             Some(TokenTag::Status) => return self.parse_status(),
             _ => {}
         }
+        if self.at_source_keyword() {
+            return self.parse_source();
+        }
         if self.is_assignment_head() {
             return self.parse_assignment();
         }
@@ -750,6 +770,79 @@ impl Parser {
             return Statement::Expr(self.parse_expr(0));
         }
         self.parse_command_chain()
+    }
+
+    /// `source path.josh`: statement-level keyword followed by one unquoted
+    /// or quoted path word. `source` used as an assignment target or an
+    /// expression member falls through to the ordinary identifier rules.
+    fn at_source_keyword(&self) -> bool {
+        let Some(first) = self.peek_significant_index(0) else {
+            return false;
+        };
+        let token = &self.tokens[first];
+        if !matches!(token.kind, TokenKind::Identifier)
+            || &self.source[token.span.range()] != "source"
+        {
+            return false;
+        }
+        match self.peek_significant_index(1) {
+            None => true,
+            Some(next) => {
+                let next_tag = tag(&self.tokens[next].kind);
+                let adjacent = self.tokens[first].span.end == self.tokens[next].span.start;
+                (!adjacent
+                    || !matches!(
+                        next_tag,
+                        TokenTag::LeftParen | TokenTag::Dot | TokenTag::LeftBracket
+                    ))
+                    && !matches!(
+                        next_tag,
+                        TokenTag::Assign | TokenTag::PlusAssign | TokenTag::MinusAssign
+                    )
+            }
+        }
+    }
+
+    fn parse_source(&mut self) -> Statement {
+        let start = self.bump_span(LexMode::Command).start;
+        // Parse the rest of the line with the command machinery so quoting,
+        // variables, captures, and `~` behave exactly like command words.
+        let command = self.parse_command(&[TokenTag::AndAnd, TokenTag::OrOr]);
+        let end = command.span.end;
+        let span = Span::new(start, end);
+        if !command.redirections.is_empty() {
+            self.diagnostics.push(Diagnostic::error(
+                "P180",
+                "source does not accept redirections",
+                command.span,
+            ));
+        }
+        match command.words.as_slice() {
+            [path] => Statement::Source {
+                path: path.clone(),
+                span,
+            },
+            [] => {
+                self.diagnostics.push(Diagnostic::error(
+                    "P181",
+                    "source expects exactly one path word",
+                    span,
+                ));
+                Statement::Error { span }
+            }
+            words => {
+                let extra = Span::new(
+                    words[1].span.start,
+                    words.last().expect("more than one word").span.end,
+                );
+                self.diagnostics.push(Diagnostic::error(
+                    "P181",
+                    "source expects exactly one path word",
+                    extra,
+                ));
+                Statement::Error { span }
+            }
+        }
     }
 
     /// `obj.x = v` / `obj[key] = v` at statement level: an expression that
@@ -2089,8 +2182,50 @@ impl Parser {
             if self.at(TokenTag::LeftBracket) && !had_trivia {
                 let start = lhs.span().start;
                 self.bump_mode(LexMode::Expression);
+                // `[..]`-forms: no start bound before the `..`.
+                if self.at(TokenTag::DotDot) {
+                    self.bump_mode(LexMode::Expression);
+                    self.check_no_inclusive_range_assign();
+                    let end_bound = if self.at(TokenTag::RightBracket) {
+                        None
+                    } else {
+                        Some(Box::new(self.parse_expr(0)))
+                    };
+                    self.skip_trivia_mode(LexMode::Expression);
+                    let end = self.expect_closer(TokenTag::RightBracket, "]", LexMode::Expression);
+                    lhs = Expr::Slice {
+                        object: Box::new(lhs),
+                        start: None,
+                        end: end_bound,
+                        span: Span::new(start, end),
+                    };
+                    continue;
+                }
                 let index = self.parse_expr(0);
                 self.skip_trivia_mode(LexMode::Expression);
+                if self.at(TokenTag::DotDot) {
+                    self.bump_mode(LexMode::Expression);
+                    self.check_no_inclusive_range_assign();
+                    let end_bound = if self.at(TokenTag::RightBracket) {
+                        None
+                    } else {
+                        Some(Box::new(self.parse_expr(0)))
+                    };
+                    self.skip_trivia_mode(LexMode::Expression);
+                    let end = self.expect_closer(TokenTag::RightBracket, "]", LexMode::Expression);
+                    // An Error/Missing start bound should degrade the whole
+                    // slice the same way an Error index degrades `a[b]`.
+                    lhs = match index {
+                        Expr::Error(span) => Expr::Error(Span::new(start, end.max(span.end))),
+                        start_bound => Expr::Slice {
+                            object: Box::new(lhs),
+                            start: Some(Box::new(start_bound)),
+                            end: end_bound,
+                            span: Span::new(start, end),
+                        },
+                    };
+                    continue;
+                }
                 let end = self.expect_closer(TokenTag::RightBracket, "]", LexMode::Expression);
                 lhs = Expr::Index {
                     object: Box::new(lhs),
@@ -2459,6 +2594,20 @@ impl Parser {
         })
     }
 
+    /// `a[0..=2]` lexes as `..` `=`; reject it with a pointer to the
+    /// exclusive design instead of a confusing generic parse error.
+    fn check_no_inclusive_range_assign(&mut self) {
+        if self.at(TokenTag::Assign) {
+            let span = self.tokens[self.pos].span;
+            self.diagnostics.push(Diagnostic::error(
+                "P182",
+                "inclusive `..=` ranges are not supported; `[a..b]` spans a through b-1",
+                span,
+            ));
+            self.bump_span(LexMode::Expression);
+        }
+    }
+
     fn expect_closer(&mut self, wanted: TokenTag, text: &str, mode: LexMode) -> usize {
         if self.at(wanted) {
             return self.bump_span(mode).end;
@@ -2499,7 +2648,7 @@ impl Parser {
         let name = &self.source[token.span.range()];
         match name {
             "jobs" | "fg" | "bg" => Some("job control"),
-            "source" | "import" | "export" => Some("modules and source loading"),
+            "import" | "export" => Some("module loading"),
             _ => None,
         }
     }
@@ -2643,6 +2792,7 @@ enum TokenTag {
     Comma,
     Dot,
     Ellipsis,
+    DotDot,
     Colon,
     Question,
     LeftParen,
@@ -2714,6 +2864,7 @@ fn tag(kind: &TokenKind) -> TokenTag {
         TokenKind::Comma => TokenTag::Comma,
         TokenKind::Dot => TokenTag::Dot,
         TokenKind::Ellipsis => TokenTag::Ellipsis,
+        TokenKind::DotDot => TokenTag::DotDot,
         TokenKind::Colon => TokenTag::Colon,
         TokenKind::Question => TokenTag::Question,
         TokenKind::LeftParen => TokenTag::LeftParen,
@@ -2926,7 +3077,9 @@ fn lex(source: &str) -> (Vec<Token>, Vec<Diagnostic>) {
             at += 1;
             while at < source.len() {
                 let c = source[at..].chars().next().unwrap();
-                if !(c.is_ascii_digit() || c == '.') {
+                // A second consecutive dot starts a range slice: `0..2`
+                // must lex as `0` `..` `2`, not one malformed number.
+                if !(c.is_ascii_digit() || (c == '.' && !source[at + 1..].starts_with('.'))) {
                     break;
                 }
                 at += c.len_utf8();
@@ -2936,6 +3089,8 @@ fn lex(source: &str) -> (Vec<Token>, Vec<Diagnostic>) {
         }
         let (kind, width) = if source[start..].starts_with("...") {
             (TokenKind::Ellipsis, 3)
+        } else if source[start..].starts_with("..") {
+            (TokenKind::DotDot, 2)
         } else if source[start..].starts_with("!==") {
             (TokenKind::StrictNotEq, 3)
         } else if source[start..].starts_with("===") {
@@ -3193,6 +3348,21 @@ fn offset_expr(expr: &mut Expr, offset: usize) {
             offset_expr(object, offset);
             offset_expr(index, offset);
         }
+        Expr::Slice {
+            object,
+            start,
+            end,
+            span,
+        } => {
+            offset_span(span, offset);
+            offset_expr(object, offset);
+            if let Some(start) = start {
+                offset_expr(start, offset);
+            }
+            if let Some(end) = end {
+                offset_expr(end, offset);
+            }
+        }
         Expr::Arrow {
             params, body, span, ..
         } => {
@@ -3366,6 +3536,10 @@ fn offset_program(program: &mut Program, offset: usize) {
                 if let Some(value) = value {
                     offset_expr(value, offset);
                 }
+            }
+            Statement::Source { path, span } => {
+                offset_span(span, offset);
+                offset_command_word(path, offset);
             }
             Statement::Break { span }
             | Statement::Continue { span }

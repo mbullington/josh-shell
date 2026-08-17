@@ -39,7 +39,7 @@ impl Prototypes {
 }
 
 fn native(name: &'static str, function: fn(&mut Engine, Vec<Value>) -> EvalResult<Value>) -> Value {
-    Value::Function(Arc::new(FunctionValue::native(&NativeFnBox::leak(
+    Value::Function(Arc::new(FunctionValue::native(NativeFnBox::leak(
         name, function,
     ))))
 }
@@ -220,9 +220,10 @@ pub(crate) fn install(frame: &mut Frame) -> Prototypes {
             (Arc::from("prototype"), number_prototype.clone()),
             (Arc::from("NaN"), Value::Float(f64::NAN)),
             (Arc::from("MAX_VALUE"), Value::Float(f64::MAX)),
-            (Arc::from("MIN_VALUE"), Value::Float(-f64::MAX)),
+            (Arc::from("MIN_VALUE"), Value::Float(f64::from_bits(1))),
             (Arc::from("MAX_INT"), Value::Int(i64::MAX)),
             (Arc::from("MIN_INT"), Value::Int(i64::MIN)),
+            (Arc::from("isNaN"), native("Number.isNaN", number_is_nan)),
         ])),
     )));
     let boolean_namespace = Value::Function(Arc::new(FunctionValue::native_with_members(
@@ -507,6 +508,14 @@ fn number_norm(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
         }
         value => Ok(value),
     }
+}
+
+/// JavaScript `Number.isNaN`: true for actual NaN values only, no coercion.
+fn number_is_nan(_engine: &mut Engine, args: Vec<Value>) -> EvalResult<Value> {
+    expect_arity("Number.isNaN", &args, 1, 1)?;
+    Ok(Value::Bool(
+        matches!(&args[0], Value::Float(value) if value.is_nan()),
+    ))
 }
 
 // --- Array.prototype -------------------------------------------------------
