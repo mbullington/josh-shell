@@ -1522,8 +1522,7 @@ impl Engine {
     fn index_value(&self, value: &Value, index: &Value) -> EvalResult<Value> {
         match (value, index) {
             (Value::Array(values), Value::Int(index)) => {
-                let items = values.snapshot();
-                Ok(sequence_at(&items, *index).cloned().unwrap_or(Value::Null))
+                Ok(values.get_indexed(*index).unwrap_or(Value::Null))
             }
             (Value::String(value), Value::Int(index)) => Ok(string_at(value, *index)),
             (Value::Bytes(value), Value::Int(index)) => {

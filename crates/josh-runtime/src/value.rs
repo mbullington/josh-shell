@@ -181,6 +181,20 @@ impl ArrayValue {
             .cloned()
     }
 
+    /// Signed-index access (`a[-1]` counts from the end) under one lock.
+    #[must_use]
+    pub fn get_indexed(&self, index: i64) -> Option<Value> {
+        let items = self.items.read().unwrap_or_else(|error| error.into_inner());
+        let Ok(index) = usize::try_from(if index < 0 {
+            index + items.len() as i64
+        } else {
+            index
+        }) else {
+            return None;
+        };
+        items.get(index).cloned()
+    }
+
     /// A snapshot of the current items; iteration order is stable.
     #[must_use]
     pub fn snapshot(&self) -> Vec<Value> {
