@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-53185e34.js";
+            window.path_to_searchindex_js = "../searchindex-311364e9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-601258de.js"></script>
@@ -199,7 +199,7 @@
 <tr><td>bytes → function</td><td>Collect all bytes into one Bytes value; after upstream closes, call once and emit the return value. Materialization-limited, like <code>text</code>/<code>json</code>/<code>collect</code> — use <code>chunks(n)</code> for unbounded input. The function decides decoding (<code>String(bytes)</code> validates UTF-8) or byte-level work</td></tr>
 <tr><td>bytes → <code>map fn</code></td><td>Planning error with a hint to add <code>text</code>, <code>json</code>, <code>lines</code>, <code>jsonl</code>, or <code>chunks(n)</code> first</td></tr>
 <tr><td>values → function or <code>map fn</code></td><td>Call once per item and emit each return value</td></tr>
-<tr><td>values → <code>filter fn</code></td><td>Keep an item when the function result is truthy</td></tr>
+<tr><td>values → <code>filter fn</code></td><td>Keep an item when the function result is <a href="../reference/operators-values.html#J-EXPR-005">truthy</a></td></tr>
 <tr><td>values → <code>take n</code></td><td>Emit at most nonnegative Int <code>n</code>, then cancel upstream</td></tr>
 <tr><td>values → <code>takeLast n</code></td><td>Emit the last nonnegative Int <code>n</code> items (bounded buffer)</td></tr>
 <tr><td>values → <code>first</code></td><td>Emit the first item, then cancel upstream</td></tr>

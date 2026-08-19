@@ -3,7 +3,7 @@
 <a id="J-RUN-006"></a>
 ## If statements
 
-A parenthesized condition is an expression and uses Josh truthiness. An unparenthesized condition is a command pipeline ending before an unquoted standalone `{`. A completed nonzero command condition is false. Planning, interpolation, spawn, stream, and type errors propagate; they are not false.
+A parenthesized condition is an expression and uses [Josh truthiness](../reference/operators-values.md#J-EXPR-005). An unparenthesized condition is a command pipeline ending before an unquoted standalone `{`. A completed nonzero command condition is false. Planning, interpolation, spawn, stream, and type errors propagate; they are not false.
 
 <p class="example-label"><strong>Runnable example</strong></p>
 
@@ -47,7 +47,7 @@ A completed command failure normally becomes an Error with `kind`, `message`, an
 | `.code` | Last stage's exit code; a signal maps to `128 + signal`, and no outcome maps to 0 |
 | `.outcomes` | Array of `{stage, command, code, signal, success}` in stage order |
 
-Command-mode `&&` and `||` short-circuit on the completed Status: `&&` runs its right pipeline after success, and `||` runs it after failure. Entering a command chain handles completed nonzero status, including its final branch; lookup, interpolation, spawn, and type errors are not converted to chain booleans. Expression-mode `&&` and `||` instead short-circuit on truthiness and return one operand.
+Command-mode `&&` and `||` short-circuit on the completed Status: `&&` runs its right pipeline after success, and `||` runs it after failure. Entering a command chain handles completed nonzero status, including its final branch; lookup, interpolation, spawn, and type errors are not converted to chain booleans. Expression-mode `&&` and `||` instead short-circuit on [truthiness](../reference/operators-values.md#J-EXPR-005) and return one operand.
 
 Josh has no `for` production. At statement head, `for` remains an ordinary command word and may resolve through PATH.
 

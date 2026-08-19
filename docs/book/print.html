@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-53185e34.js";
+            window.path_to_searchindex_js = "searchindex-311364e9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-601258de.js"></script>
@@ -218,7 +218,7 @@ cargo test --locked --workspace --all-targets
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="josh-compared-with-other-shells"><a class="header" href="#josh-compared-with-other-shells">Josh compared with other shells</a></h1>
 <p>Josh borrows familiar command invocation, pipelines, redirections, globbing, status chains, and functions from Unix shells, but it does not claim POSIX compatibility. The grammar and expansion rules differ, and background job control is unavailable, so POSIX shell scripts do not automatically run in Josh.</p>
-<p>Its expression surface looks JavaScript-shaped, but Josh has no JavaScript event loop, Promise, <code>async</code>/<code>await</code>, npm, prototypes, classes, <code>this</code>, or coercive <code>==</code>. Strict equality uses <code>===</code> and <code>!==</code>. Runtime semantics are designed for deterministic shell data rather than browser or Node.js objects.</p>
+<p>Its expression surface looks JavaScript-shaped, but Josh has no JavaScript event loop, Promise, <code>async</code>/<code>await</code>, npm, prototypes, classes, <code>this</code>, or coercive <code>==</code>. Strict equality uses <code>===</code> and <code>!==</code>, and <a href="#J-EXPR-005">truthiness</a> diverges too: empty arrays and objects are falsy and <code>NaN</code> is truthy, each the opposite of JavaScript. Runtime semantics are designed for deterministic shell data rather than browser or Node.js objects.</p>
 <p>Compared with data-oriented shells, Josh plans explicit byte/value boundaries. It does not inspect output and guess JSON. External-to-external pipelines stay kernel byte pipes; <code>text</code>, <code>json</code>, <code>lines</code>, <code>jsonl</code>, <code>chunks</code>, functions, and collection stages opt into documented value transitions and cardinality.</p>
 <p>Compared with terminal screen scraping, agent-terminal treats a parsed semantic terminal grid as its automation surface. Schema-v2 snapshots remain authoritative structured state. The separate <code>screenshot</code> command deterministically renders that copied state to pixels with pinned fonts, metrics, colors, rasterizer, and encoder.</p>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -262,7 +262,7 @@ josh&gt; printf '%s\n' (total * 2)
 84
 </code></pre>
 <p>Whitespace matters in the second command. A parenthesized expression preceded by whitespace supplies one command argument. By contrast, <code>name(1)</code> is an implemented function call because the parenthesis is adjacent.</p>
-<p>Expression mode evaluates Null, booleans, numbers, strings, arrays, objects, functions, member/index access, calls, spread, ternary expressions, unary <code>!</code> and <code>-</code>, arithmetic, ordering, strict equality, and short-circuit <code>&amp;&amp;</code>/<code>||</code>. Expression <code>&amp;&amp;</code> and <code>||</code> return one operand according to truthiness.</p>
+<p>Expression mode evaluates Null, booleans, numbers, strings, arrays, objects, functions, member/index access, calls, spread, ternary expressions, unary <code>!</code> and <code>-</code>, arithmetic, ordering, strict equality, and short-circuit <code>&amp;&amp;</code>/<code>||</code>. Expression <code>&amp;&amp;</code> and <code>||</code> return one operand according to <a href="#J-EXPR-005">truthiness</a>.</p>
 <p>At command level, <code>&amp;&amp;</code> and <code>||</code> form a status chain rather than argv. They run the right pipeline after success or failure respectively. A completed nonzero status is handled by the chain; lookup, interpolation, spawn, and type errors still propagate.</p>
 <p class="example-label"><strong>Runnable example</strong></p>
 
@@ -514,7 +514,7 @@ value=42
 <tr><td>bytes → function</td><td>Collect all bytes into one Bytes value; after upstream closes, call once and emit the return value. Materialization-limited, like <code>text</code>/<code>json</code>/<code>collect</code> — use <code>chunks(n)</code> for unbounded input. The function decides decoding (<code>String(bytes)</code> validates UTF-8) or byte-level work</td></tr>
 <tr><td>bytes → <code>map fn</code></td><td>Planning error with a hint to add <code>text</code>, <code>json</code>, <code>lines</code>, <code>jsonl</code>, or <code>chunks(n)</code> first</td></tr>
 <tr><td>values → function or <code>map fn</code></td><td>Call once per item and emit each return value</td></tr>
-<tr><td>values → <code>filter fn</code></td><td>Keep an item when the function result is truthy</td></tr>
+<tr><td>values → <code>filter fn</code></td><td>Keep an item when the function result is <a href="#J-EXPR-005">truthy</a></td></tr>
 <tr><td>values → <code>take n</code></td><td>Emit at most nonnegative Int <code>n</code>, then cancel upstream</td></tr>
 <tr><td>values → <code>takeLast n</code></td><td>Emit the last nonnegative Int <code>n</code> items (bounded buffer)</td></tr>
 <tr><td>values → <code>first</code></td><td>Emit the first item, then cancel upstream</td></tr>
@@ -610,7 +610,7 @@ printf '%s %s\n' (snapshot(1)) ("ok".suffix("!"))
 <tr><td>Array</td><td><code>.at(index)</code></td><td>Element at a signed index, otherwise Null</td></tr>
 <tr><td>Array</td><td><code>.contains(value)</code>, <code>.includes(value)</code></td><td>Structural equality search</td></tr>
 <tr><td>Array</td><td><code>.map(fn)</code></td><td>Array of <code>fn(item, index, array)</code> results</td></tr>
-<tr><td>Array</td><td><code>.filter(fn)</code></td><td>Original items whose <code>fn(item, index, array)</code> result is truthy</td></tr>
+<tr><td>Array</td><td><code>.filter(fn)</code></td><td>Original items whose <code>fn(item, index, array)</code> result is <a href="#J-EXPR-005">truthy</a></td></tr>
 <tr><td>Array</td><td><code>.reduce(fn[, initial])</code></td><td>Calls <code>fn(accumulator, item, index, array)</code>; an empty Array without <code>initial</code> errors</td></tr>
 <tr><td>Array</td><td><code>.flat([depth])</code></td><td>Flatten nested Arrays; default depth 1; depth must be a nonnegative Int</td></tr>
 <tr><td>Array</td><td><code>.join([separator])</code></td><td>Scalar-string elements joined with <code>,</code> or the String separator</td></tr>
@@ -718,7 +718,7 @@ cfg = "~/config/app.toml"
 <h1 id="control-flow-and-jobs"><a class="header" href="#control-flow-and-jobs">Control flow and jobs</a></h1>
 <p><a id="J-RUN-006"></a></p>
 <h2 id="if-statements"><a class="header" href="#if-statements">If statements</a></h2>
-<p>A parenthesized condition is an expression and uses Josh truthiness. An unparenthesized condition is a command pipeline ending before an unquoted standalone <code>{</code>. A completed nonzero command condition is false. Planning, interpolation, spawn, stream, and type errors propagate; they are not false.</p>
+<p>A parenthesized condition is an expression and uses <a href="#J-EXPR-005">Josh truthiness</a>. An unparenthesized condition is a command pipeline ending before an unquoted standalone <code>{</code>. A completed nonzero command condition is false. Planning, interpolation, spawn, stream, and type errors propagate; they are not false.</p>
 <p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">if (3 &gt; 2) { printf 'yes\n' } else { printf 'no\n' }
@@ -764,7 +764,7 @@ recovered = try { read_config() } catch (e) { defaults }
 </tbody>
 </table>
 </div>
-<p>Command-mode <code>&amp;&amp;</code> and <code>||</code> short-circuit on the completed Status: <code>&amp;&amp;</code> runs its right pipeline after success, and <code>||</code> runs it after failure. Entering a command chain handles completed nonzero status, including its final branch; lookup, interpolation, spawn, and type errors are not converted to chain booleans. Expression-mode <code>&amp;&amp;</code> and <code>||</code> instead short-circuit on truthiness and return one operand.</p>
+<p>Command-mode <code>&amp;&amp;</code> and <code>||</code> short-circuit on the completed Status: <code>&amp;&amp;</code> runs its right pipeline after success, and <code>||</code> runs it after failure. Entering a command chain handles completed nonzero status, including its final branch; lookup, interpolation, spawn, and type errors are not converted to chain booleans. Expression-mode <code>&amp;&amp;</code> and <code>||</code> instead short-circuit on <a href="#J-EXPR-005">truthiness</a> and return one operand.</p>
 <p>Josh has no <code>for</code> production. At statement head, <code>for</code> remains an ordinary command word and may resolve through PATH.</p>
 <p class="example-label"><strong>Runnable example</strong></p>
 
@@ -1183,7 +1183,7 @@ postfix       = adjacent-call | adjacent-member | adjacent-index ;
 <p><a id="J-EXPR-001"></a></p>
 <h2 id="expression-values"><a class="header" href="#expression-values">Expression values</a></h2>
 <p>Values are Null, Bool, Int, Float, String, Bytes, Array, insertion-ordered Object, Function, Error, and Status. Arrays/objects are Arc-backed. Object overwrite retains the original key position. Data, errors, and statuses compare structurally; user functions compare by identity.</p>
-<p>False, Null, numeric zero, empty String/Bytes/Array/Object, and failed Status are falsey. True, nonempty data, Function, Error, and successful Status are truthy. <code>typeof</code> returns <code>null</code>, <code>bool</code>, <code>int</code>, <code>float</code>, <code>string</code>, <code>bytes</code>, <code>array</code>, <code>object</code>, <code>function</code>, <code>error</code>, or <code>status</code>.</p>
+<p>False, Null, numeric zero, empty String/Bytes/Array/Object, and failed Status are falsey. True, nonempty data, Function, Error, and successful Status are truthy; <a href="#J-EXPR-005">Truthiness</a> gives the full rule. <code>typeof</code> returns <code>null</code>, <code>bool</code>, <code>int</code>, <code>float</code>, <code>string</code>, <code>bytes</code>, <code>array</code>, <code>object</code>, <code>function</code>, <code>error</code>, or <code>status</code>.</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1203,6 +1203,33 @@ postfix       = adjacent-call | adjacent-member | adjacent-index ;
 <p>Arrays/objects support literals and spread. <code>let</code> and parameters support nested array/object destructuring with trailing rest; missing values bind Null. Arrays, Bytes, and strings accept signed Int indexes; Objects accept String keys or Int keys converted to decimal text. Missing and out-of-range indexes fall back to the type’s prototype table before returning Null.</p>
 <p><code>if</code> and <code>try</code> are value-producing in expression position: <code>let x = if 40 &lt; 42 { "yes" } else { "no" }</code> binds <code>"yes"</code>, and <code>try { ... }</code> produces the body’s value or the thrown error object (the status <code>e</code> variable still binds inside <code>catch</code>).</p>
 <p><code>object.key = value</code> and <code>object[index] = value</code> assign existing or new fields on object values in place and evaluate to the assigned value; they are errors on other kinds.</p>
+<p><a id="J-EXPR-005"></a></p>
+<h2 id="truthiness"><a class="header" href="#truthiness">Truthiness</a></h2>
+<p>Truthiness is Josh’s only implicit coercion. It classifies values for <code>!</code>, expression <code>&amp;&amp;</code> and <code>||</code>, ternary conditions, parenthesized <code>if</code>/<code>while</code> conditions, <code>filter</code> callbacks, and the <code>Boolean(value)</code> converter. The complete falsy set is <code>false</code>, Null, Int <code>0</code>, Float <code>0.0</code> (including negative zero), empty String/Bytes/Array/Object, and failed Status. Everything else is truthy.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Values</th><th>Truthiness</th></tr>
+</thead>
+<tbody>
+<tr><td><code>false</code>, <code>null</code></td><td>falsy</td></tr>
+<tr><td><code>0</code>, <code>0.0</code>, <code>-0.0</code></td><td>falsy</td></tr>
+<tr><td><code>""</code>, <code>[]</code>, <code>{}</code>, empty Bytes, failed Status</td><td>falsy</td></tr>
+<tr><td><code>NaN</code>, <code>inf</code>, and every other nonzero Int/Float</td><td>truthy</td></tr>
+<tr><td><code>true</code>, nonempty String/Bytes/Array/Object, Function, Error, successful Status</td><td>truthy</td></tr>
+</tbody>
+</table>
+</div>
+<p>Two departures from JavaScript: empty Array and Object values are falsy (JavaScript treats every array and object as truthy), and <code>NaN</code> is truthy (JavaScript excludes it) because the float rule is a plain comparison against zero. Equality has no coercion at all: <code>==</code> is a parse error, and <code>===</code>/<code>!==</code> compare values without converting them. An unparenthesized <code>if</code>/<code>while</code> condition never reaches this rule; it runs as a command pipeline and tests the completed exit status instead (see <a href="#J-RUN-006">If statements</a>).</p>
+<p class="example-label"><strong>Runnable example</strong></p>
+
+<pre><code class="language-josh">printf '%s %s %s %s\n' (Boolean([])) (Boolean({})) (Boolean("")) (Boolean([0]))
+printf '%s %s %s\n' (Boolean(0)) (Boolean(0 / 0)) (Boolean(1))
+failed = null
+try { sh -c 'exit 3' } catch (problem) { failed = problem.status }
+printf '%s\n' (Boolean(failed))
+</code></pre>
+<p>Output: <code>false false false true</code>, then <code>false true true</code>, then <code>false</code>.</p>
 <p><a id="J-NAMES-001"></a></p>
 <h2 id="builtin-namespaces-and-prototypes"><a class="header" href="#builtin-namespaces-and-prototypes">Builtin namespaces and prototypes</a></h2>
 <p>Scalar converters live as namespace callables: <code>String(1)</code>, <code>Number("42")</code>, <code>Boolean([])</code>, <code>Array(...)</code>, <code>error(...)</code>, and <code>glob("pattern")</code>. Calling <code>Object(...)</code> is a type error; objects come from literals. <code>Number(value)</code> keeps Josh’s conversion rules (<code>int</code>/<code>float</code> arguments; strings choose Int when the text is integral, otherwise Float, then error) and rejects bool, null, object, function, error, and status inputs.</p>

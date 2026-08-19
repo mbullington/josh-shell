@@ -49,7 +49,7 @@ Methods are nonmutating. An exact argument-count or argument-type mismatch is a 
 | Array | `.at(index)` | Element at a signed index, otherwise Null |
 | Array | `.contains(value)`, `.includes(value)` | Structural equality search |
 | Array | `.map(fn)` | Array of `fn(item, index, array)` results |
-| Array | `.filter(fn)` | Original items whose `fn(item, index, array)` result is truthy |
+| Array | `.filter(fn)` | Original items whose `fn(item, index, array)` result is [truthy](../reference/operators-values.md#J-EXPR-005) |
 | Array | `.reduce(fn[, initial])` | Calls `fn(accumulator, item, index, array)`; an empty Array without `initial` errors |
 | Array | `.flat([depth])` | Flatten nested Arrays; default depth 1; depth must be a nonnegative Int |
 | Array | `.join([separator])` | Scalar-string elements joined with `,` or the String separator |

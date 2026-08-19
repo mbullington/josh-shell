@@ -5,7 +5,7 @@
 
 Values are Null, Bool, Int, Float, String, Bytes, Array, insertion-ordered Object, Function, Error, and Status. Arrays/objects are Arc-backed. Object overwrite retains the original key position. Data, errors, and statuses compare structurally; user functions compare by identity.
 
-False, Null, numeric zero, empty String/Bytes/Array/Object, and failed Status are falsey. True, nonempty data, Function, Error, and successful Status are truthy. `typeof` returns `null`, `bool`, `int`, `float`, `string`, `bytes`, `array`, `object`, `function`, `error`, or `status`.
+False, Null, numeric zero, empty String/Bytes/Array/Object, and failed Status are falsey. True, nonempty data, Function, Error, and successful Status are truthy; [Truthiness](#J-EXPR-005) gives the full rule. `typeof` returns `null`, `bool`, `int`, `float`, `string`, `bytes`, `array`, `object`, `function`, `error`, or `status`.
 
 | Operators | Behavior |
 |---|---|
@@ -22,6 +22,33 @@ Arrays/objects support literals and spread. `let` and parameters support nested 
 `if` and `try` are value-producing in expression position: `let x = if 40 < 42 { "yes" } else { "no" }` binds `"yes"`, and `try { ... }` produces the body's value or the thrown error object (the status `e` variable still binds inside `catch`).
 
 `object.key = value` and `object[index] = value` assign existing or new fields on object values in place and evaluate to the assigned value; they are errors on other kinds.
+
+<a id="J-EXPR-005"></a>
+## Truthiness
+
+Truthiness is Josh's only implicit coercion. It classifies values for `!`, expression `&&` and `||`, ternary conditions, parenthesized `if`/`while` conditions, `filter` callbacks, and the `Boolean(value)` converter. The complete falsy set is `false`, Null, Int `0`, Float `0.0` (including negative zero), empty String/Bytes/Array/Object, and failed Status. Everything else is truthy.
+
+| Values | Truthiness |
+|---|---|
+| `false`, `null` | falsy |
+| `0`, `0.0`, `-0.0` | falsy |
+| `""`, `[]`, `{}`, empty Bytes, failed Status | falsy |
+| `NaN`, `inf`, and every other nonzero Int/Float | truthy |
+| `true`, nonempty String/Bytes/Array/Object, Function, Error, successful Status | truthy |
+
+Two departures from JavaScript: empty Array and Object values are falsy (JavaScript treats every array and object as truthy), and `NaN` is truthy (JavaScript excludes it) because the float rule is a plain comparison against zero. Equality has no coercion at all: `==` is a parse error, and `===`/`!==` compare values without converting them. An unparenthesized `if`/`while` condition never reaches this rule; it runs as a command pipeline and tests the completed exit status instead (see [If statements](../language/control-flow-jobs.md#J-RUN-006)).
+
+<p class="example-label"><strong>Runnable example</strong></p>
+
+```josh
+printf '%s %s %s %s\n' (Boolean([])) (Boolean({})) (Boolean("")) (Boolean([0]))
+printf '%s %s %s\n' (Boolean(0)) (Boolean(0 / 0)) (Boolean(1))
+failed = null
+try { sh -c 'exit 3' } catch (problem) { failed = problem.status }
+printf '%s\n' (Boolean(failed))
+```
+
+Output: `false false false true`, then `false true true`, then `false`.
 
 <a id="J-NAMES-001"></a>
 ## Builtin namespaces and prototypes

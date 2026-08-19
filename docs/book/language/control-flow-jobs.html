@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-53185e34.js";
+            window.path_to_searchindex_js = "../searchindex-311364e9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-601258de.js"></script>
@@ -177,7 +177,7 @@
                         <h1 id="control-flow-and-jobs"><a class="header" href="#control-flow-and-jobs">Control flow and jobs</a></h1>
 <p><a id="J-RUN-006"></a></p>
 <h2 id="if-statements"><a class="header" href="#if-statements">If statements</a></h2>
-<p>A parenthesized condition is an expression and uses Josh truthiness. An unparenthesized condition is a command pipeline ending before an unquoted standalone <code>{</code>. A completed nonzero command condition is false. Planning, interpolation, spawn, stream, and type errors propagate; they are not false.</p>
+<p>A parenthesized condition is an expression and uses <a href="../reference/operators-values.html#J-EXPR-005">Josh truthiness</a>. An unparenthesized condition is a command pipeline ending before an unquoted standalone <code>{</code>. A completed nonzero command condition is false. Planning, interpolation, spawn, stream, and type errors propagate; they are not false.</p>
 <p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">if (3 &gt; 2) { printf 'yes\n' } else { printf 'no\n' }
@@ -223,7 +223,7 @@ recovered = try { read_config() } catch (e) { defaults }
 </tbody>
 </table>
 </div>
-<p>Command-mode <code>&amp;&amp;</code> and <code>||</code> short-circuit on the completed Status: <code>&amp;&amp;</code> runs its right pipeline after success, and <code>||</code> runs it after failure. Entering a command chain handles completed nonzero status, including its final branch; lookup, interpolation, spawn, and type errors are not converted to chain booleans. Expression-mode <code>&amp;&amp;</code> and <code>||</code> instead short-circuit on truthiness and return one operand.</p>
+<p>Command-mode <code>&amp;&amp;</code> and <code>||</code> short-circuit on the completed Status: <code>&amp;&amp;</code> runs its right pipeline after success, and <code>||</code> runs it after failure. Entering a command chain handles completed nonzero status, including its final branch; lookup, interpolation, spawn, and type errors are not converted to chain booleans. Expression-mode <code>&amp;&amp;</code> and <code>||</code> instead short-circuit on <a href="../reference/operators-values.html#J-EXPR-005">truthiness</a> and return one operand.</p>
 <p>Josh has no <code>for</code> production. At statement head, <code>for</code> remains an ordinary command word and may resolve through PATH.</p>
 <p class="example-label"><strong>Runnable example</strong></p>
 

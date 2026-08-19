@@ -26,7 +26,7 @@ Josh evaluates stages and validates the complete byte/value graph before spawnin
 | bytes → function | Collect all bytes into one Bytes value; after upstream closes, call once and emit the return value. Materialization-limited, like `text`/`json`/`collect` — use `chunks(n)` for unbounded input. The function decides decoding (`String(bytes)` validates UTF-8) or byte-level work |
 | bytes → `map fn` | Planning error with a hint to add `text`, `json`, `lines`, `jsonl`, or `chunks(n)` first |
 | values → function or `map fn` | Call once per item and emit each return value |
-| values → `filter fn` | Keep an item when the function result is truthy |
+| values → `filter fn` | Keep an item when the function result is [truthy](../reference/operators-values.md#J-EXPR-005) |
 | values → `take n` | Emit at most nonnegative Int `n`, then cancel upstream |
 | values → `takeLast n` | Emit the last nonnegative Int `n` items (bounded buffer) |
 | values → `first` | Emit the first item, then cancel upstream |

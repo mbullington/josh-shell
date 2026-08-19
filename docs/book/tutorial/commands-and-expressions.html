@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-53185e34.js";
+            window.path_to_searchindex_js = "../searchindex-311364e9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-601258de.js"></script>
@@ -184,7 +184,7 @@ josh&gt; printf '%s\n' (total * 2)
 84
 </code></pre>
 <p>Whitespace matters in the second command. A parenthesized expression preceded by whitespace supplies one command argument. By contrast, <code>name(1)</code> is an implemented function call because the parenthesis is adjacent.</p>
-<p>Expression mode evaluates Null, booleans, numbers, strings, arrays, objects, functions, member/index access, calls, spread, ternary expressions, unary <code>!</code> and <code>-</code>, arithmetic, ordering, strict equality, and short-circuit <code>&amp;&amp;</code>/<code>||</code>. Expression <code>&amp;&amp;</code> and <code>||</code> return one operand according to truthiness.</p>
+<p>Expression mode evaluates Null, booleans, numbers, strings, arrays, objects, functions, member/index access, calls, spread, ternary expressions, unary <code>!</code> and <code>-</code>, arithmetic, ordering, strict equality, and short-circuit <code>&amp;&amp;</code>/<code>||</code>. Expression <code>&amp;&amp;</code> and <code>||</code> return one operand according to <a href="../reference/operators-values.html#J-EXPR-005">truthiness</a>.</p>
 <p>At command level, <code>&amp;&amp;</code> and <code>||</code> form a status chain rather than argv. They run the right pipeline after success or failure respectively. A completed nonzero status is handled by the chain; lookup, interpolation, spawn, and type errors still propagate.</p>
 <p class="example-label"><strong>Runnable example</strong></p>
 

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-53185e34.js";
+            window.path_to_searchindex_js = "../searchindex-311364e9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-601258de.js"></script>
@@ -178,7 +178,7 @@
 <p><a id="J-EXPR-001"></a></p>
 <h2 id="expression-values"><a class="header" href="#expression-values">Expression values</a></h2>
 <p>Values are Null, Bool, Int, Float, String, Bytes, Array, insertion-ordered Object, Function, Error, and Status. Arrays/objects are Arc-backed. Object overwrite retains the original key position. Data, errors, and statuses compare structurally; user functions compare by identity.</p>
-<p>False, Null, numeric zero, empty String/Bytes/Array/Object, and failed Status are falsey. True, nonempty data, Function, Error, and successful Status are truthy. <code>typeof</code> returns <code>null</code>, <code>bool</code>, <code>int</code>, <code>float</code>, <code>string</code>, <code>bytes</code>, <code>array</code>, <code>object</code>, <code>function</code>, <code>error</code>, or <code>status</code>.</p>
+<p>False, Null, numeric zero, empty String/Bytes/Array/Object, and failed Status are falsey. True, nonempty data, Function, Error, and successful Status are truthy; <a href="#J-EXPR-005">Truthiness</a> gives the full rule. <code>typeof</code> returns <code>null</code>, <code>bool</code>, <code>int</code>, <code>float</code>, <code>string</code>, <code>bytes</code>, <code>array</code>, <code>object</code>, <code>function</code>, <code>error</code>, or <code>status</code>.</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -198,6 +198,33 @@
 <p>Arrays/objects support literals and spread. <code>let</code> and parameters support nested array/object destructuring with trailing rest; missing values bind Null. Arrays, Bytes, and strings accept signed Int indexes; Objects accept String keys or Int keys converted to decimal text. Missing and out-of-range indexes fall back to the type’s prototype table before returning Null.</p>
 <p><code>if</code> and <code>try</code> are value-producing in expression position: <code>let x = if 40 &lt; 42 { "yes" } else { "no" }</code> binds <code>"yes"</code>, and <code>try { ... }</code> produces the body’s value or the thrown error object (the status <code>e</code> variable still binds inside <code>catch</code>).</p>
 <p><code>object.key = value</code> and <code>object[index] = value</code> assign existing or new fields on object values in place and evaluate to the assigned value; they are errors on other kinds.</p>
+<p><a id="J-EXPR-005"></a></p>
+<h2 id="truthiness"><a class="header" href="#truthiness">Truthiness</a></h2>
+<p>Truthiness is Josh’s only implicit coercion. It classifies values for <code>!</code>, expression <code>&amp;&amp;</code> and <code>||</code>, ternary conditions, parenthesized <code>if</code>/<code>while</code> conditions, <code>filter</code> callbacks, and the <code>Boolean(value)</code> converter. The complete falsy set is <code>false</code>, Null, Int <code>0</code>, Float <code>0.0</code> (including negative zero), empty String/Bytes/Array/Object, and failed Status. Everything else is truthy.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Values</th><th>Truthiness</th></tr>
+</thead>
+<tbody>
+<tr><td><code>false</code>, <code>null</code></td><td>falsy</td></tr>
+<tr><td><code>0</code>, <code>0.0</code>, <code>-0.0</code></td><td>falsy</td></tr>
+<tr><td><code>""</code>, <code>[]</code>, <code>{}</code>, empty Bytes, failed Status</td><td>falsy</td></tr>
+<tr><td><code>NaN</code>, <code>inf</code>, and every other nonzero Int/Float</td><td>truthy</td></tr>
+<tr><td><code>true</code>, nonempty String/Bytes/Array/Object, Function, Error, successful Status</td><td>truthy</td></tr>
+</tbody>
+</table>
+</div>
+<p>Two departures from JavaScript: empty Array and Object values are falsy (JavaScript treats every array and object as truthy), and <code>NaN</code> is truthy (JavaScript excludes it) because the float rule is a plain comparison against zero. Equality has no coercion at all: <code>==</code> is a parse error, and <code>===</code>/<code>!==</code> compare values without converting them. An unparenthesized <code>if</code>/<code>while</code> condition never reaches this rule; it runs as a command pipeline and tests the completed exit status instead (see <a href="../language/control-flow-jobs.html#J-RUN-006">If statements</a>).</p>
+<p class="example-label"><strong>Runnable example</strong></p>
+
+<pre><code class="language-josh">printf '%s %s %s %s\n' (Boolean([])) (Boolean({})) (Boolean("")) (Boolean([0]))
+printf '%s %s %s\n' (Boolean(0)) (Boolean(0 / 0)) (Boolean(1))
+failed = null
+try { sh -c 'exit 3' } catch (problem) { failed = problem.status }
+printf '%s\n' (Boolean(failed))
+</code></pre>
+<p>Output: <code>false false false true</code>, then <code>false true true</code>, then <code>false</code>.</p>
 <p><a id="J-NAMES-001"></a></p>
 <h2 id="builtin-namespaces-and-prototypes"><a class="header" href="#builtin-namespaces-and-prototypes">Builtin namespaces and prototypes</a></h2>
 <p>Scalar converters live as namespace callables: <code>String(1)</code>, <code>Number("42")</code>, <code>Boolean([])</code>, <code>Array(...)</code>, <code>error(...)</code>, and <code>glob("pattern")</code>. Calling <code>Object(...)</code> is a type error; objects come from literals. <code>Number(value)</code> keeps Josh’s conversion rules (<code>int</code>/<code>float</code> arguments; strings choose Int when the text is integral, otherwise Float, then error) and rejects bool, null, object, function, error, and status inputs.</p>
