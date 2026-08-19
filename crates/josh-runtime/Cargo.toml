@@ -10,6 +10,8 @@ jiff.workspace = true
 compact_str.workspace = true
 josh-syntax.workspace = true
 thiserror.workspace = true
+nu-ansi-term.workspace = true
+unicode-ident.workspace = true
 
 [lints]
 workspace = true

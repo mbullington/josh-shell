@@ -658,6 +658,7 @@ dependencies = [
 name = "josh-interactive"
 version = "0.1.0"
 dependencies = [
+ "crossterm",
  "josh-exec",
  "josh-runtime",
  "josh-syntax",
@@ -685,7 +686,9 @@ dependencies = [
  "compact_str",
  "jiff",
  "josh-syntax",
+ "nu-ansi-term",
  "thiserror",
+ "unicode-ident",
 ]
 
 [[package]]

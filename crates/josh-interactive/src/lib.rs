@@ -2,6 +2,7 @@ use std::{
     borrow::Cow,
     collections::BTreeSet,
     env, fs,
+    io::IsTerminal,
     path::{Path, PathBuf},
     sync::{Arc, RwLock, atomic::Ordering},
 };
@@ -17,7 +18,7 @@ use reedline::{
     ValidationResult, Validator, default_emacs_keybindings,
 };
 
-use josh_runtime::{Engine, EngineError, RunResult, Value};
+use josh_runtime::{Engine, EngineError, PrettyOptions, RunResult, Value, render_value};
 use josh_syntax::{Completeness, LexMode, Parse, Span, TokenKind, parse};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -350,7 +351,7 @@ pub fn run_repl(engine: &mut Engine) -> Result<i32, Box<dyn std::error::Error>> 
                     }
                     Ok(RunResult::Value(value)) => {
                         if value != Value::Null {
-                            println!("{value}");
+                            println!("{}", render_value(&value, &pretty_options()));
                         }
                     }
                     Err(error) => print_engine_error(&error),
@@ -371,6 +372,15 @@ pub fn run_repl(engine: &mut Engine) -> Result<i32, Box<dyn std::error::Error>> 
             _ => continue,
         }
     }
+}
+
+fn pretty_options() -> PrettyOptions {
+    let mut options = PrettyOptions::default();
+    if let Ok((width, _)) = crossterm::terminal::size() {
+        options.width = usize::from(width);
+    }
+    options.colors = std::io::stdout().is_terminal();
+    options
 }
 
 pub fn print_engine_error(error: &EngineError) {
