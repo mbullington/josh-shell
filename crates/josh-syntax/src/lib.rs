@@ -46,6 +46,7 @@ pub enum TokenKind {
     String,
     SingleQuoted,
     DoubleQuoted,
+    RawString,
     DollarVariable,
     CaptureStart,
     InterpolationStart,
@@ -334,6 +335,13 @@ pub enum BindingPattern {
         rest: Option<Box<BindingPattern>>,
         span: Span,
     },
+    /// `...args` in a function parameter list: collects the remaining
+    /// arguments into an array. Only the parser's parameter productions
+    /// build this; it is not a destructuring pattern.
+    Rest {
+        name: String,
+        span: Span,
+    },
     Missing {
         span: Span,
     },
@@ -346,6 +354,7 @@ impl BindingPattern {
             Self::Name { span, .. }
             | Self::Array { span, .. }
             | Self::Object { span, .. }
+            | Self::Rest { span, .. }
             | Self::Missing { span } => *span,
         }
     }
@@ -932,7 +941,10 @@ impl Parser {
             return false;
         };
         match &self.tokens[first].kind {
-            TokenKind::SingleQuoted | TokenKind::DoubleQuoted | TokenKind::String => true,
+            TokenKind::SingleQuoted
+            | TokenKind::DoubleQuoted
+            | TokenKind::RawString
+            | TokenKind::String => true,
             // A lone variable (`e`), or one followed by an expression
             // operator (`x * 2`, `n === 3`, `e.code` was already covered by
             // `is_expression_head`), is an expression statement.
@@ -1054,7 +1066,7 @@ impl Parser {
                 // statement; a bare quoted word stays a command word.
                 if !matches!(
                     self.tokens[first].kind,
-                    TokenKind::SingleQuoted | TokenKind::DoubleQuoted
+                    TokenKind::SingleQuoted | TokenKind::DoubleQuoted | TokenKind::RawString
                 ) {
                     return false;
                 }
@@ -1381,6 +1393,10 @@ impl Parser {
             if self.at_end() || self.at(TokenTag::RightParen) {
                 break;
             }
+            if self.at(TokenTag::Ellipsis) {
+                self.parse_rest_parameter(&mut params);
+                continue;
+            }
             params.push(self.parse_pattern());
             self.skip_trivia_mode(LexMode::Expression);
             if self.at(TokenTag::Comma) {
@@ -1391,6 +1407,41 @@ impl Parser {
         }
         self.expect_closer(TokenTag::RightParen, ")", LexMode::Expression);
         params
+    }
+
+    /// `...name` in a parameter list. Anything after it is diagnosed but
+    /// still consumed so recovery parses the remaining parameters normally.
+    fn parse_rest_parameter(&mut self, params: &mut Vec<BindingPattern>) {
+        let start = self.bump_span(LexMode::Expression).start;
+        self.skip_trivia_mode(LexMode::Expression);
+        let (name, end) = if self.at(TokenTag::Identifier) {
+            (
+                self.bump_text(LexMode::Expression),
+                self.tokens[self.pos - 1].span.end,
+            )
+        } else {
+            let at = self.current_start();
+            self.diagnostics.push(self.expected(
+                "P184",
+                "rest parameter must be an identifier",
+                at,
+                &["identifier"],
+            ));
+            (String::new(), at)
+        };
+        params.push(BindingPattern::Rest {
+            name,
+            span: Span::new(start, end),
+        });
+        self.skip_trivia_mode(LexMode::Expression);
+        if self.at(TokenTag::Comma) {
+            let span = self.bump_span(LexMode::Expression);
+            self.diagnostics.push(Diagnostic::error(
+                "P185",
+                "rest parameter must be last",
+                span,
+            ));
+        }
     }
 
     fn parse_if_expression(&mut self, style: BlockStyle) -> Expr {
@@ -1910,11 +1961,15 @@ impl Parser {
             match token.kind {
                 TokenKind::SingleQuoted => {
                     self.bump_mode(LexMode::SingleQuote);
+                    parts.push(self.parse_quoted(token.span, '\''));
+                }
+                TokenKind::RawString => {
+                    self.bump_mode(LexMode::SingleQuote);
                     let raw = &self.source[token.span.range()];
                     let value = raw
-                        .strip_prefix('\'')
-                        .and_then(|x| x.strip_suffix('\''))
-                        .unwrap_or_else(|| raw.strip_prefix('\'').unwrap_or(raw))
+                        .get(2..)
+                        .and_then(|x| x.strip_suffix(raw[1..].chars().next().unwrap_or('\'')))
+                        .unwrap_or_else(|| raw.strip_prefix("r\'").unwrap_or(raw))
                         .to_owned();
                     parts.push(WordPart::SingleQuoted {
                         value,
@@ -1923,7 +1978,7 @@ impl Parser {
                 }
                 TokenKind::DoubleQuoted => {
                     self.bump_mode(LexMode::DoubleQuote);
-                    parts.push(self.parse_double_quoted(token.span));
+                    parts.push(self.parse_quoted(token.span, '"'));
                 }
                 TokenKind::DollarVariable => {
                     self.bump_mode(LexMode::Command);
@@ -1965,17 +2020,29 @@ impl Parser {
         }
     }
 
-    fn parse_double_quoted(&mut self, span: Span) -> WordPart {
+    // Both quote kinds decode escapes and interpolate; only the closing
+    // delimiter differs. Escape sequences are decoded when each literal run
+    // flushes so `$` following a backslash never starts an interpolation.
+    fn parse_quoted(&mut self, span: Span, quote: char) -> WordPart {
         let raw = &self.source[span.range()];
-        let closed = raw.ends_with('"') && raw.len() > 1;
+        let closed = raw.ends_with(quote) && raw.len() > 1;
         let inner = raw
-            .strip_prefix('"')
-            .and_then(|x| x.strip_suffix('"'))
-            .unwrap_or_else(|| raw.strip_prefix('"').unwrap_or(raw))
+            .strip_prefix(quote)
+            .and_then(|x| x.strip_suffix(quote))
+            .unwrap_or_else(|| raw.strip_prefix(quote).unwrap_or(raw))
             .to_owned();
-        let base = span.start + usize::from(raw.starts_with('"'));
+        let base = span.start + usize::from(raw.starts_with(quote));
         let mut parts = Vec::new();
         let mut literal = String::new();
+        macro_rules! flush_literal {
+            ($parts:expr, $literal:expr) => {
+                if !$literal.is_empty() {
+                    $parts.push(QuotedPart::Literal(decode_escapes(&std::mem::take(
+                        &mut $literal,
+                    ))));
+                }
+            };
+        }
         let mut at = 0;
         while at < inner.len() {
             let ch = inner[at..]
@@ -1983,6 +2050,7 @@ impl Parser {
                 .next()
                 .expect("quote cursor is in bounds");
             if ch == '\\' {
+                literal.push(ch);
                 at += ch.len_utf8();
                 if at < inner.len() {
                     let escaped = inner[at..].chars().next().unwrap();
@@ -1993,9 +2061,7 @@ impl Parser {
             }
             if inner[at..].starts_with("$(") {
                 if let Some(close) = find_matching(&inner, at + 2, '(', ')') {
-                    if !literal.is_empty() {
-                        parts.push(QuotedPart::Literal(std::mem::take(&mut literal)));
-                    }
+                    flush_literal!(parts, literal);
                     let fragment = &inner[at + 2..close];
                     let offset = base + at + 2;
                     let mut nested = Parser::new(Arc::from(fragment));
@@ -2040,9 +2106,7 @@ impl Parser {
             }
             if inner[at..].starts_with("${") {
                 if let Some(close) = find_matching(&inner, at + 2, '{', '}') {
-                    if !literal.is_empty() {
-                        parts.push(QuotedPart::Literal(std::mem::take(&mut literal)));
-                    }
+                    flush_literal!(parts, literal);
                     let fragment = &inner[at + 2..close];
                     let offset = base + at + 2;
                     let mut nested = Parser::new(Arc::from(fragment));
@@ -2090,9 +2154,7 @@ impl Parser {
                 if name_start < inner.len() {
                     let next = inner[name_start..].chars().next().unwrap();
                     if is_ident_start(next) {
-                        if !literal.is_empty() {
-                            parts.push(QuotedPart::Literal(std::mem::take(&mut literal)));
-                        }
+                        flush_literal!(parts, literal);
                         let mut end = name_start + next.len_utf8();
                         while end < inner.len() {
                             let c = inner[end..].chars().next().unwrap();
@@ -2111,7 +2173,7 @@ impl Parser {
             at += ch.len_utf8();
         }
         if !literal.is_empty() {
-            parts.push(QuotedPart::Literal(literal));
+            parts.push(QuotedPart::Literal(decode_escapes(&literal)));
         }
         WordPart::DoubleQuoted { parts, span }
     }
@@ -2352,7 +2414,10 @@ impl Parser {
                 let name = self.bump_text(LexMode::Expression);
                 Expr::Identifier(name, token.span)
             }
-            TokenKind::String | TokenKind::SingleQuoted | TokenKind::DoubleQuoted => {
+            TokenKind::String
+            | TokenKind::SingleQuoted
+            | TokenKind::DoubleQuoted
+            | TokenKind::RawString => {
                 self.bump_mode(if matches!(token.kind, TokenKind::SingleQuoted) {
                     LexMode::SingleQuote
                 } else {
@@ -2368,6 +2433,10 @@ impl Parser {
                     self.skip_trivia_mode(LexMode::Expression);
                     if self.at_end() || self.at(TokenTag::RightParen) {
                         break;
+                    }
+                    if self.at(TokenTag::Ellipsis) {
+                        self.parse_rest_parameter(&mut params);
+                        continue;
                     }
                     params.push(self.parse_pattern());
                     self.skip_trivia_mode(LexMode::Expression);
@@ -2526,7 +2595,10 @@ impl Parser {
         let raw = &self.source[token.span.range()];
         if matches!(
             token.kind,
-            TokenKind::String | TokenKind::SingleQuoted | TokenKind::DoubleQuoted
+            TokenKind::String
+                | TokenKind::SingleQuoted
+                | TokenKind::DoubleQuoted
+                | TokenKind::RawString
         ) {
             decode_quoted_literal(raw, &token.kind)
         } else {
@@ -2753,6 +2825,7 @@ impl Parser {
                     | TokenKind::String
                     | TokenKind::SingleQuoted
                     | TokenKind::DoubleQuoted
+                    | TokenKind::RawString
             )
         )
     }
@@ -2835,6 +2908,7 @@ fn tag(kind: &TokenKind) -> TokenTag {
         TokenKind::Word
         | TokenKind::SingleQuoted
         | TokenKind::DoubleQuoted
+        | TokenKind::RawString
         | TokenKind::DollarVariable => TokenTag::Word,
         TokenKind::Identifier => TokenTag::Identifier,
         TokenKind::Number => TokenTag::Number,
@@ -2954,7 +3028,7 @@ fn lex(source: &str) -> (Vec<Token>, Vec<Diagnostic>) {
             let mut closed = false;
             while at < source.len() {
                 let c = source[at..].chars().next().unwrap();
-                if c == '\\' && quote == '"' {
+                if c == '\\' {
                     at += c.len_utf8();
                     if at < source.len() {
                         at += source[at..].chars().next().unwrap().len_utf8();
@@ -2977,6 +3051,31 @@ fn lex(source: &str) -> (Vec<Token>, Vec<Diagnostic>) {
                 start,
                 at,
             );
+            if !closed {
+                diagnostics.push(Diagnostic::eof(
+                    "L001",
+                    format!("unclosed {quote} quote"),
+                    source.len(),
+                    &[&quote.to_string()],
+                ));
+            }
+            continue;
+        }
+        // Raw strings: `r'...'` / `r"..."` are fully literal — no escapes,
+        // no interpolation; a backslash does not escape the closing quote.
+        if ch == 'r' && matches!(source[start + 1..].chars().next(), Some('\'' | '"')) {
+            let quote = source[start + 1..].chars().next().unwrap();
+            at += 2;
+            let mut closed = false;
+            while at < source.len() {
+                let c = source[at..].chars().next().unwrap();
+                at += c.len_utf8();
+                if c == quote {
+                    closed = true;
+                    break;
+                }
+            }
+            push(&mut tokens, TokenKind::RawString, start, at);
             if !closed {
                 diagnostics.push(Diagnostic::eof(
                     "L001",
@@ -3179,13 +3278,93 @@ fn unescape_command(text: &str) -> String {
     out
 }
 
-fn decode_quoted_literal(raw: &str, kind: &TokenKind) -> String {
-    let inner = raw.get(1..raw.len().saturating_sub(1)).unwrap_or("");
-    if matches!(kind, TokenKind::DoubleQuoted | TokenKind::String) {
-        unescape_command(inner)
-    } else {
-        inner.to_owned()
+/// JavaScript escape decoding for quoted strings: standard control
+/// escapes, `\xNN`, `\uNNNN`, `\u{…}` code points, and a line
+/// continuation after `\`. Any other escaped scalar stands for itself
+/// (JavaScript's identity escape), quoting quotes and `\\` the same way.
+pub fn decode_escapes(text: &str) -> String {
+    let mut out = String::new();
+    let mut chars = text.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if ch != '\\' {
+            out.push(ch);
+            continue;
+        }
+        let Some(escaped) = chars.next() else { break };
+        match escaped {
+            'n' => out.push('\n'),
+            't' => out.push('\t'),
+            'r' => out.push('\r'),
+            'b' => out.push('\u{8}'),
+            'f' => out.push('\u{c}'),
+            'v' => out.push('\u{b}'),
+            '0' => out.push('\0'),
+            '\n' => {}
+            'x' => {
+                let digits: String = chars.by_ref().take(2).collect();
+                if digits.len() == 2
+                    && let Ok(code) = u32::from_str_radix(&digits, 16)
+                    && let Some(decoded) = char::from_u32(code)
+                {
+                    out.push(decoded);
+                } else {
+                    out.push('x');
+                    out.push_str(&digits);
+                }
+            }
+            'u' => {
+                if chars.peek() == Some(&'{') {
+                    chars.next();
+                    let mut digits = String::new();
+                    let mut closed = false;
+                    for c in chars.by_ref() {
+                        if c == '}' {
+                            closed = true;
+                            break;
+                        }
+                        digits.push(c);
+                    }
+                    if closed
+                        && !digits.is_empty()
+                        && let Ok(code) = u32::from_str_radix(&digits, 16)
+                        && let Some(decoded) = char::from_u32(code)
+                    {
+                        out.push(decoded);
+                    } else {
+                        out.push_str("u{");
+                        out.push_str(&digits);
+                        if closed {
+                            out.push('}');
+                        }
+                    }
+                } else {
+                    let digits: String = chars.by_ref().take(4).collect();
+                    if digits.len() == 4
+                        && let Ok(code) = u32::from_str_radix(&digits, 16)
+                        && let Some(decoded) = char::from_u32(code)
+                    {
+                        out.push(decoded);
+                    } else {
+                        out.push('u');
+                        out.push_str(&digits);
+                    }
+                }
+            }
+            _ => out.push(escaped),
+        }
     }
+    out
+}
+
+fn decode_quoted_literal(raw: &str, kind: &TokenKind) -> String {
+    if matches!(kind, TokenKind::RawString) {
+        return raw
+            .get(2..raw.len().saturating_sub(1))
+            .unwrap_or("")
+            .to_owned();
+    }
+    let inner = raw.get(1..raw.len().saturating_sub(1)).unwrap_or("");
+    decode_escapes(inner)
 }
 
 fn find_matching(text: &str, mut at: usize, open: char, close: char) -> Option<usize> {
@@ -3194,7 +3373,7 @@ fn find_matching(text: &str, mut at: usize, open: char, close: char) -> Option<u
     while at < text.len() {
         let ch = text[at..].chars().next()?;
         if let Some(active) = quote {
-            if ch == '\\' && active == '"' {
+            if ch == '\\' {
                 at += ch.len_utf8();
                 if at < text.len() {
                     at += text[at..].chars().next()?.len_utf8();
@@ -3419,7 +3598,9 @@ fn offset_expr(expr: &mut Expr, offset: usize) {
 
 fn offset_pattern(pattern: &mut BindingPattern, offset: usize) {
     match pattern {
-        BindingPattern::Name { span, .. } | BindingPattern::Missing { span } => {
+        BindingPattern::Name { span, .. }
+        | BindingPattern::Rest { span, .. }
+        | BindingPattern::Missing { span } => {
             offset_span(span, offset);
         }
         BindingPattern::Array {

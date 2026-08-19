@@ -33,7 +33,7 @@
 # sequences (ESC [ ... final-byte); a lone ESC or other escape families pass
 # through unchanged.
 
-colors_esc = $(printf '\033')
+colors_esc = "\u{1b}"
 
 # Dynamic by design: reads env and colors.enabled at call time, so disabling
 # works even for strings composed by lexically captured closures.

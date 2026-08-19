@@ -10,7 +10,16 @@ Calls require adjacency: `value(args)`, `value.member`, and `value[index]`. A sp
 
 `fn name(params) { ... }` and arrow functions share one Function value. A closure copies all visible lexical bindings when it is created; later reassignment outside the closure does not change that snapshot. Named functions rebind themselves while called, so direct recursion works without cyclic ownership. Declarations are source-ordered, not hoisted, but calls resolve names when invoked, so functions defined later in the same script can call back into earlier ones (mutual recursion included). Scope is lexical: a running function sees its own parameters, its captured snapshot, and shared top-level bindings — it can neither see nor rewrite bindings owned by another active function.
 
-Parameters allow nested array/object destructuring and one trailing rest pattern. Missing arguments bind Null; extra arguments are ignored. `...array` expands a call argument list. Spreading any other value is a type error. `return` without a value returns Null. `break` and `continue` cannot cross a function boundary.
+Parameters allow nested array/object destructuring and one trailing rest pattern. A trailing `...name` rest parameter collects every remaining argument into an array bound to `name`; anything after it is a parse error. Missing arguments bind Null, a rest parameter with no remaining arguments binds an empty array, and without a rest parameter extra arguments are ignored. `...array` expands a call argument list. Spreading any other value is a type error. `return` without a value returns Null. `break` and `continue` cannot cross a function boundary.
+
+<p class="example-label"><strong>Runnable example</strong></p>
+
+```console
+josh> fn head(first, ...rest) { return [first, rest.length] }
+<function head>
+josh> head(1, 2, 3)
+[1, 2]
+```
 
 A visible lexical function in command position runs before PATH lookup and receives evaluated command arguments. Member-call dispatch has this fixed order:
 

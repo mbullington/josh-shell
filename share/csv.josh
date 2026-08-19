@@ -189,7 +189,7 @@ b", q[1][2], "embedded separator")
     # Bytes input decodes; invalid UTF-8 is a csv-kinded error
     ok = csv($(printf 'x\n1\n'))
     assert_eq("1", ok[0].x, "bytes input parses")
-    assert_throws(() => csv($(printf '\377')), "csv", "invalid UTF-8 errors")
+    assert_throws(() => csv($(printf r'\377')), "csv", "invalid UTF-8 errors")
 
     # empty input is zero records, not one empty record
     assert_eq(0, csv("").length, "empty csv")

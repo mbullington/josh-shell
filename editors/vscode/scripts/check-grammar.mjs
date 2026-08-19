@@ -69,8 +69,15 @@ function check(label, line, expected) {
 
 check("keywords and strings", "let x = 'raw' + \"done\"", [
   ["let", "keyword.control.josh"],
-  ["raw", "string.quoted.single.josh"],
-  ["done", "string.quoted.double.josh"],
+  ["raw", "string.quoted.josh"],
+  ["done", "string.quoted.josh"],
+]);
+
+check("raw strings stay literal", "echo r'raw $raw' 'cooked $n \\n'", [
+  ["r'raw $raw'", "string.quoted.raw.single.josh"],
+  ["'cooked $n \\n'", "string.quoted.josh"],
+  ["$n", "variable.other.josh"],
+  ["\\n", "constant.character.escape.josh"],
 ]);
 
 check("interpolation and capture nest", "echo \"hi ${name.first} $(date | cut)\"", [

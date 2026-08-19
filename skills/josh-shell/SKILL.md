@@ -44,16 +44,17 @@ Consequences that bite:
 - `/` is ALWAYS float division (`10 / 3` → `3.3333333333333335`, `1 / 0` → `inf`); `%` is integer remainder.
 - Int and Float do NOT mix: `2.5 > 0` errors ("operator Greater does not accept these values"); compare Floats with `0.0`. `Number(x)` converts strings/ints.
 - `fn name(params) { ... }` and arrows `x => x * 2` / `(x, y) => x + y` / block bodies `x => { return x }`. Closures SNAPSHOT visible bindings at creation. Direct recursion works; nothing is hoisted; no `this`/classes.
-- Destructuring in `let` and params (nested + one trailing `...rest`); NOT in assignment.
+- Destructuring in `let` and params (nested + one trailing `...rest`); NOT in assignment. A trailing `...args` rest PARAMETER collects remaining call arguments into an array (`fn z(...args) { ... }`, `(a, ...rest) => rest`); it must be last and an identifier ([P184]/[P185] otherwise).
 - `let` for declarations; plain `=` assigns or creates in the current frame. `+=`/`-=` checked.
 - Control: `if (cond) { } else { }`, `while (cond) { }`, `loop { break }`, `try { } catch e { }`, `throw value`, `return`, `break`, `continue`. **Parenthesize expression conditions.** An unparenthesized `if`/`while` condition is parsed as a COMMAND PIPELINE run for its exit status (shell semantics, J-RUN-006): `while i < 5 { }` runs command `i` with input redirected from file `5`, it is NOT a comparison. `if` and `try` are also value-producing expressions when parenthesized: `x = if (cond) { 1 } else { 2 }`.
 - `a && b`, `a || b` do double duty: at command position they chain processes on success; inside expressions they are short-circuit boolean operators (`(a && b)`).
 - `source path.josh` evaluates a file in the CURRENT frame (bash-style). One command word path (quoting, `$var`, `$()`, leading `~` OK), cwd-relative, strict parse gate, cycle guard, `return`/`break`/`continue` cannot escape the file. `import`/`export`/remote modules are deliberately rejected.
+- Builtins: `cd`, `exit`, `status`. `command name …` skips lexical functions and builtins, resolving `name` on PATH — verb-hiding helpers call it to avoid recursing (`fn mkdir(...args) { command mkdir -v $args }`).
 - Semicolons AND newlines separate statements. `++`/`--` are deliberately rejected.
 
 ## Data model for computation (share-library style)
 
-- Strings: immutable UTF-8 with **UTF-16 code-unit positions** (JS semantics, since 2026-08-16): `"😀".length == 2`. `s[i]`/`s.at(i)` return one code point; a position inside a surrogate pair snaps to the whole code point (Rust strings cannot hold lone surrogates). Negative indexes count from the end; out-of-range gives `null`.
+- Strings: `'…'` and `"…"` are IDENTICAL processed strings — JavaScript escape decoding (`\n`, `\t`, `\xNN`, `\uNNNN`, `\u{…}`, identity escapes) plus, in command words, `$var`/`${…}`/`$(…)` interpolation. `r'…'`/`r"…"` are fully raw. Bare words keep POSIX backslash-quote semantics. Immutable UTF-8 with **UTF-16 code-unit positions** (JS semantics, since 2026-08-16): `"😀".length == 2`. `s[i]`/`s.at(i)` return one code point; a position inside a surrogate pair snaps to the whole code point (Rust strings cannot hold lone surrogates). Negative indexes count from the end; out-of-range gives `null`.
 - **Range slices are the one slicing mechanism:** `a[b..c]` on strings AND arrays, end-exclusive, negative/omitted/clamped bounds, inverted pair → empty. `a[..]` makes an independent copy. No `..=`, no stride ranges; no `String.prototype.slice/substring` (arrays have `.slice(a, b)` — prefer ranges).
 - Arrays are SHARED MUTABLE values: aliases observe in-place edits from `push`/`pop`/`reverse`/`sort` (JS return semantics). Callback methods (`map`/`filter`/`reduce`/`flat`/`join`) iterate a snapshot. `a.push(x)` returns the new length.
 - Objects are string-keyed and mutable: `o.x = v`, `o[k] = v`, `o.x += 1` all work. `Object.keys(o)`, `Object.entries`, `Object.freeze`.
@@ -74,6 +75,14 @@ Consequences that bite:
 - Value pipelines: `[1,2,3] | x => x * 2`; single-value sources too: `5 | x => x * 2`; unit `()` runs a pure expression stage.
 - Capturing streams gives arrays ALWAYS for `lines/jsonl/chunks/filter/take/takeLast` (even 0 or 1 items); `text`/`json` give a scalar; `first` gives value-or-null.
 - Internal stages and functions in pipelines are concurrency-limited execution; keep hot loops in one process instead of spawning a stage per item when you benchmark.
+
+## Interactive (REPL)
+
+- Completion: commands from session PATH/builtins, `$variables`, files (leading `~` resolved against session HOME, tilde preserved on insert). Optional carapace bridge (`JOSH_CARAPACE=0` disables).
+- Ghost-text typeahead: history-prefix hint first, else first native completion candidate; Right/Ctrl+F accepts whole, Alt+Right/Ctrl+Right one word.
+- Ctrl+R opens the history MENU: deduplicated substring search, newest first, refilters while typing, arrows navigate, Enter copies to buffer.
+- History: plain text at `$JOSH_HISTORY` or `~/.josh_history`, cap `$JOSH_HISTORY_SIZE` (default 10,000), synced after each accepted line.
+- Highlighting: per-stage command-validity coloring; `JOSH_THEME=/path/to/theme.tmTheme` resolves TextMate theme colors (fallback ANSI palette).
 
 ## Verification
 

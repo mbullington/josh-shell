@@ -16,6 +16,7 @@ josh-runtime.workspace = true
 mimalloc = "0.1"
 
 [dev-dependencies]
+josh-syntax.workspace = true
 nix.workspace = true
 tempfile.workspace = true
 

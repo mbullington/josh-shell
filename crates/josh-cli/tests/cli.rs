@@ -409,7 +409,7 @@ fn ctrl_c_cancels_a_structured_graph_and_reaps_its_child() {
         read_available(&mut master, &mut output);
     }
     let command = format!(
-        "sh -c 'echo $$ > {}; while true; do printf x; sleep 1; done' | lines | map (x => x)\n",
+        "sh -c r'echo $$ > {}; while true; do printf x; sleep 1; done' | lines | map (x => x)\n",
         pid_file.display()
     );
     master.write_all(command.as_bytes()).unwrap();

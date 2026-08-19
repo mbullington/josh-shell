@@ -1,219 +1,295 @@
 {
-  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-  "name": "Josh",
-  "scopeName": "source.josh",
-  "patterns": [
-    { "include": "#comments" },
-    { "include": "#strings" },
-    { "include": "#captures" },
-    { "include": "#variables" },
-    { "include": "#excluded-commands" },
-    { "include": "#keywords" },
-    { "include": "#constants" },
-    { "include": "#operators" },
-    { "include": "#numbers" },
-    { "include": "#invalid" }
-  ],
-  "repository": {
-    "comments": {
-      "patterns": [
-        {
-          "name": "comment.line.number-sign.josh",
-          "match": "#.*$"
-        }
-      ]
-    },
-    "strings": {
-      "patterns": [
-        {
-          "name": "string.quoted.single.josh",
-          "begin": "'",
-          "end": "'",
-          "beginCaptures": {
-            "0": { "name": "punctuation.definition.string.begin.josh" }
-          },
-          "endCaptures": {
-            "0": { "name": "punctuation.definition.string.end.josh" }
-          }
-        },
-        {
-          "name": "string.quoted.double.josh",
-          "begin": "\"",
-          "end": "\"",
-          "beginCaptures": {
-            "0": { "name": "punctuation.definition.string.begin.josh" }
-          },
-          "endCaptures": {
-            "0": { "name": "punctuation.definition.string.end.josh" }
-          },
-          "patterns": [
-            {
-              "name": "constant.character.escape.josh",
-              "match": "\\\\."
-            },
-            { "include": "#interpolation" },
-            { "include": "#captures" },
-            { "include": "#variables" }
-          ]
-        }
-      ]
-    },
-    "interpolation": {
-      "patterns": [
-        {
-          "name": "meta.embedded.expression.josh",
-          "begin": "\\$\\{",
-          "end": "\\}",
-          "beginCaptures": {
-            "0": { "name": "punctuation.section.embedded.begin.josh" }
-          },
-          "endCaptures": {
-            "0": { "name": "punctuation.section.embedded.end.josh" }
-          },
-          "patterns": [
-            { "include": "#nested-braces" },
-            { "include": "source.josh" }
-          ]
-        }
-      ]
-    },
-    "nested-braces": {
-      "patterns": [
-        {
-          "name": "meta.group.braces.josh",
-          "begin": "\\{",
-          "end": "\\}",
-          "patterns": [
-            { "include": "#nested-braces" },
-            { "include": "source.josh" }
-          ]
-        }
-      ]
-    },
-    "captures": {
-      "patterns": [
-        {
-          "name": "meta.embedded.command.josh",
-          "begin": "\\$\\(",
-          "end": "\\)",
-          "beginCaptures": {
-            "0": { "name": "punctuation.section.embedded.begin.josh" }
-          },
-          "endCaptures": {
-            "0": { "name": "punctuation.section.embedded.end.josh" }
-          },
-          "patterns": [
-            { "include": "#nested-parens" },
-            { "include": "source.josh" }
-          ]
-        }
-      ]
-    },
-    "nested-parens": {
-      "patterns": [
-        {
-          "name": "meta.group.parens.josh",
-          "begin": "\\(",
-          "end": "\\)",
-          "patterns": [
-            { "include": "#nested-parens" },
-            { "include": "source.josh" }
-          ]
-        }
-      ]
-    },
-    "variables": {
-      "patterns": [
-        {
-          "name": "variable.other.josh",
-          "match": "\\$[A-Za-z0-9_]+"
-        }
-      ]
-    },
-    "excluded-commands": {
-      "patterns": [
-        {
-          "comment": "These words produce parser errors (P143) at command head; flagging them even without the server approximates that. Only statement/line head is recognizable to a stateless grammar line rule.",
-          "match": "^(\\s*)((?:import|export|jobs|fg|bg)\\b)",
-          "captures": {
-            "2": { "name": "invalid.illegal.excluded-command.josh" }
-          }
-        }
-      ]
-    },
-    "keywords": {
-      "patterns": [
-        {
-          "name": "keyword.control.josh",
-          "match": "\\b(?:let|fn|if|else|while|loop|try|catch|throw|return|break|continue|status|typeof|source)\\b"
-        }
-      ]
-    },
-    "constants": {
-      "patterns": [
-        {
-          "name": "constant.language.josh",
-          "match": "\\b(?:true|false|null)\\b"
-        }
-      ]
-    },
-    "operators": {
-      "patterns": [
-        {
-          "name": "keyword.operator.comparison.josh",
-          "match": "===|!==|<=|>="
-        },
-        {
-          "name": "keyword.operator.arrow.josh",
-          "match": "=>"
-        },
-        {
-          "name": "keyword.operator.logical.josh",
-          "match": "&&|\\|\\|"
-        },
-        {
-          "name": "keyword.operator.assignment.josh",
-          "match": "\\+=|-=|=(?!=)"
-        },
-        {
-          "name": "keyword.operator.redirect.josh",
-          "match": "2>&1|2>>|2>|&>|>>|>|<"
-        },
-        {
-          "name": "keyword.operator.pipe.josh",
-          "match": "\\|"
-        },
-        {
-          "name": "keyword.operator.range.josh",
-          "match": "\\.\\.\\.|\\.\\."
-        },
-        {
-          "name": "keyword.operator.unary.bang.josh",
-          "match": "!(?=[\\w(])|(?<=\\s)!(?=\\s)"
-        },
-        {
-          "comment": "Single-char arithmetic also appears in command words (paths, globs, flags), so it only colors when space-separated.",
-          "name": "keyword.operator.arithmetic.josh",
-          "match": "(?<=\\s)(?://|[-+*/%])(?=\\s)"
-        }
-      ]
-    },
-    "numbers": {
-      "patterns": [
-        {
-          "name": "constant.numeric.josh",
-          "match": "\\b\\d+(?:\\.\\d+)?\\b"
-        }
-      ]
-    },
-    "invalid": {
-      "patterns": [
-        {
-          "comment": "The lexer emits these as Unsupported (P140/P162 diagnostics).",
-          "name": "invalid.illegal.operator.josh",
-          "match": "==(?!=)|&(?!&|>)"
-        }
-      ]
-    }
-  }
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "Josh",
+	"scopeName": "source.josh",
+	"patterns": [
+		{
+			"include": "#comments"
+		},
+		{
+			"include": "#strings"
+		},
+		{
+			"include": "#captures"
+		},
+		{
+			"include": "#variables"
+		},
+		{
+			"include": "#excluded-commands"
+		},
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#constants"
+		},
+		{
+			"include": "#operators"
+		},
+		{
+			"include": "#numbers"
+		},
+		{
+			"include": "#invalid"
+		}
+	],
+	"repository": {
+		"comments": {
+			"patterns": [
+				{
+					"name": "comment.line.number-sign.josh",
+					"match": "#.*$"
+				}
+			]
+		},
+		"strings": {
+			"comment": "Raw strings (r'...' / r\"...\") are fully literal; both quote kinds otherwise share escapes and interpolation",
+			"patterns": [
+				{
+					"name": "string.quoted.raw.single.josh",
+					"begin": "\\br'",
+					"end": "'",
+					"beginCaptures": {
+						"0": {
+							"name": "punctuation.definition.string.begin.josh"
+						}
+					},
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.definition.string.end.josh"
+						}
+					}
+				},
+				{
+					"name": "string.quoted.raw.double.josh",
+					"begin": "\\br\"",
+					"end": "\"",
+					"beginCaptures": {
+						"0": {
+							"name": "punctuation.definition.string.begin.josh"
+						}
+					},
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.definition.string.end.josh"
+						}
+					}
+				},
+				{
+					"name": "string.quoted.josh",
+					"begin": "(['\"])",
+					"end": "\\1",
+					"beginCaptures": {
+						"1": {
+							"name": "punctuation.definition.string.begin.josh"
+						}
+					},
+					"endCaptures": {
+						"1": {
+							"name": "punctuation.definition.string.end.josh"
+						}
+					},
+					"patterns": [
+						{
+							"name": "constant.character.escape.josh",
+							"match": "\\\\(x[0-9A-Fa-f]{2}|u[0-9A-Fa-f]{4}|u\\{[0-9A-Fa-f]+\\}|.)"
+						},
+						{
+							"include": "#interpolation"
+						},
+						{
+							"include": "#captures"
+						},
+						{
+							"include": "#variables"
+						}
+					]
+				}
+			]
+		},
+		"interpolation": {
+			"patterns": [
+				{
+					"name": "meta.embedded.expression.josh",
+					"begin": "\\$\\{",
+					"end": "\\}",
+					"beginCaptures": {
+						"0": {
+							"name": "punctuation.section.embedded.begin.josh"
+						}
+					},
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.section.embedded.end.josh"
+						}
+					},
+					"patterns": [
+						{
+							"include": "#nested-braces"
+						},
+						{
+							"include": "source.josh"
+						}
+					]
+				}
+			]
+		},
+		"nested-braces": {
+			"patterns": [
+				{
+					"name": "meta.group.braces.josh",
+					"begin": "\\{",
+					"end": "\\}",
+					"patterns": [
+						{
+							"include": "#nested-braces"
+						},
+						{
+							"include": "source.josh"
+						}
+					]
+				}
+			]
+		},
+		"captures": {
+			"patterns": [
+				{
+					"name": "meta.embedded.command.josh",
+					"begin": "\\$\\(",
+					"end": "\\)",
+					"beginCaptures": {
+						"0": {
+							"name": "punctuation.section.embedded.begin.josh"
+						}
+					},
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.section.embedded.end.josh"
+						}
+					},
+					"patterns": [
+						{
+							"include": "#nested-parens"
+						},
+						{
+							"include": "source.josh"
+						}
+					]
+				}
+			]
+		},
+		"nested-parens": {
+			"patterns": [
+				{
+					"name": "meta.group.parens.josh",
+					"begin": "\\(",
+					"end": "\\)",
+					"patterns": [
+						{
+							"include": "#nested-parens"
+						},
+						{
+							"include": "source.josh"
+						}
+					]
+				}
+			]
+		},
+		"variables": {
+			"patterns": [
+				{
+					"name": "variable.other.josh",
+					"match": "\\$[A-Za-z0-9_]+"
+				}
+			]
+		},
+		"excluded-commands": {
+			"patterns": [
+				{
+					"comment": "These words produce parser errors (P143) at command head; flagging them even without the server approximates that. Only statement/line head is recognizable to a stateless grammar line rule.",
+					"match": "^(\\s*)((?:import|export|jobs|fg|bg)\\b)",
+					"captures": {
+						"2": {
+							"name": "invalid.illegal.excluded-command.josh"
+						}
+					}
+				}
+			]
+		},
+		"keywords": {
+			"patterns": [
+				{
+					"name": "keyword.control.josh",
+					"match": "\\b(?:let|fn|if|else|while|loop|try|catch|throw|return|break|continue|status|typeof|source)\\b"
+				}
+			]
+		},
+		"constants": {
+			"patterns": [
+				{
+					"name": "constant.language.josh",
+					"match": "\\b(?:true|false|null)\\b"
+				}
+			]
+		},
+		"operators": {
+			"patterns": [
+				{
+					"name": "keyword.operator.comparison.josh",
+					"match": "===|!==|<=|>="
+				},
+				{
+					"name": "keyword.operator.arrow.josh",
+					"match": "=>"
+				},
+				{
+					"name": "keyword.operator.logical.josh",
+					"match": "&&|\\|\\|"
+				},
+				{
+					"name": "keyword.operator.assignment.josh",
+					"match": "\\+=|-=|=(?!=)"
+				},
+				{
+					"name": "keyword.operator.redirect.josh",
+					"match": "2>&1|2>>|2>|&>|>>|>|<"
+				},
+				{
+					"name": "keyword.operator.pipe.josh",
+					"match": "\\|"
+				},
+				{
+					"name": "keyword.operator.range.josh",
+					"match": "\\.\\.\\.|\\.\\."
+				},
+				{
+					"name": "keyword.operator.unary.bang.josh",
+					"match": "!(?=[\\w(])|(?<=\\s)!(?=\\s)"
+				},
+				{
+					"comment": "Single-char arithmetic also appears in command words (paths, globs, flags), so it only colors when space-separated.",
+					"name": "keyword.operator.arithmetic.josh",
+					"match": "(?<=\\s)(?://|[-+*/%])(?=\\s)"
+				}
+			]
+		},
+		"numbers": {
+			"patterns": [
+				{
+					"name": "constant.numeric.josh",
+					"match": "\\b\\d+(?:\\.\\d+)?\\b"
+				}
+			]
+		},
+		"invalid": {
+			"patterns": [
+				{
+					"comment": "The lexer emits these as Unsupported (P140/P162 diagnostics).",
+					"name": "invalid.illegal.operator.josh",
+					"match": "==(?!=)|&(?!&|>)"
+				}
+			]
+		}
+	}
 }

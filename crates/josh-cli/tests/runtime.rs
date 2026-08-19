@@ -665,7 +665,7 @@ fn environment_namespace_is_dynamic_exported_and_scalar_canonical() {
          fn write_env(value) { env.JOSH_SESSION_TEXT = value }; write_env(\"after\"); \
          env.JOSH_SESSION_INT = 42; env.JOSH_SESSION_FLOAT = 1.5; \
          env.JOSH_SESSION_BOOL = true; \
-         child = $(/bin/sh -c 'printf \"%s|%s|%s|%s\" \"$JOSH_SESSION_TEXT\" \"$JOSH_SESSION_INT\" \"$JOSH_SESSION_FLOAT\" \"$JOSH_SESSION_BOOL\"'); \
+         child = $(/bin/sh -c r'printf \"%s|%s|%s|%s\" \"$JOSH_SESSION_TEXT\" \"$JOSH_SESSION_INT\" \"$JOSH_SESSION_FLOAT\" \"$JOSH_SESSION_BOOL\"'); \
          fallback = $(/usr/bin/printf '%s' $JOSH_SESSION_TEXT); \
          dynamic = read_env(); before_unset = env.JOSH_SESSION_TEXT; env.JOSH_SESSION_TEXT = null; \
          [dynamic, before_unset, env.JOSH_SESSION_TEXT, child, fallback, typeof env]",
@@ -732,7 +732,7 @@ fn environment_bytes_path_views_and_validation_preserve_os_values() {
     assert_eq!(
         evaluated(
             &mut engine,
-            "env.JOSH_NON_UTF8 = $(/usr/bin/printf '\\377'); child_bytes = $(/bin/sh -c 'printf %s \"$JOSH_NON_UTF8\"'); (child_bytes)",
+            "env.JOSH_NON_UTF8 = $(/usr/bin/printf r'\\377'); child_bytes = $(/bin/sh -c r'printf %s \"$JOSH_NON_UTF8\"'); (child_bytes)",
         ),
         Value::Bytes(Arc::from([0xff]))
     );
@@ -740,7 +740,7 @@ fn environment_bytes_path_views_and_validation_preserve_os_values() {
     assert_eq!(
         evaluated(
             &mut engine,
-            "env.PATH = [\"/bin\", \"/usr/bin\"]; [env.PATH, $(/bin/sh -c 'printf %s \"$PATH\"')]",
+            "env.PATH = [\"/bin\", \"/usr/bin\"]; [env.PATH, $(/bin/sh -c r'printf %s \"$PATH\"')]",
         ),
         Value::array(vec![
             Value::array(vec![string("/bin"), string("/usr/bin")]),
@@ -754,7 +754,7 @@ fn environment_bytes_path_views_and_validation_preserve_os_values() {
     assert_eq!(
         evaluated(
             &mut engine,
-            "env.PATH = $(/usr/bin/printf '\\377'); env.PATH",
+            "env.PATH = $(/usr/bin/printf r'\\377'); env.PATH",
         ),
         Value::array(vec![Value::Bytes(Arc::from([0xff]))])
     );
@@ -764,7 +764,7 @@ fn environment_bytes_path_views_and_validation_preserve_os_values() {
         "env[\"BAD=NAME\"] = \"x\"",
         "env.PATH = [\"bad:component\"]",
         "env.PATH = [1]",
-        "env.JOSH_NUL = $(/usr/bin/printf '\\0')",
+        "env.JOSH_NUL = $(/usr/bin/printf r'\\0')",
     ] {
         let error = engine.run_source(source).expect_err(source);
         assert!(
@@ -859,7 +859,7 @@ fn engines_are_isolated_and_children_receive_only_their_session_snapshot() {
     assert_eq!(
         captured(
             &mut second,
-            "/bin/sh -c 'printf %s \"${HOME-session-unset}\"'",
+            "/bin/sh -c r'printf %s \"${HOME-session-unset}\"'",
         ),
         string("session-unset")
     );
@@ -1096,7 +1096,7 @@ fn bytes_to_function_collects_one_bytes_value() {
         evaluated(
             &mut engine,
             "fn seen(input) { return [typeof(input), input.length] }; \
-             [$(printf 'hello\n' | seen), $(printf '' | seen), $(printf '\\377' | seen)]",
+             [$(printf 'hello\n' | seen), $(printf '' | seen), $(printf r'\\377' | seen)]",
         ),
         Value::array(vec![
             Value::array(vec![string("bytes"), Value::Int(6)]),
@@ -1319,19 +1319,19 @@ fn structured_capture_cardinality_and_decode_policies_are_stable() {
 
     #[cfg(unix)]
     assert_eq!(
-        captured(&mut engine, "printf '\\377' | text"),
+        captured(&mut engine, "printf r'\\377' | text"),
         Value::Bytes(Arc::from([0xff]))
     );
     #[cfg(unix)]
     assert!(
         engine
-            .run_source("bad = $(printf '\\377' | lines); (bad)")
+            .run_source("bad = $(printf r'\\377' | lines); (bad)")
             .is_err()
     );
     #[cfg(unix)]
     assert!(
         engine
-            .run_source("bad = $(printf '\\377' | json); (bad)")
+            .run_source("bad = $(printf r'\\377' | json); (bad)")
             .is_err()
     );
     assert!(
@@ -1350,7 +1350,7 @@ fn structured_sigpipe_requires_a_causal_downstream_close() {
         Value::array(vec![string("y")])
     );
     let error = engine
-        .run_source("value = $(sh -c 'kill -PIPE $$' | lines)")
+        .run_source("value = $(sh -c r'kill -PIPE $$' | lines)")
         .expect_err("deliberate SIGPIPE must fail");
     assert!(error.to_string().contains("signal 13"));
 }
@@ -1755,4 +1755,167 @@ fn strings_use_javascript_utf16_positions() {
     assert_eq!(evaluated(&mut engine, "(\"😀ab\"[1..2])"), string("😀"));
     assert_eq!(evaluated(&mut engine, "(\"😀ab\"[2..4])"), string("ab"));
     assert_eq!(evaluated(&mut engine, "(\"😀ab\"[..])"), string("😀ab"));
+}
+
+#[test]
+fn quoted_strings_decode_javascript_escapes_in_both_quote_forms() {
+    let mut engine = Engine::new(ProcessHost::default());
+    // Same decoding in expression strings and command words, either quote.
+    assert_eq!(
+        evaluated(&mut engine, r#"("a\nb\tc😀A\u{1f600}")"#,),
+        string("a\nb\tc😀A😀")
+    );
+    assert_eq!(evaluated(&mut engine, r#"('x\ny')"#,), string("x\ny"));
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            r#"captured = $(printf '%s' 'a\nb'); (captured)"#
+        ),
+        string("a\nb")
+    );
+    assert_eq!(
+        evaluated(&mut engine, r#"("up\\low\q")"#,),
+        string("up\\lowq")
+    );
+    // \xNN, \uNNNN, identity escapes, and line continuations like JavaScript.
+    assert_eq!(evaluated(&mut engine, r#"("\x41B\C")"#,), string("ABC"));
+    assert_eq!(evaluated(&mut engine, r#"("\q\z\=")"#,), string("qz="));
+    assert_eq!(evaluated(&mut engine, "(\"a\\\nb\")",), string("ab"));
+    // Object keys decode the same way.
+    assert_eq!(
+        evaluated(&mut engine, r#"o = {"a\nb": 1}; o["a\nb"]"#,),
+        Value::Int(1)
+    );
+    // An escaped dollar does not interpolate; an escaped quote does not close.
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            r#"n = 1; captured = $(printf '%s' "\$n '$' it's"); (captured)"#
+        ),
+        string("$n '$' it's")
+    );
+}
+
+#[test]
+fn raw_strings_never_decode_or_interpolate() {
+    let mut engine = Engine::new(ProcessHost::default());
+    assert_eq!(evaluated(&mut engine, r#"(r'a\nb')"#,), string("a\\nb"));
+    assert_eq!(evaluated(&mut engine, r#"(r"a\nb")"#,), string("a\\nb"));
+    assert_eq!(
+        evaluated(&mut engine, r#"n = 1; (r'$n ${n} $(n + 1)')"#,),
+        string("$n ${n} $(n + 1)")
+    );
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            r#"n = 6; captured = $(printf '%s' r'literal $n'); (captured)"#
+        ),
+        string("literal $n")
+    );
+}
+
+#[test]
+fn quoted_command_words_interpolate_in_either_quote_form() {
+    let mut engine = Engine::new(ProcessHost::default());
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            r#"n = 42; captured = $(printf '%s|%s|%s' "v=${n}" 'w=$n' "n=${n + 1}"); (captured)"#
+        ),
+        string("v=42|w=42|n=43")
+    );
+}
+
+#[test]
+fn rest_parameters_collect_remaining_arguments() {
+    let mut engine = Engine::new(ProcessHost::default());
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            "fn z(...args) { return args }; [z(1, 2, 3), z()]"
+        ),
+        Value::array(vec![
+            Value::array(vec![Value::Int(1), Value::Int(2), Value::Int(3)]),
+            Value::array(vec![]),
+        ])
+    );
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            "fn head(first, ...rest) { return [first, rest] }; head(1, 2, 3)"
+        ),
+        Value::array(vec![
+            Value::Int(1),
+            Value::array(vec![Value::Int(2), Value::Int(3)]),
+        ])
+    );
+    // Arrows share the same parameters.
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            "let join2 = (sep, ...items) => items.join(sep); join2(', ', 'a', 'b')"
+        ),
+        string("a, b")
+    );
+    // Command-mode calls feed the rest into an array word splice.
+    engine
+        .run_source("fn echo2(...args) { printf '%s' $args }; echo2 a b c")
+        .unwrap();
+    // Misplaced or non-identifier rests are parse errors.
+    assert!(engine.run_source("fn bad(...args, x) { x }").is_err());
+    assert!(engine.run_source("fn bad(...[a]) { a }").is_err());
+    assert!(engine.run_source("let f = (...args, x) => x").is_err());
+}
+
+#[test]
+fn command_builtin_bypasses_lexical_functions_and_builtins() {
+    let temp = tempdir().unwrap();
+    let context = ShellContext::new(
+        temp.path().to_path_buf(),
+        std::iter::empty::<(std::ffi::OsString, std::ffi::OsString)>(),
+    );
+    let bin = temp.path().join("bin");
+    fs::create_dir(&bin).unwrap();
+    let probe_log = temp.path().join("probe.log");
+    let probe = bin.join("probe23");
+    fs::write(
+        &probe,
+        "#!/bin/sh\nprintf 'binary:%s' \"$1\" >> \"$PROBE23_LOG\"\n",
+    )
+    .unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&probe, fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    context
+        .set_environment_variable("PATH", Some(bin.as_os_str().to_owned()))
+        .unwrap();
+    context
+        .set_environment_variable("PROBE23_LOG", Some(probe_log.as_os_str().to_owned()))
+        .unwrap();
+    let mut engine = Engine::with_shell_context(ProcessHost::default(), context);
+    // A lexical function shadows the binary by default…
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            "fn probe23(x) { return 'function' }; probe23 arg"
+        ),
+        string("function")
+    );
+    // …and `command` skips that shadowing to run the PATH executable.
+    evaluated(&mut engine, "command probe23 arg");
+    assert_eq!(fs::read_to_string(&probe_log).unwrap(), "binary:arg");
+    // Variadic helpers can forward through `command` without recursing: the
+    // helper statement runs the binary, which appends to the probe log.
+    evaluated(
+        &mut engine,
+        "fn probe2(...args) { command probe23 $args }; probe2 fwd",
+    );
+    assert_eq!(
+        fs::read_to_string(&probe_log).unwrap(),
+        "binary:argbinary:fwd"
+    );
+    // `command` requires a command name.
+    assert!(engine.run_source("command").is_err());
 }

@@ -654,6 +654,7 @@ impl Engine {
         }
         let name = stage.words.first().and_then(plain_command_word);
         match name.as_deref() {
+            Some("command") => StreamShape::External,
             Some("text") => StreamShape::Text,
             Some("json" | "lines" | "jsonl" | "chunks") => StreamShape::BytesToValues,
             Some(name) if parse_chunks_name(name).is_some() => StreamShape::BytesToValues,
@@ -671,6 +672,30 @@ impl Engine {
         index: usize,
         stage: &ExternalCommand,
     ) -> EvalResult<StreamStage> {
+        if stage
+            .words
+            .first()
+            .and_then(plain_command_word)
+            .is_some_and(|name| name == "command")
+        {
+            let mut stage = stage.clone();
+            stage.words.remove(0);
+            if stage.words.is_empty() {
+                return Err(type_error("command expects a command name"));
+            }
+            let command = self.eval_command(&stage)?;
+            if command
+                .argv
+                .first()
+                .is_some_and(|name| matches!(name.as_slice(), b"cd" | b"exit"))
+            {
+                return Err(EngineError::Unsupported(
+                    "builtins inside pipelines or captures".into(),
+                )
+                .into());
+            }
+            return Ok(StreamStage::External(command));
+        }
         if stage.words.len() == 1
             && let Some(value) = self.eval_standalone_word(&stage.words[0])?
         {
@@ -904,6 +929,21 @@ impl Engine {
         let Some(name) = argv.first() else {
             return Err(type_error("empty command"));
         };
+        // `command cmd …` skips lexical functions and builtins: cmd always
+        // resolves against PATH, so verb-hiding helpers can call the binary
+        // they shadow without recursing.
+        if name.as_slice() == b"command" {
+            if argv.len() < 2 {
+                return Err(type_error("command expects a command name"));
+            }
+            return self.run_external(
+                vec![CommandSpec {
+                    argv: argv[1..].to_vec(),
+                    redirections,
+                }],
+                capture,
+            );
+        }
         if name.as_slice() == b"exit" {
             if !redirections.is_empty() {
                 return Err(EngineError::Unsupported("redirections on builtins".into()).into());
@@ -1479,6 +1519,16 @@ impl Engine {
                 }
                 let mut args = args.into_iter();
                 let binding_result = params.iter().try_for_each(|pattern| {
+                    if let BindingPattern::Rest { name, .. } = pattern {
+                        // A rest parameter collects every remaining argument.
+                        return self.bind_pattern(
+                            &BindingPattern::Name {
+                                name: name.clone(),
+                                span: pattern.span(),
+                            },
+                            Value::array(args.by_ref().collect()),
+                        );
+                    }
                     self.bind_pattern(pattern, args.next().unwrap_or(Value::Null))
                 });
                 let result = binding_result.and_then(|()| match &**body {
@@ -2069,6 +2119,7 @@ fn reject_reserved_pattern(pattern: &BindingPattern) -> EvalResult<()> {
             }
             Ok(())
         }
+        BindingPattern::Rest { name, .. } => reject_reserved_name(name),
         BindingPattern::Missing { .. } => Ok(()),
     }
 }
@@ -2167,6 +2218,11 @@ fn collect_bindings(
 ) -> EvalResult<()> {
     match pattern {
         BindingPattern::Name { name, .. } => output.push((name.clone(), value)),
+        BindingPattern::Rest { .. } => {
+            return Err(type_error(
+                "rest parameters can only appear in function parameter lists",
+            ));
+        }
         BindingPattern::Array { items, rest, .. } => {
             let Value::Array(values) = value else {
                 return Err(type_error("array pattern requires an array"));

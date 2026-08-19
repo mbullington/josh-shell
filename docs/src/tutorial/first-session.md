@@ -23,6 +23,18 @@ The first line is a command. The second starts with an expression delimiter, so 
 
 `cd [path]` changes Josh's process directory; without a path it uses `HOME`, then `.`. `exit [status]` leaves the REPL or returns that status from batch mode. Both must be standalone. A pipeline or capture containing either builtin returns an unsupported-feature error.
 
+`command cmd [args…]` runs `cmd` from `PATH` while skipping lexical functions and builtins. A Josh function named like a real command normally shadows it, so a verb-hiding helper calls the binary it shadows through `command` instead of recursing:
+
+<p class="example-label"><strong>Runnable example</strong></p>
+
+```console
+josh> fn mkdir(...args) { command mkdir -v $args }
+<function mkdir>
+josh> mkdir /tmp/one /tmp/two
+/tmp/one
+/tmp/two
+```
+
 <p class="example-label"><strong>Runnable example</strong></p>
 
 ```console
