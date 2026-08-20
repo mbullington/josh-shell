@@ -72,6 +72,14 @@ fn ambiguity_corpus_has_stable_statement_shapes() {
     assert!(
         matches!(one("items.filter(f)"), Statement::Expr(Expr::Call { callee, .. }) if matches!(*callee, Expr::Member { .. }))
     );
+    let Statement::Command(pipeline) = one("items.filter(f) | take 1") else {
+        panic!("expected value pipeline")
+    };
+    assert_eq!(pipeline.stages.len(), 2);
+    let WordPart::Evaluated { expr, .. } = &pipeline.stages[0].words[0].parts[0] else {
+        panic!("expected expression source")
+    };
+    assert!(matches!(expr.as_ref(), Expr::Call { .. }));
     assert!(matches!(one("x - 1"), Statement::Command(_)));
     assert!(
         matches!(one("let y = ls"), Statement::Let { value: Expr::Identifier(ref name, _), .. } if name == "ls")

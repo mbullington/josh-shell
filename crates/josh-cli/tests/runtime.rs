@@ -307,6 +307,16 @@ fn value_pipelines_stream_expressions_through_closure_stages() {
         evaluated(&mut engine, "[1, 2, 3] | x => x * 2"),
         Value::array(vec![Value::Int(2), Value::Int(4), Value::Int(6)])
     );
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            "Object.entries({elapsed_us: 12, count: 3}) | filter (x => x[0].includes(\"_us\"))",
+        ),
+        Value::array(vec![Value::array(vec![
+            string("elapsed_us"),
+            Value::Int(12),
+        ])])
+    );
     // Closure stream stages stay equivalent to `map`.
     assert_eq!(
         evaluated(&mut engine, "v = [1, 2] | x => x + 1\n(v)"),

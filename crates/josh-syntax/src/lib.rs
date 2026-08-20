@@ -833,10 +833,8 @@ impl Parser {
         if let Some(statement) = self.parse_member_assignment_probe() {
             return statement;
         }
-        if matches!(
-            self.peek_tag(),
-            Some(TokenTag::LeftParen | TokenTag::LeftBracket)
-        ) && let Some(statement) = self.parse_value_pipeline_probe()
+        if self.is_expression_head()
+            && let Some(statement) = self.parse_value_pipeline_probe()
         {
             return statement;
         }
@@ -947,9 +945,9 @@ impl Parser {
         })
     }
 
-    /// `[1, 2, 3] | x => x * 2` and `([1, 2, 3]) | take 1` at statement level:
-    /// a parenthesized or array expression piped into more stages. Returns
-    /// `None` (restoring completely) when no pipe follows the expression.
+    /// `make_values() | filter f` at statement level: an unambiguous expression
+    /// piped into more stages. Returns `None` (restoring completely) when no pipe
+    /// follows the expression.
     fn parse_value_pipeline_probe(&mut self) -> Option<Statement> {
         let checkpoint = self.pos;
         let diagnostics = self.diagnostics.len();
