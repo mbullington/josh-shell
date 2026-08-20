@@ -27,10 +27,20 @@ use crate::{
     },
 };
 
+/// A rejected source text together with the diagnostics against it. The
+/// source travels with the diagnostics: spans index into this exact text,
+/// so callers render excerpts without hunting down what was parsed.
+#[derive(Debug, Clone)]
+pub struct ParseFailure {
+    pub source: Arc<str>,
+    pub origin: Option<PathBuf>,
+    pub diagnostics: Vec<Diagnostic>,
+}
+
 #[derive(Debug, Error)]
 pub enum EngineError {
     #[error("parse failed")]
-    Parse(Vec<Diagnostic>),
+    Parse(ParseFailure),
     #[error("undefined identifier `{name}`; use $({name}) to capture a command")]
     Undefined { name: String },
     #[error("{0}")]
@@ -222,10 +232,14 @@ impl Engine {
 
     pub fn run_source(&mut self, source: impl Into<Arc<str>>) -> Result<RunResult, EngineError> {
         let source = source.into();
-        let parsed = parse(source);
-        let program = parsed
-            .strict_program()
-            .map_err(|diagnostics| EngineError::Parse(diagnostics.to_vec()))?;
+        let parsed = parse(Arc::clone(&source));
+        let program = parsed.strict_program().map_err(|diagnostics| {
+            EngineError::Parse(ParseFailure {
+                source,
+                origin: None,
+                diagnostics: diagnostics.to_vec(),
+            })
+        })?;
         self.run_program(program)
     }
 
@@ -529,13 +543,17 @@ impl Engine {
                 canonical.display()
             )));
         }
-        let text = std::fs::read_to_string(&canonical).map_err(|error| {
+        let text = Arc::<str>::from(std::fs::read_to_string(&canonical).map_err(|error| {
             EngineError::Filesystem(format!("source: {}: {error}", canonical.display()))
+        })?);
+        let parsed = parse(Arc::clone(&text));
+        let program = parsed.strict_program().map_err(|diagnostics| {
+            EngineError::Parse(ParseFailure {
+                source: text,
+                origin: Some(canonical.clone()),
+                diagnostics: diagnostics.to_vec(),
+            })
         })?;
-        let parsed = parse(text);
-        let program = parsed
-            .strict_program()
-            .map_err(|diagnostics| EngineError::Parse(diagnostics.to_vec()))?;
         self.source_stack.push(canonical);
         let result = self.eval_program(program);
         self.source_stack.pop();

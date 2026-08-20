@@ -191,6 +191,73 @@ impl fmt::Display for Diagnostic {
     }
 }
 
+impl Diagnostic {
+    /// Render with the offending source line and a caret under the primary
+    /// span. `origin` names the source (`<input>`, a script path).
+    #[must_use]
+    pub fn render(&self, source: &str, origin: &str) -> String {
+        let severity = match self.severity {
+            Severity::Error => "error",
+            Severity::Warning => "warning",
+        };
+        let mut header = format!("{severity}: {}[{}]", self.message, self.code);
+        if !self.expected.is_empty() {
+            header.push_str("; expected ");
+            header.push_str(&self.expected.join(", "));
+        }
+        let (line_number, column, line_text, underline) = locate_span(source, self.primary.span);
+        let width = line_number.to_string().len();
+        let gutter = " ".repeat(width);
+        let mut carets = format!(
+            "{gutter} | {}{}",
+            " ".repeat(column - 1),
+            "^".repeat(underline)
+        );
+        if !self.primary.message.is_empty() {
+            carets.push(' ');
+            carets.push_str(&self.primary.message);
+        }
+        format!(
+            "{header}\n{gutter} --> {origin}:{line_number}:{column}\n{gutter} |\n{line_number:>width$} | {line_text}\n{carets}"
+        )
+    }
+}
+
+/// Locate a byte span as a 1-based (line, char column) with the containing
+/// line's text and the caret run length for it. Spans are lexer-produced, so
+/// they are always char-boundary aligned.
+fn locate_span(source: &str, span: Span) -> (usize, usize, &str, usize) {
+    let start = span.start.min(source.len());
+    // EOF-caused spans land past the final newline of a file; anchor them to
+    // the end of the last content line rather than an empty fragment.
+    let anchor = if start == source.len() && source[..start].ends_with('\n') {
+        start - 1
+    } else {
+        start
+    };
+    let line_start = source[..anchor].rfind('\n').map_or(0, |at| at + 1);
+    let line_end = source[anchor..]
+        .find('\n')
+        .map_or(source.len(), |at| anchor + at);
+    let line_number = source[..anchor]
+        .bytes()
+        .filter(|byte| *byte == b'\n')
+        .count()
+        + 1;
+    let column = source[line_start..anchor].chars().count() + 1;
+    let covered = if span.end > anchor {
+        source[anchor..span.end.min(line_end)].chars().count()
+    } else {
+        0
+    };
+    (
+        line_number,
+        column,
+        &source[line_start..line_end],
+        covered.max(1),
+    )
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Program {
     pub statements: Vec<Statement>,
@@ -1225,7 +1292,7 @@ impl Parser {
                     .tokens
                     .get(self.pos)
                     .map_or(Span::empty(self.current_start()), |x| x.span);
-                let key = if self.at_property_name() {
+                let key = if self.at_key_property_name() {
                     self.parse_property_name()
                 } else {
                     self.diagnostics.push(self.expected(
@@ -2222,7 +2289,7 @@ impl Parser {
                 let start = lhs.span().start;
                 self.bump_mode(LexMode::Expression);
                 self.skip_trivia_mode(LexMode::Expression);
-                if self.at(TokenTag::Identifier) || self.at(TokenTag::Status) {
+                if self.at_identifier_name() {
                     let name_span = self.tokens[self.pos].span;
                     let name = self.bump_text(LexMode::Expression);
                     lhs = Expr::Member {
@@ -2557,7 +2624,7 @@ impl Parser {
                 entries.push(ObjectEntry::Spread { value, span });
             } else {
                 let property_start = self.current_start();
-                let key = if self.at_property_name() {
+                let key = if self.at_key_property_name() {
                     self.parse_property_name()
                 } else {
                     self.diagnostics.push(self.expected(
@@ -2829,6 +2896,46 @@ impl Parser {
             )
         )
     }
+    /// Object and binding keys additionally accept reserved words when an
+    /// explicit `:` follows: `{ status: x }`, `let { status: s } = o`.
+    /// Without the colon the word would be a shorthand reference/binding,
+    /// which keywords cannot be, so those stay parse errors.
+    fn at_key_property_name(&self) -> bool {
+        if self.at_property_name() {
+            return true;
+        }
+        self.at_identifier_name() && self.nth_significant_tag(1) == Some(TokenTag::Colon)
+    }
+    /// IdentifierName positions (after `.`, keyword keys) accept keywords.
+    fn at_identifier_name(&self) -> bool {
+        let Some(token) = self.tokens.get(self.pos) else {
+            return false;
+        };
+        matches!(token.kind, TokenKind::Identifier) || is_reserved_word(&token.kind)
+    }
+}
+
+fn is_reserved_word(kind: &TokenKind) -> bool {
+    matches!(
+        kind,
+        TokenKind::Let
+            | TokenKind::Fn
+            | TokenKind::If
+            | TokenKind::Else
+            | TokenKind::While
+            | TokenKind::Loop
+            | TokenKind::Try
+            | TokenKind::Catch
+            | TokenKind::Throw
+            | TokenKind::Return
+            | TokenKind::Break
+            | TokenKind::Continue
+            | TokenKind::Status
+            | TokenKind::Typeof
+            | TokenKind::True
+            | TokenKind::False
+            | TokenKind::Null
+    )
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

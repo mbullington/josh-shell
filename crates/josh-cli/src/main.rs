@@ -204,15 +204,18 @@ fn config_root(engine: &Engine) -> Option<PathBuf> {
 
 fn format_startup_error(path: &std::path::Path, error: &EngineError) -> String {
     match error {
-        EngineError::Parse(diagnostics) => format!(
-            "startup file {} failed: {}",
-            path.display(),
-            diagnostics
-                .iter()
-                .map(ToString::to_string)
-                .collect::<Vec<_>>()
-                .join("; ")
-        ),
+        EngineError::Parse(failure) => {
+            let origin = path.display().to_string();
+            format!(
+                "startup file {origin} failed:\n{}",
+                failure
+                    .diagnostics
+                    .iter()
+                    .map(|diagnostic| diagnostic.render(&failure.source, &origin))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            )
+        }
         _ => format!("startup file {} failed: {error}", path.display()),
     }
 }

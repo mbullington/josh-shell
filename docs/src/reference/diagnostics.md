@@ -16,7 +16,7 @@
 | `P170`–`P171` | Missing delimiter |
 | `P180`–`P181` | Unclosed command/expression interpolation |
 
-Diagnostics carry severity, code, expected strings, primary label, secondary labels, and EOF causation. Display currently prints message, code, byte range, and expected set.
+Diagnostics carry severity, code, expected strings, primary label, secondary labels, and EOF causation. Interactive and command-line entry points render each diagnostic with the offending source line, the origin (`<input>` for one-liners and the REPL, otherwise the file path), a 1-based line and char column, and a caret under the primary span. The compact `Display` form (message, code, byte range, expected set) remains for tooling.
 
 Process errors distinguish command-not-found, spawn, command failure, pipeline failure, and output collection. Outcomes retain zero-based stage, rendered command, code/signal, and success.
 

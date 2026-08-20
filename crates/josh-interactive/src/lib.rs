@@ -564,9 +564,13 @@ fn pretty_options() -> PrettyOptions {
 
 pub fn print_engine_error(error: &EngineError) {
     match error {
-        EngineError::Parse(diagnostics) => {
-            for diagnostic in diagnostics {
-                eprintln!("error: {diagnostic}");
+        EngineError::Parse(failure) => {
+            let origin = failure
+                .origin
+                .as_ref()
+                .map_or_else(|| "<input>".to_owned(), |path| path.display().to_string());
+            for diagnostic in &failure.diagnostics {
+                eprintln!("{}", diagnostic.render(&failure.source, &origin));
             }
         }
         _ => eprintln!("error: {error}"),

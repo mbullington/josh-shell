@@ -1,6 +1,6 @@
 use josh_syntax::{
-    BinaryOp, Completeness, EnvironmentTarget, Expr, IfCondition, QuotedPart, RedirectionKind,
-    Statement, WordPart, parse,
+    BinaryOp, BindingPattern, Completeness, Diagnostic, EnvironmentTarget, Expr, IfCondition,
+    Label, ObjectEntry, QuotedPart, RedirectionKind, Severity, Span, Statement, WordPart, parse,
 };
 
 fn one(source: &str) -> Statement {
@@ -477,4 +477,130 @@ fn range_slices_parse_with_optional_bounds() {
     let Statement::Expr(Expr::Index { .. }) = one("a[0]") else {
         panic!("a[0] must stay an index expression")
     };
+}
+
+#[test]
+fn reserved_words_parse_as_explicit_property_keys() {
+    // Regression contract: reserved words are legal IdentifierName keys (JS
+    // semantics) in object literals, destructuring renames, and member
+    // access, but never shorthand references or bindings.
+    let Statement::Assignment {
+        value: Expr::Object(entries, _),
+        ..
+    } = one("x = ({ status: 1, true: 2, typeof: 3 })")
+    else {
+        panic!("keyword-keyed object literal must parse")
+    };
+    for (entry, wanted) in entries.iter().zip(["status", "true", "typeof"]) {
+        let ObjectEntry::Property { key, .. } = entry else {
+            panic!("expected property entry")
+        };
+        assert_eq!(key, wanted);
+    }
+
+    let Statement::Let {
+        pattern: BindingPattern::Object { entries, .. },
+        ..
+    } = one("let { status: s, catch: c } = o")
+    else {
+        panic!("keyword-keyed destructuring rename must parse")
+    };
+    assert!(matches!(
+        &entries[..],
+        [(first_key, BindingPattern::Name { name: first, .. }), (second_key, BindingPattern::Name { name: second, .. })]
+            if first_key == "status" && first == "s" && second_key == "catch" && second == "c"
+    ));
+
+    assert!(matches!(
+        one("o.true.status"),
+        Statement::Expr(Expr::Member { .. })
+    ));
+
+    // Shorthand forms stay errors: keywords cannot reference or bind.
+    for (source, code) in [("x = ({ status })", "P166"), ("let { status } = o", "P112")] {
+        let parsed = parse(source);
+        assert!(
+            parsed.diagnostics.iter().any(|d| d.code == code),
+            "{source}: {:?}",
+            parsed.diagnostics
+        );
+    }
+}
+
+fn diagnostic(code: &'static str, span: Span, expected: &[&str]) -> Diagnostic {
+    Diagnostic {
+        severity: Severity::Error,
+        code,
+        message: format!("message for {code}"),
+        expected: expected.iter().map(|item| item.to_string()).collect(),
+        primary: Label {
+            span,
+            message: String::new(),
+        },
+        secondary: vec![],
+        eof_caused: span.start == span.end,
+    }
+}
+
+#[test]
+fn render_points_a_caret_at_the_offending_span() {
+    // Regression contract: rendered diagnostics must keep pointing at the
+    // exact line and char column of the span, across multi-line sources,
+    // non-ASCII text, empty spans, and EOF anchors.
+    let rendered =
+        diagnostic("P999", Span::new(8, 8), &["expression"]).render("let x = ;", "<input>");
+    assert_eq!(
+        rendered,
+        [
+            "error: message for P999[P999]; expected expression",
+            "  --> <input>:1:9",
+            "  |",
+            "1 | let x = ;",
+            "  |         ^",
+        ]
+        .join("\n")
+    );
+
+    // Non-ASCII text before the span: columns count chars, not bytes.
+    let rendered = diagnostic("P998", Span::new(13, 14), &[]).render("x = 🤖🤖 + ", "script.josh");
+    assert_eq!(
+        rendered,
+        [
+            "error: message for P998[P998]",
+            "  --> script.josh:1:8",
+            "  |",
+            "1 | x = 🤖🤖 + ",
+            "  |        ^",
+        ]
+        .join("\n")
+    );
+
+    // Multi-line sources select the containing line and underline the span.
+    let rendered =
+        diagnostic("P997", Span::new(8, 13), &[]).render("one\ntwo three\nfour", "<input>");
+    assert_eq!(
+        rendered,
+        [
+            "error: message for P997[P997]",
+            "  --> <input>:2:5",
+            "  |",
+            "2 | two three",
+            "  |     ^^^^^",
+        ]
+        .join("\n")
+    );
+
+    // EOF after a trailing newline anchors to the end of the last content line.
+    let rendered = diagnostic("P996", Span::new(9, 9), &["`}`"]).render("fn f() {\n", "init.josh");
+    assert_eq!(
+        rendered,
+        [
+            "error: message for P996[P996]; expected `}`",
+            "  --> init.josh:1:9",
+            "  |",
+            "1 | fn f() {",
+            "  |         ^",
+        ]
+        .join("\n")
+    );
 }

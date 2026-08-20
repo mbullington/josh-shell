@@ -7,6 +7,8 @@
 
 Array/object destructuring is available in `let` and function parameters, including nested and trailing rest patterns. Destructuring assignment is not implemented.
 
+Reserved words are valid member names and property keys wherever a name is expected rather than a reference: `value.status`, `{ status: "ok" }`, and `let { status: s } = error` all parse. The shorthand forms remain parse errors — `{ status }` would have to mean a reference or binding named `status`.
+
 <p class="example-label"><strong>Runnable example</strong></p>
 
 ```josh
