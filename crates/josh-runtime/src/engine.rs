@@ -270,6 +270,21 @@ impl Engine {
         names
     }
 
+    #[must_use]
+    pub fn function_names(&self) -> Vec<String> {
+        let base = self.call_bases.last().copied().unwrap_or(0);
+        let mut visible = std::collections::BTreeMap::new();
+        for frame in &self.frames[base..] {
+            for (name, value) in frame.iter() {
+                visible.insert(name.clone(), value);
+            }
+        }
+        visible
+            .into_iter()
+            .filter_map(|(name, value)| matches!(value, Value::Function(_)).then_some(name))
+            .collect()
+    }
+
     pub fn prompt(&mut self) -> Result<Option<String>, EngineError> {
         let Some(value) = self.resolve_lexical("prompt") else {
             return Ok(None);

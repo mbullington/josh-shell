@@ -6,10 +6,10 @@
 //! failure mode — missing binary, nonzero exit, malformed JSON — falls back
 //! silently to the native file completer.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::OnceLock;
 
+use josh_runtime::ShellSnapshot;
 use reedline::Suggestion;
 
 #[derive(Clone, Debug, serde::Deserialize)]
@@ -27,46 +27,28 @@ struct Export {
     values: Vec<ExportValue>,
 }
 
-pub struct Carapace {
-    binary: OnceLock<Option<PathBuf>>,
-}
+pub struct Carapace;
 
 impl Carapace {
     #[must_use]
     pub const fn new() -> Self {
-        Self {
-            binary: OnceLock::new(),
-        }
+        Self
     }
 
-    /// Test seam: skip environment lookup and pin the resolution result.
-    #[cfg(test)]
-    #[must_use]
-    pub fn with_binary(binary: Option<PathBuf>) -> Self {
-        let cell = OnceLock::new();
-        cell.set(binary).expect("fresh OnceLock");
-        Self { binary: cell }
-    }
-
-    #[must_use]
-    pub fn available(&self) -> bool {
-        self.binary().is_some()
-    }
-
-    fn binary(&self) -> Option<&PathBuf> {
-        self.binary
-            .get_or_init(|| {
-                resolve_binary(std::env::var_os("JOSH_CARAPACE"), std::env::var_os("PATH"))
-            })
-            .as_ref()
+    fn binary(&self, snapshot: &ShellSnapshot) -> Option<PathBuf> {
+        resolve_binary(
+            snapshot.environment_variable(std::ffi::OsStr::new("JOSH_CARAPACE")),
+            snapshot.environment_variable(std::ffi::OsStr::new("PATH")),
+            snapshot.cwd(),
+        )
     }
 
     /// `words` are the command-line words up to the cursor (command name
     /// first, current partial word last). Returns `None` on any failure so
     /// callers fall back to native completion.
     #[must_use]
-    pub fn complete(&self, words: &[String]) -> Option<Vec<Suggestion>> {
-        let binary = self.binary()?;
+    pub fn complete(&self, words: &[String], snapshot: &ShellSnapshot) -> Option<Vec<Suggestion>> {
+        let binary = self.binary(snapshot)?;
         let name = words.first()?;
         // Only simple command names have carapace completers; anything else
         // (paths, assignments, flags sneaking into word 0) goes native.
@@ -81,6 +63,9 @@ impl Carapace {
             .arg(name)
             .arg("export")
             .args(words)
+            .current_dir(snapshot.cwd())
+            .env_clear()
+            .envs(snapshot.environment())
             .stdin(std::process::Stdio::null())
             .output()
             .ok()?;
@@ -109,19 +94,30 @@ impl Carapace {
 }
 
 fn resolve_binary(
-    override_env: Option<std::ffi::OsString>,
-    path: Option<std::ffi::OsString>,
+    override_env: Option<&std::ffi::OsStr>,
+    path: Option<&std::ffi::OsStr>,
+    cwd: &Path,
 ) -> Option<PathBuf> {
     match override_env {
         Some(value) if value == "0" => return None,
         Some(value) if !value.is_empty() => {
             let candidate = PathBuf::from(value);
-            return candidate.is_file().then_some(candidate);
+            let candidate = if candidate.is_absolute() {
+                candidate
+            } else {
+                cwd.join(candidate)
+            };
+            return josh_exec::is_executable(&candidate).then_some(candidate);
         }
         _ => {}
     }
     let path = path?;
-    std::env::split_paths(&path).find_map(|directory| {
+    std::env::split_paths(path).find_map(|directory| {
+        let directory = if directory.is_absolute() {
+            directory
+        } else {
+            cwd.join(directory)
+        };
         let candidate = directory.join("carapace");
         josh_exec::is_executable(&candidate).then_some(candidate)
     })
@@ -136,29 +132,75 @@ pub fn command_words_up_to_cursor(buffer: &str) -> Vec<String> {
     let mut current = String::new();
     let mut quote = None;
     let mut has_word = false;
-    for ch in buffer.chars() {
+    let mut trailing_space = false;
+    let mut chars = buffer.chars().peekable();
+    while let Some(ch) = chars.next() {
         match quote {
-            Some(q) if ch == q => quote = None,
-            Some(_) => current.push(ch),
+            Some(q) if ch == q => {
+                quote = None;
+                trailing_space = false;
+            }
+            Some(_) if ch == '\\' => {
+                if let Some(escaped) = chars.next() {
+                    current.push(escaped);
+                }
+                has_word = true;
+                trailing_space = false;
+            }
+            Some(_) => {
+                current.push(ch);
+                has_word = true;
+                trailing_space = false;
+            }
             None if ch == '"' || ch == '\'' => {
                 quote = Some(ch);
                 has_word = true;
+                trailing_space = false;
+            }
+            None if ch == '\\' => {
+                if let Some(escaped) = chars.next() {
+                    current.push(escaped);
+                }
+                has_word = true;
+                trailing_space = false;
+            }
+            None if ch == '\n' || ch == '\r' => {
+                words.clear();
+                current.clear();
+                has_word = false;
+                trailing_space = false;
             }
             None if ch.is_whitespace() => {
                 if has_word {
                     words.push(std::mem::take(&mut current));
                 }
                 has_word = false;
+                trailing_space = true;
+            }
+            None if matches!(ch, ';' | '|' | '&' | '{' | '}' | ')' | '<' | '>') => {
+                words.clear();
+                current.clear();
+                has_word = false;
+                trailing_space = false;
+                if matches!(ch, '|' | '&') && chars.peek() == Some(&ch) {
+                    chars.next();
+                }
+            }
+            None if ch == '$' && chars.peek() == Some(&'(') => {
+                chars.next();
+                words.clear();
+                current.clear();
+                has_word = false;
+                trailing_space = false;
             }
             None => {
                 current.push(ch);
                 has_word = true;
+                trailing_space = false;
             }
         }
     }
-    // The cursor-adjacent word (possibly empty after a trailing space) is
-    // always the final argv slot: carapace completes that word.
-    if has_word || buffer.chars().last().is_some_and(char::is_whitespace) || words.is_empty() {
+    if has_word || trailing_space || words.is_empty() {
         words.push(current);
     }
     words
@@ -167,8 +209,11 @@ pub fn command_words_up_to_cursor(buffer: &str) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::ffi::{OsStr, OsString};
     use std::fs;
     use std::os::unix::fs::PermissionsExt;
+
+    use josh_runtime::ShellContext;
     use tempfile::tempdir;
 
     fn fake_carapace(directory: &std::path::Path, script: &str) -> PathBuf {
@@ -176,6 +221,17 @@ mod tests {
         fs::write(&binary, script).unwrap();
         fs::set_permissions(&binary, fs::Permissions::from_mode(0o700)).unwrap();
         binary
+    }
+
+    fn session(directory: &Path, binary: &Path) -> ShellSnapshot {
+        ShellContext::new(
+            directory,
+            [(
+                OsString::from("JOSH_CARAPACE"),
+                binary.as_os_str().to_owned(),
+            )],
+        )
+        .snapshot()
     }
 
     #[test]
@@ -187,9 +243,9 @@ mod tests {
 printf '%s' '{"nospace":"","values":[{"value":"checkout","display":"checkout","description":"switch branches"},{"value":"cherry-pick","display":"cherry-pick"}]}'
 "#,
         );
-        let carapace = Carapace::with_binary(Some(binary));
-        let suggestions = carapace
-            .complete(&["fakecmd".to_string(), "che".to_string()])
+        let snapshot = session(directory.path(), &binary);
+        let suggestions = Carapace::new()
+            .complete(&["fakecmd".to_string(), "che".to_string()], &snapshot)
             .expect("fake binary answers");
         assert_eq!(suggestions.len(), 2);
         assert_eq!(suggestions[0].value, "checkout");
@@ -210,37 +266,29 @@ printf '%s' '{"nospace":"","values":[{"value":"checkout","display":"checkout","d
 printf '%s' '{"nospace":"/","values":[{"value":"src/","display":"src/"}]}'
 "#,
         );
-        let carapace = Carapace::with_binary(Some(binary));
-        let suggestions = carapace
-            .complete(&["fakecmd".to_string(), "s".to_string()])
+        let snapshot = session(directory.path(), &binary);
+        let suggestions = Carapace::new()
+            .complete(&["fakecmd".to_string(), "s".to_string()], &snapshot)
             .unwrap();
         assert!(!suggestions[0].append_whitespace);
     }
 
     #[test]
     fn failures_fall_back_silently() {
-        let directory = tempdir().unwrap();
-        let binary = fake_carapace(directory.path(), "#!/bin/sh\nexit 3\n");
-        let carapace = Carapace::with_binary(Some(binary.clone()));
-        assert!(
-            carapace
-                .complete(&["fakecmd".to_string(), "x".to_string()])
-                .is_none()
-        );
+        let complete_with = |script: &str| {
+            let directory = tempdir().unwrap();
+            let binary = fake_carapace(directory.path(), script);
+            let snapshot = session(directory.path(), &binary);
+            Carapace::new().complete(&["fakecmd".to_string(), "x".to_string()], &snapshot)
+        };
 
-        fs::write(&binary, "#!/bin/sh\nprintf '{\"values\":[]}'\n").unwrap();
-        fs::set_permissions(&binary, fs::Permissions::from_mode(0o700)).unwrap();
-        let suggestions = Carapace::with_binary(Some(binary.clone()))
-            .complete(&["fakecmd".to_string(), "x".to_string()])
-            .unwrap();
-        assert!(suggestions.is_empty());
-
-        fs::write(&binary, "#!/bin/sh\nprintf 'not json'\n").unwrap();
+        assert!(complete_with("#!/bin/sh\nexit 3\n").is_none());
         assert!(
-            Carapace::with_binary(Some(binary))
-                .complete(&["fakecmd".to_string(), "x".to_string()])
-                .is_none()
+            complete_with("#!/bin/sh\nprintf '{\"values\":[]}'\n")
+                .unwrap()
+                .is_empty()
         );
+        assert!(complete_with("#!/bin/sh\nprintf 'not json'\n").is_none());
     }
 
     #[test]
@@ -250,24 +298,24 @@ printf '%s' '{"nospace":"/","values":[{"value":"src/","display":"src/"}]}'
         let path = std::env::join_paths(std::iter::once(directory.path())).unwrap();
 
         assert_eq!(
-            resolve_binary(Some("0".into()), Some(path.clone())),
+            resolve_binary(Some(OsStr::new("0")), Some(&path), directory.path()),
             None,
             "JOSH_CARAPACE=0 disables even a present binary"
         );
         assert_eq!(
-            resolve_binary(None, Some(path.clone())),
+            resolve_binary(None, Some(&path), directory.path()),
             Some(binary.clone())
         );
         assert_eq!(
-            resolve_binary(Some("".into()), Some(path)),
+            resolve_binary(Some(OsStr::new("")), Some(&path), directory.path()),
             Some(binary.clone()),
             "empty override behaves like unset"
         );
         assert_eq!(
-            resolve_binary(Some(binary.clone().into_os_string()), None),
+            resolve_binary(Some(binary.as_os_str()), None, directory.path()),
             Some(binary)
         );
-        assert_eq!(resolve_binary(None, None), None);
+        assert_eq!(resolve_binary(None, None, directory.path()), None);
     }
 
     #[test]
@@ -281,8 +329,12 @@ printf '%s' '{"nospace":"/","values":[{"value":"src/","display":"src/"}]}'
                 record.display()
             ),
         );
-        Carapace::with_binary(Some(binary))
-            .complete(&["fakecmd".to_string(), "sub".to_string(), "pr".to_string()])
+        let snapshot = session(directory.path(), &binary);
+        Carapace::new()
+            .complete(
+                &["fakecmd".to_string(), "sub".to_string(), "pr".to_string()],
+                &snapshot,
+            )
             .unwrap();
         assert_eq!(
             fs::read_to_string(&record).unwrap(),
@@ -294,26 +346,58 @@ printf '%s' '{"nospace":"/","values":[{"value":"src/","display":"src/"}]}'
     fn first_word_restrictions_keep_paths_native() {
         let directory = tempdir().unwrap();
         let binary = fake_carapace(directory.path(), "#!/bin/sh\nprintf '{\"values\":[]}'\n");
-        let carapace = Carapace::with_binary(Some(binary.clone()));
+        let snapshot = session(directory.path(), &binary);
+        let carapace = Carapace::new();
         assert!(
             carapace
-                .complete(&["./tool".to_string(), "x".to_string()])
+                .complete(&["./tool".to_string(), "x".to_string()], &snapshot)
                 .is_none()
         );
         assert!(
             carapace
-                .complete(&["$x".to_string(), "x".to_string()])
+                .complete(&["$x".to_string(), "x".to_string()], &snapshot)
                 .is_none()
         );
         assert!(
             carapace
-                .complete(&["name=value".to_string(), "x".to_string()])
+                .complete(&["name=value".to_string(), "x".to_string()], &snapshot)
                 .is_none()
         );
     }
 
     #[test]
-    fn buffer_words_keep_trailing_empty_slot_and_strip_quotes() {
+    fn completion_process_uses_session_cwd_and_environment() {
+        let directory = tempdir().unwrap();
+        let record = directory.path().join("session");
+        let binary = fake_carapace(
+            directory.path(),
+            &format!(
+                "#!/bin/sh\nprintf '%s\\n%s' \"$PWD\" \"$SESSION_MARKER\" > {}\nprintf '{{\"values\":[]}}'\n",
+                record.display()
+            ),
+        );
+        let snapshot = ShellContext::new(
+            directory.path(),
+            [
+                (OsString::from("JOSH_CARAPACE"), binary.into_os_string()),
+                (
+                    OsString::from("SESSION_MARKER"),
+                    OsString::from("from-josh"),
+                ),
+            ],
+        )
+        .snapshot();
+        Carapace::new()
+            .complete(&["fakecmd".to_string(), "x".to_string()], &snapshot)
+            .unwrap();
+        assert_eq!(
+            fs::read_to_string(record).unwrap(),
+            format!("{}\nfrom-josh", directory.path().display())
+        );
+    }
+
+    #[test]
+    fn buffer_words_keep_only_the_current_command() {
         assert_eq!(
             command_words_up_to_cursor("git checkout pr"),
             vec!["git", "checkout", "pr"]
@@ -326,6 +410,23 @@ printf '%s' '{"nospace":"/","values":[{"value":"src/","display":"src/"}]}'
             command_words_up_to_cursor("git \"my bra"),
             vec!["git", "my bra"]
         );
+        assert_eq!(
+            command_words_up_to_cursor("printf x | git ch"),
+            vec!["git", "ch"]
+        );
+        assert_eq!(
+            command_words_up_to_cursor("false && git ch"),
+            vec!["git", "ch"]
+        );
+        assert_eq!(
+            command_words_up_to_cursor("printf $(git ch"),
+            vec!["git", "ch"]
+        );
+        assert_eq!(
+            command_words_up_to_cursor("printf x; git foo\\ bar"),
+            vec!["git", "foo bar"]
+        );
+        assert_eq!(command_words_up_to_cursor("git status > out"), vec!["out"]);
         assert_eq!(command_words_up_to_cursor(""), vec![""]);
     }
 }

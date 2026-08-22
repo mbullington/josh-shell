@@ -430,8 +430,8 @@ fn ctrl_c_cancels_a_structured_graph_and_reaps_its_child() {
     let interrupt_deadline = Instant::now() + Duration::from_secs(3);
     let mut interrupted = Vec::new();
     while !(interrupted
-        .windows(b"pipeline was cancelled".len())
-        .any(|window| window == b"pipeline was cancelled")
+        .windows(b"execution was cancelled".len())
+        .any(|window| window == b"execution was cancelled")
         && interrupted.windows(6).any(|window| window == b"josh> "))
         && Instant::now() < interrupt_deadline
     {
@@ -462,8 +462,8 @@ fn ctrl_c_cancels_a_structured_graph_and_reaps_its_child() {
     assert!(producer_pid.is_some(), "structured producer never started");
     assert!(
         interrupted
-            .windows(b"pipeline was cancelled".len())
-            .any(|window| window == b"pipeline was cancelled")
+            .windows(b"execution was cancelled".len())
+            .any(|window| window == b"execution was cancelled")
             && interrupted.windows(6).any(|window| window == b"josh> "),
         "Josh did not return to its prompt after Ctrl-C: {}",
         String::from_utf8_lossy(&interrupted)

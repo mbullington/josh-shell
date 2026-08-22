@@ -163,7 +163,7 @@ pub enum ExecutionError {
     },
     #[error("stream stage {stage} failed: {message}")]
     Stream { stage: usize, message: String },
-    #[error("pipeline was cancelled")]
+    #[error("execution was cancelled")]
     Cancelled,
     #[error("cannot control the foreground terminal: {0}")]
     Terminal(#[source] io::Error),

@@ -41,7 +41,7 @@ the evaluator's statement/expression loop polls it. `run_repl`
 (`crates/josh-interactive/src/lib.rs`) resets the flag around `run_source` but
 the interpreter never observes it. External commands DO interrupt (child death
 propagates `error: uncaught value: command: command failed ... (signal 2)`),
-as does `$(capture)` (`error: pipeline was cancelled`), so the missing piece
+as does `$(capture)` (`error: execution was cancelled`), so the missing piece
 is only the pure-evaluation path.
 
 Note: DAILY_DRIVER_BRIEF item 2 covers Ctrl+C for *external* foreground

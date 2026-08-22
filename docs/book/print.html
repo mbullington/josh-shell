@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-311364e9.js";
+            window.path_to_searchindex_js = "searchindex-8cdb3726.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-601258de.js"></script>
@@ -243,6 +243,15 @@ josh&gt; (1 + 2)
 <p><a id="J-RUN-002"></a></p>
 <h2 id="standalone-builtins"><a class="header" href="#standalone-builtins">Standalone builtins</a></h2>
 <p><code>cd [path]</code> changes Josh’s process directory; without a path it uses <code>HOME</code>, then <code>.</code>. <code>exit [status]</code> leaves the REPL or returns that status from batch mode. Both must be standalone. A pipeline or capture containing either builtin returns an unsupported-feature error.</p>
+<p><code>command cmd [args…]</code> runs <code>cmd</code> from <code>PATH</code> while skipping lexical functions and builtins. A Josh function named like a real command normally shadows it, so a verb-hiding helper calls the binary it shadows through <code>command</code> instead of recursing:</p>
+<p class="example-label"><strong>Runnable example</strong></p>
+
+<pre><code class="language-console">josh&gt; fn mkdir(...args) { command mkdir -v $args }
+&lt;function mkdir&gt;
+josh&gt; mkdir /tmp/one /tmp/two
+/tmp/one
+/tmp/two
+</code></pre>
 <p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">josh&gt; cd /tmp
@@ -412,20 +421,25 @@ josh smoke.josh
 <h1 id="highlighting"><a class="header" href="#highlighting">Highlighting</a></h1>
 <p><a id="J-REPL-002"></a></p>
 <h2 id="lossless-token-highlighting"><a class="header" href="#lossless-token-highlighting">Lossless token highlighting</a></h2>
-<p>Josh styles exact token slices, preserving all whitespace and comments. Comments, strings, values, variables, keywords, unsupported tokens, and expression-mode punctuation receive distinct styles. The first literal command is green when the immutable PATH/builtin snapshot knows it and red otherwise.</p>
+<p>Josh styles exact token slices, preserving all whitespace and comments. Comments, strings, values, variables, keywords, unsupported tokens, and expression-mode punctuation receive distinct styles. Each literal command head is green when the immutable PATH/builtin snapshot resolves it and red otherwise. Validity styling covers complete command words such as <code>local-tool</code> and executable paths such as <code>./local-tool</code>, even when the lexer splits the word into several tokens.</p>
 <p>Highlighting never executes code. It may be stale until the next accepted line if PATH changes during an edit. Nested interpolation semantics are preserved in the AST, but a double-quoted source region remains one concrete token in this slice, so its inner pieces do not receive full independent token colors.</p>
 <p>Color is advisory. Parse mode and diagnostics remain authoritative, and no documented distinction depends only on terminal color.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="hints-history-and-completion"><a class="header" href="#hints-history-and-completion">Hints, history, and completion</a></h1>
 <p><a id="J-REPL-003"></a></p>
 <h2 id="completion"><a class="header" href="#completion">Completion</a></h2>
-<p>At a statement or post-pipe command head, completion searches builtins and executable names indexed from the session’s <code>env.PATH</code> — including entries relative to the session cwd — so <code>cd</code> and PATH edits apply on the very next Tab. After <code>$</code>, it searches Josh bindings and inherited environment names. Elsewhere, it lists matching files and appends <code>/</code> to directories. Results are prefix-based, sorted where file traversal permits, capped at 200, and never evaluate source.</p>
-<p>The replacement span uses UTF-8 byte offsets. Command/file completions request trailing whitespace; variable completions do not.</p>
+<p>Syntax highlighting in the REPL resolves colors from a TextMate theme when <code>JOSH_THEME</code> points at a <code>.tmTheme</code> file, falling back to a built-in ANSI palette. Theme colors are looked up with TextMate scope selectors (the same scope names the VS Code grammar in <code>editors/vscode</code> emits), and each line’s command heads are colored by whether the command resolves on the session <code>PATH</code>. <code>JOSH_THEME</code> failures print a warning and use the fallback palette.</p>
+<p>At a statement or post-pipe command head, completion searches builtins, visible lexical functions, and executable names indexed from the session’s <code>env.PATH</code>. A command-position prefix that contains <code>/</code> uses file completion for executable paths. Relative PATH entries resolve against the session cwd, so <code>cd</code> and PATH edits apply on the next Tab. After <code>$</code>, completion searches Josh bindings and inherited environment names. Elsewhere, it lists matching files from the session cwd and appends <code>/</code> to directories. <code>./</code>, <code>../</code>, and deeper relative prefixes remain in the inserted candidate. Dotfiles appear only after the current path component starts with <code>.</code>. A leading <code>~</code> (bare or followed by <code>/…</code>) is resolved against the session’s <code>HOME</code> while the inserted text keeps the tilde form, mirroring command execution. File suggestions close an open quote or backslash-escape shell punctuation and whitespace. Results are prefix-based, sorted where file traversal permits, capped at 200, and never evaluate source.</p>
+<p>The replacement span uses UTF-8 byte offsets and covers the whole word when the cursor is in the middle, including an existing closing quote. Completion does not add a second space when whitespace already follows the word. Command and file completions request trailing whitespace except for directories (which end in <code>/</code>); variable completions do not.</p>
+<p>Tab accepts a single match immediately. With multiple matches for a typed prefix, the first candidate stays inline while the menu opens, matching Fish’s completion preview; alternatives use muted gray, with the selection bold and underlined. Further Tab presses or the arrow keys move the menu selection, Enter accepts it, and Escape dismisses the menu. Without an inline candidate, Tab inserts the common prefix before opening the menu. If nothing matches, Tab leaves the line unchanged.</p>
+<h3 id="typeahead-hints"><a class="header" href="#typeahead-hints">Typeahead hints</a></h3>
+<p>Behind the cursor, muted-gray ghost text offers the likely rest of the line, accepted whole with Right/Ctrl+F or one word with Alt+Right/Ctrl+Right. History and native completion hints use the same subdued treatment as menu alternatives. The most recent history entry with the typed prefix wins, except that a stale history path cannot override file candidates from the current session cwd. When no usable history entry matches, the remainder of the first native Tab candidate is offered instead. Completion hints never spawn carapace, and they are suppressed mid-line, inside comments, and without a word prefix.</p>
 <h3 id="command-specific-completion-via-carapace"><a class="header" href="#command-specific-completion-via-carapace">Command-specific completion via carapace</a></h3>
-<p>When an external <code>carapace</code> binary resolves on PATH, argument completion for an external command asks <code>carapace &lt;name&gt; export &lt;name&gt; &lt;args…current-word&gt;</code> and uses its JSON values (with descriptions, and <code>nospace</code> suffixes suppressing the trailing space). Every failure — the binary is absent, a spec for the command does not exist, the call errors, or the answer is empty — falls back silently to native file completion; there are no diagnostics. <code>JOSH_CARAPACE=0</code> disables the bridge entirely, and <code>JOSH_CARAPACE=/path/to/carapace</code> pins a specific binary. First words that are paths, <code>$variables</code>, or assignments never reach carapace.</p>
+<p>When an external <code>carapace</code> binary resolves on the session PATH, argument completion for an external command asks <code>carapace &lt;name&gt; export &lt;name&gt; &lt;args…current-word&gt;</code> from the session cwd and environment, then uses its JSON values (with descriptions, and <code>nospace</code> suffixes suppressing the trailing space). Every failure — the binary is absent, a spec for the command does not exist, the call errors, or the answer is empty — falls back silently to native file completion; there are no diagnostics. <code>JOSH_CARAPACE=0</code> disables the bridge entirely, and <code>JOSH_CARAPACE=/path/to/carapace</code> pins a specific binary. First words that are paths, <code>$variables</code>, or assignments never reach carapace.</p>
 <p><a id="J-REPL-004"></a></p>
 <h2 id="hints-and-history"><a class="header" href="#hints-and-history">Hints and history</a></h2>
-<p>Prefix hints come from up to 1,000 plain file-backed history entries. Set <code>JOSH_HISTORY</code> to select a path. Otherwise Josh uses <code>$HOME/.josh_history</code>, falling back to <code>.josh_history</code> in the current directory when HOME is absent.</p>
+<p>Prefix hints come from up to 10,000 plain file-backed history entries. Set <code>JOSH_HISTORY</code> to select a path and <code>JOSH_HISTORY_SIZE</code> to change the cap. Otherwise Josh uses <code>$HOME/.josh_history</code>, falling back to <code>.josh_history</code> in the current directory when HOME is absent.</p>
+<p>Ctrl+R opens the history menu: a reverse-chronological, deduplicated list of entries containing the typed substring. Typing refilters the list, arrows navigate it, and Enter copies the selected entry into the buffer.</p>
 <p>There is no SQLite database, remote sync, history schema, or semantic ranking in this slice. Treat the history file as sensitive because commands may contain paths or literal data.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="signals-and-troubleshooting"><a class="header" href="#signals-and-troubleshooting">Signals and troubleshooting</a></h1>
@@ -458,6 +472,7 @@ josh smoke.josh
 <h2 id="bindings-and-assignment"><a class="header" href="#bindings-and-assignment">Bindings and assignment</a></h2>
 <p><code>let</code> binds in the current lexical frame. Plain assignment updates the nearest visible binding or creates one in the current frame. <code>+=</code> and <code>-=</code> apply the corresponding checked operator. Blocks create child frames. A failed right-hand capture does not commit assignment.</p>
 <p>Array/object destructuring is available in <code>let</code> and function parameters, including nested and trailing rest patterns. Destructuring assignment is not implemented.</p>
+<p>Reserved words are valid member names and property keys wherever a name is expected rather than a reference: <code>value.status</code>, <code>{ status: "ok" }</code>, and <code>let { status: s } = error</code> all parse. The shorthand forms remain parse errors — <code>{ status }</code> would have to mean a reference or binding named <code>status</code>.</p>
 <p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">let {name, ...rest} = {name: "Josh", version: 1}
@@ -477,12 +492,14 @@ In <code>$NAME</code> command/string interpolation, Josh checks lexical bindings
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="strings-interpolation-and-splicing"><a class="header" href="#strings-interpolation-and-splicing">Strings, interpolation, and splicing</a></h1>
-<p>Single quotes are literal command words. In double quotes, a backslash removes itself and makes the next Unicode scalar literal. Expression double-quoted strings and quoted Object keys use the same decoding. Double-quoted command words also support variable, expression, and capture parts. Unquoted <code>$name</code> splices a value; <code>${...}</code> is available inside double quotes, not as a general command-mode delimiter.</p>
+<p>Quoted strings come in one processing form and one raw form. Both <code>'…'</code> and <code>"…"</code> are identical processed strings: they decode JavaScript escape sequences, and inside command words they interpolate variables and run captures. Use <code>r'…'</code> (or <code>r"…"</code>) when nothing may be processed — raw strings never decode escapes, never interpolate variables, and never run captures.</p>
+<p>Escape decoding follows JavaScript: <code>\n</code>, <code>\t</code>, <code>\r</code>, <code>\b</code>, <code>\f</code>, <code>\v</code>, <code>\0</code>, <code>\\</code>, <code>\"</code>, <code>\'</code>, <code>\xNN</code>, <code>\uNNNN</code>, and <code>\u{…}</code> code points, plus a line continuation after a trailing backslash. Any other escaped character stands for itself, so <code>\$</code> and <code>\"</code> quote those delimiters literally in command words. Expression strings, quoted Object keys, and command words all share this decoding.</p>
+<p>Inside command words, processed strings also interpolate: <code>$name</code> splices a value, <code>${…}</code> evaluates an expression, and <code>$(…)</code> runs a capture. <code>$name</code> splices only the name — write <code>${e.message}</code>, not <code>$e.message</code>, for member access. Unquoted <code>$name</code> splices a value; <code>${...}</code> is available inside both quote kinds, not as a general command-mode delimiter.</p>
 <p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">josh&gt; n = 6
 6
-josh&gt; printf '%s\n' 'literal $n' "value=${n * 7}"
+josh&gt; printf '%s\n' r'literal $n' "value=${n * 7}"
 literal $n
 value=42
 </code></pre>
@@ -573,7 +590,14 @@ names = $((["one", "two", "three"]) | take 2).join(", ")
 <p><a id="J-FUNC-001"></a></p>
 <h2 id="function-execution-and-ufcs"><a class="header" href="#function-execution-and-ufcs">Function execution and UFCS</a></h2>
 <p><code>fn name(params) { ... }</code> and arrow functions share one Function value. A closure copies all visible lexical bindings when it is created; later reassignment outside the closure does not change that snapshot. Named functions rebind themselves while called, so direct recursion works without cyclic ownership. Declarations are source-ordered, not hoisted, but calls resolve names when invoked, so functions defined later in the same script can call back into earlier ones (mutual recursion included). Scope is lexical: a running function sees its own parameters, its captured snapshot, and shared top-level bindings — it can neither see nor rewrite bindings owned by another active function.</p>
-<p>Parameters allow nested array/object destructuring and one trailing rest pattern. Missing arguments bind Null; extra arguments are ignored. <code>...array</code> expands a call argument list. Spreading any other value is a type error. <code>return</code> without a value returns Null. <code>break</code> and <code>continue</code> cannot cross a function boundary.</p>
+<p>Parameters allow nested array/object destructuring and one trailing rest pattern. A trailing <code>...name</code> rest parameter collects every remaining argument into an array bound to <code>name</code>; anything after it is a parse error. Missing arguments bind Null, a rest parameter with no remaining arguments binds an empty array, and without a rest parameter extra arguments are ignored. <code>...array</code> expands a call argument list. Spreading any other value is a type error. <code>return</code> without a value returns Null. <code>break</code> and <code>continue</code> cannot cross a function boundary.</p>
+<p class="example-label"><strong>Runnable example</strong></p>
+
+<pre><code class="language-console">josh&gt; fn head(first, ...rest) { return [first, rest.length] }
+&lt;function head&gt;
+josh&gt; head(1, 2, 3)
+[1, 2]
+</code></pre>
 <p>A visible lexical function in command position runs before PATH lookup and receives evaluated command arguments. Member-call dispatch has this fixed order:</p>
 <ol>
 <li>a function stored as the object’s own field, called with the call’s arguments only;</li>
@@ -1322,7 +1346,7 @@ letters[-2..]    # ["d", "e"] — negative counts from the end
 </tbody>
 </table>
 </div>
-<p>Diagnostics carry severity, code, expected strings, primary label, secondary labels, and EOF causation. Display currently prints message, code, byte range, and expected set.</p>
+<p>Diagnostics carry severity, code, expected strings, primary label, secondary labels, and EOF causation. Interactive and command-line entry points render each diagnostic with the offending source line, the origin (<code>&lt;input&gt;</code> for one-liners and the REPL, otherwise the file path), a 1-based line and character column, and a caret under the primary span. Carets account for tab stops and wide Unicode characters. The compact <code>Display</code> form (message, code, byte range, expected set) remains for tooling.</p>
 <p>Process errors distinguish command-not-found, spawn, command failure, pipeline failure, and output collection. Outcomes retain zero-based stage, rendered command, code/signal, and success.</p>
 <div class="table-wrapper">
 <table>

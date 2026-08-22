@@ -7,6 +7,7 @@ description = "Lossless syntax and parsing for Josh"
 
 [dependencies]
 unicode-ident.workspace = true
+unicode-width.workspace = true
 
 [lints]
 workspace = true

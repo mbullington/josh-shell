@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-311364e9.js";
+            window.path_to_searchindex_js = "../searchindex-8cdb3726.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-601258de.js"></script>
@@ -190,6 +190,15 @@ josh&gt; (1 + 2)
 <p><a id="J-RUN-002"></a></p>
 <h2 id="standalone-builtins"><a class="header" href="#standalone-builtins">Standalone builtins</a></h2>
 <p><code>cd [path]</code> changes Josh’s process directory; without a path it uses <code>HOME</code>, then <code>.</code>. <code>exit [status]</code> leaves the REPL or returns that status from batch mode. Both must be standalone. A pipeline or capture containing either builtin returns an unsupported-feature error.</p>
+<p><code>command cmd [args…]</code> runs <code>cmd</code> from <code>PATH</code> while skipping lexical functions and builtins. A Josh function named like a real command normally shadows it, so a verb-hiding helper calls the binary it shadows through <code>command</code> instead of recursing:</p>
+<p class="example-label"><strong>Runnable example</strong></p>
+
+<pre><code class="language-console">josh&gt; fn mkdir(...args) { command mkdir -v $args }
+&lt;function mkdir&gt;
+josh&gt; mkdir /tmp/one /tmp/two
+/tmp/one
+/tmp/two
+</code></pre>
 <p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-console">josh&gt; cd /tmp

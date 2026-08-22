@@ -578,7 +578,21 @@ fn render_points_a_caret_at_the_offending_span() {
             "  --> script.josh:1:8",
             "  |",
             "1 | x = 🤖🤖 + ",
-            "  |        ^",
+            "  |          ^",
+        ]
+        .join("\n")
+    );
+
+    // Tabs expand to fixed stops before caret alignment.
+    let rendered = diagnostic("P995", Span::new(4, 5), &[]).render("let\tx =", "<input>");
+    assert_eq!(
+        rendered,
+        [
+            "error: message for P995[P995]",
+            "  --> <input>:1:5",
+            "  |",
+            "1 | let x =",
+            "  |     ^",
         ]
         .join("\n")
     );

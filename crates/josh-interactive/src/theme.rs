@@ -7,7 +7,7 @@
 //! selector has a foreground or no theme is configured. Only foregrounds
 //! and font styles transfer; the terminal owns the background.
 
-use std::env;
+use std::ffi::OsStr;
 
 use nu_ansi_term::{Color, Style};
 use syntect::highlighting::{FontStyle, Theme, ThemeSet};
@@ -34,9 +34,9 @@ impl Palette {
     /// Resolve the palette from `JOSH_THEME`. The second tuple element is a
     /// warning to print when a configured theme failed to load.
     #[must_use]
-    pub fn from_environment() -> (Self, Option<String>) {
-        match env::var_os("JOSH_THEME") {
-            Some(path) if !path.is_empty() => match ThemeSet::get_theme(&path) {
+    pub fn from_path(path: Option<&OsStr>) -> (Self, Option<String>) {
+        match path {
+            Some(path) if !path.is_empty() => match ThemeSet::get_theme(path) {
                 Ok(theme) => (Self::from_theme(&theme), None),
                 Err(error) => (
                     Self::fallback(),
@@ -89,7 +89,7 @@ impl Palette {
             error: theme_style(theme, &["invalid.illegal", "invalid"])
                 .unwrap_or_else(|| Style::new().fg(Color::Red).underline()),
             hint: theme_style(theme, &["comment"])
-                .unwrap_or_else(|| Style::new().fg(Color::LightGray)),
+                .unwrap_or_else(|| Style::new().fg(Color::DarkGray)),
         }
     }
 
@@ -105,7 +105,7 @@ impl Palette {
             capture: Style::new().fg(Color::Purple),
             expression: Style::new().fg(Color::LightBlue),
             error: Style::new().fg(Color::Red).underline(),
-            hint: Style::new().fg(Color::LightGray),
+            hint: Style::new().fg(Color::DarkGray),
         }
     }
 

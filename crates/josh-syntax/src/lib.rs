@@ -2,6 +2,8 @@
 
 use std::{fmt, ops::Range, sync::Arc};
 
+use unicode_width::UnicodeWidthChar;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Span {
     pub start: usize,
@@ -205,12 +207,13 @@ impl Diagnostic {
             header.push_str("; expected ");
             header.push_str(&self.expected.join(", "));
         }
-        let (line_number, column, line_text, underline) = locate_span(source, self.primary.span);
+        let (line_number, column, line_text, caret_offset, underline) =
+            locate_span(source, self.primary.span);
         let width = line_number.to_string().len();
         let gutter = " ".repeat(width);
         let mut carets = format!(
             "{gutter} | {}{}",
-            " ".repeat(column - 1),
+            " ".repeat(caret_offset),
             "^".repeat(underline)
         );
         if !self.primary.message.is_empty() {
@@ -223,10 +226,10 @@ impl Diagnostic {
     }
 }
 
-/// Locate a byte span as a 1-based (line, char column) with the containing
-/// line's text and the caret run length for it. Spans are lexer-produced, so
-/// they are always char-boundary aligned.
-fn locate_span(source: &str, span: Span) -> (usize, usize, &str, usize) {
+/// Locate a byte span as a 1-based line and character column. The separate
+/// caret offset and width use terminal columns so tabs and wide characters
+/// still align. Spans are lexer-produced and char-boundary aligned.
+fn locate_span(source: &str, span: Span) -> (usize, usize, String, usize, usize) {
     let start = span.start.min(source.len());
     // EOF-caused spans land past the final newline of a file; anchor them to
     // the end of the last content line rather than an empty fragment.
@@ -244,18 +247,50 @@ fn locate_span(source: &str, span: Span) -> (usize, usize, &str, usize) {
         .filter(|byte| *byte == b'\n')
         .count()
         + 1;
-    let column = source[line_start..anchor].chars().count() + 1;
+    let prefix = &source[line_start..anchor];
+    let column = prefix.chars().count() + 1;
+    let caret_offset = terminal_width(prefix, 0);
     let covered = if span.end > anchor {
-        source[anchor..span.end.min(line_end)].chars().count()
+        terminal_width(&source[anchor..span.end.min(line_end)], caret_offset)
+            .saturating_sub(caret_offset)
     } else {
         0
     };
     (
         line_number,
         column,
-        &source[line_start..line_end],
+        expand_tabs(&source[line_start..line_end]),
+        caret_offset,
         covered.max(1),
     )
+}
+
+const TAB_WIDTH: usize = 4;
+
+fn terminal_width(text: &str, initial: usize) -> usize {
+    text.chars().fold(initial, |width, ch| {
+        if ch == '\t' {
+            width + TAB_WIDTH - (width % TAB_WIDTH)
+        } else {
+            width + ch.width().unwrap_or(0)
+        }
+    })
+}
+
+fn expand_tabs(text: &str) -> String {
+    let mut expanded = String::with_capacity(text.len());
+    let mut width = 0;
+    for ch in text.chars() {
+        if ch == '\t' {
+            let spaces = TAB_WIDTH - (width % TAB_WIDTH);
+            expanded.push_str(&" ".repeat(spaces));
+            width += spaces;
+        } else {
+            expanded.push(ch);
+            width += ch.width().unwrap_or(0);
+        }
+    }
+    expanded
 }
 
 #[derive(Debug, Clone, PartialEq)]

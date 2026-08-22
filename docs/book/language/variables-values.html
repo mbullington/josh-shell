@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-311364e9.js";
+            window.path_to_searchindex_js = "../searchindex-8cdb3726.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-601258de.js"></script>
@@ -179,6 +179,7 @@
 <h2 id="bindings-and-assignment"><a class="header" href="#bindings-and-assignment">Bindings and assignment</a></h2>
 <p><code>let</code> binds in the current lexical frame. Plain assignment updates the nearest visible binding or creates one in the current frame. <code>+=</code> and <code>-=</code> apply the corresponding checked operator. Blocks create child frames. A failed right-hand capture does not commit assignment.</p>
 <p>Array/object destructuring is available in <code>let</code> and function parameters, including nested and trailing rest patterns. Destructuring assignment is not implemented.</p>
+<p>Reserved words are valid member names and property keys wherever a name is expected rather than a reference: <code>value.status</code>, <code>{ status: "ok" }</code>, and <code>let { status: s } = error</code> all parse. The shorthand forms remain parse errors — <code>{ status }</code> would have to mean a reference or binding named <code>status</code>.</p>
 <p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">let {name, ...rest} = {name: "Josh", version: 1}

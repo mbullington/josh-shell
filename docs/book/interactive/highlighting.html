@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-311364e9.js";
+            window.path_to_searchindex_js = "../searchindex-8cdb3726.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-601258de.js"></script>
@@ -177,7 +177,7 @@
                         <h1 id="highlighting"><a class="header" href="#highlighting">Highlighting</a></h1>
 <p><a id="J-REPL-002"></a></p>
 <h2 id="lossless-token-highlighting"><a class="header" href="#lossless-token-highlighting">Lossless token highlighting</a></h2>
-<p>Josh styles exact token slices, preserving all whitespace and comments. Comments, strings, values, variables, keywords, unsupported tokens, and expression-mode punctuation receive distinct styles. The first literal command is green when the immutable PATH/builtin snapshot knows it and red otherwise.</p>
+<p>Josh styles exact token slices, preserving all whitespace and comments. Comments, strings, values, variables, keywords, unsupported tokens, and expression-mode punctuation receive distinct styles. Each literal command head is green when the immutable PATH/builtin snapshot resolves it and red otherwise. Validity styling covers complete command words such as <code>local-tool</code> and executable paths such as <code>./local-tool</code>, even when the lexer splits the word into several tokens.</p>
 <p>Highlighting never executes code. It may be stale until the next accepted line if PATH changes during an edit. Nested interpolation semantics are preserved in the AST, but a double-quoted source region remains one concrete token in this slice, so its inner pieces do not receive full independent token colors.</p>
 <p>Color is advisory. Parse mode and diagnostics remain authoritative, and no documented distinction depends only on terminal color.</p>
 

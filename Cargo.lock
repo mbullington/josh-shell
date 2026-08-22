@@ -796,6 +796,7 @@ name = "josh-syntax"
 version = "0.1.0"
 dependencies = [
  "unicode-ident",
+ "unicode-width",
 ]
 
 [[package]]
