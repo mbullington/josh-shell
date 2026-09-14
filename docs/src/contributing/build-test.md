@@ -8,6 +8,8 @@ Use separate Cargo target directories to run independent checks concurrently. Ot
 ```sh
 git clone https://github.com/mbullington/josh-shell
 cd josh-shell
+cargo install patch-crate --version 0.1.13 --locked
+cargo patch-crate
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --all-targets

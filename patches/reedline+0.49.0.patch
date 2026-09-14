@@ -1,0 +1,134 @@
+diff --git a/src/engine.rs b/src/engine.rs
+index ab263c2..dcc0e91 100644
+--- a/src/engine.rs
++++ b/src/engine.rs
+@@ -2236,7 +2236,7 @@ impl Reedline {
+                 let (raw_before, raw_after) = buffer.split_at(cursor_position_in_buffer);
+                 self.last_render_snapshot = Some(
+                     self.painter
+-                        .render_snapshot(&lines, menu, raw_before, raw_after, layout),
++                        .render_snapshot(&lines, menu, raw_before, raw_after, prompt, layout),
+                 );
+             }
+         } else {
+@@ -2614,6 +2614,7 @@ mod tests {
+             before_cursor: "hello".to_string(),
+             after_cursor: "".to_string(),
+             first_buffer_col: 0,
++            multiline_indicator_width: 0,
+             menu_active: false,
+             menu_start_row: None,
+             large_buffer_extra_rows_after_prompt: None,
+diff --git a/src/painting/painter.rs b/src/painting/painter.rs
+index 802fb18..a320c38 100644
+--- a/src/painting/painter.rs
++++ b/src/painting/painter.rs
+@@ -175,6 +175,7 @@ pub struct RenderSnapshot {
+     pub before_cursor: String,
+     pub after_cursor: String,
+     pub first_buffer_col: u16,
++    pub multiline_indicator_width: u16,
+     pub menu_active: bool,
+     pub menu_start_row: Option<u16>,
+     pub large_buffer_extra_rows_after_prompt: Option<usize>,
+@@ -654,6 +655,7 @@ impl Painter {
+         menu: Option<&ReedlineMenu>,
+         raw_before: &str,
+         raw_after: &str,
++        prompt: &dyn Prompt,
+         layout: &PromptLayout,
+     ) -> RenderSnapshot {
+         let large_buffer_extra_rows_after_prompt = if self.large_buffer {
+@@ -674,6 +676,8 @@ impl Painter {
+             before_cursor: raw_before.to_string(),
+             after_cursor: raw_after.to_string(),
+             first_buffer_col: layout.first_buffer_col,
++            multiline_indicator_width: line_width(&prompt.render_prompt_multiline_indicator())
++                .min(u16::MAX as usize) as u16,
+             menu_active: menu.is_some(),
+             menu_start_row: layout.menu_start_row,
+             large_buffer_extra_rows_after_prompt,
+@@ -785,6 +789,11 @@ impl Painter {
+         // Walk through visible buffer content grapheme-by-grapheme, tracking
+         // the screen position. When we hit the target (column, row) we return
+         // the corresponding byte offset in the full buffer.
++        // The raw buffer omits the continuation indicator inserted by StyledText.
++        let continuation_rows =
++            snapshot.multiline_indicator_width.saturating_sub(1) / screen_width.max(1);
++        let continuation_col =
++            snapshot.multiline_indicator_width - continuation_rows * screen_width.max(1);
+         let mut current_row = buffer_start_row;
+         let mut current_col = if current_row == buffer_start_row {
+             snapshot.first_buffer_col
+@@ -792,11 +801,16 @@ impl Painter {
+             0
+         };
+ 
++        if before_start > 0 {
++            current_row = current_row.saturating_add(continuation_rows);
++            current_col = continuation_col;
++        }
++
+         let mut check_segment = |segment: &str, base_offset: usize| -> Option<usize> {
+             for (index, grapheme) in segment.grapheme_indices(true) {
+                 if grapheme == "\n" {
+-                    current_row = current_row.saturating_add(1);
+-                    current_col = 0;
++                    current_row = current_row.saturating_add(1 + continuation_rows);
++                    current_col = continuation_col;
+                     continue;
+                 }
+ 
+@@ -1375,6 +1389,7 @@ mod tests {
+             before_cursor: "".to_string(),
+             after_cursor: "".to_string(),
+             first_buffer_col: 2,
++            multiline_indicator_width: 0,
+             menu_active: false,
+             menu_start_row: None,
+             large_buffer_extra_rows_after_prompt: None,
+@@ -1421,6 +1436,44 @@ mod tests {
+         assert_eq!(painter.screen_to_buffer_offset(&snapshot, 1, 1), Some(4));
+     }
+ 
++    #[test]
++    fn test_clicks_account_for_continuation_indicator() {
++        let painter = Painter::new(W::sink());
++        for split in [0, 2, 3, 4, 5] {
++            let mut snapshot = base_snapshot();
++            snapshot.multiline_indicator_width = 5;
++            snapshot.before_cursor = "ab\ncd"[..split].to_string();
++            snapshot.after_cursor = "ab\ncd"[split..].to_string();
++            assert_eq!(painter.screen_to_buffer_offset(&snapshot, 6, 1), Some(4));
++            assert_eq!(painter.screen_to_buffer_offset(&snapshot, 2, 1), None);
++        }
++    }
++
++    #[test]
++    fn test_continuation_indicator_changes_wrapping() {
++        let painter = Painter::new(W::sink());
++        let mut snapshot = base_snapshot();
++        snapshot.screen_width = 8;
++        snapshot.multiline_indicator_width = 5;
++        snapshot.before_cursor = "ab\ncdefg".to_string();
++        assert_eq!(painter.screen_to_buffer_offset(&snapshot, 1, 2), Some(7));
++        snapshot.screen_width = 4;
++        assert_eq!(painter.screen_to_buffer_offset(&snapshot, 2, 2), Some(4));
++    }
++
++    #[test]
++    fn test_scrolled_continuation_indicator() {
++        let painter = Painter::new(W::sink());
++        let mut snapshot = base_snapshot();
++        snapshot.large_buffer = true;
++        snapshot.first_buffer_col = 0;
++        snapshot.multiline_indicator_width = 5;
++        snapshot.before_cursor = "line1\nline2\nline3".to_string();
++        snapshot.large_buffer_extra_rows_after_prompt = Some(1);
++        assert_eq!(painter.screen_to_buffer_offset(&snapshot, 6, 0), Some(7));
++        assert_eq!(painter.screen_to_buffer_offset(&snapshot, 2, 0), None);
++    }
++
+     #[test]
+     fn test_large_buffer_skips_lines() {
+         let mut snapshot = base_snapshot();

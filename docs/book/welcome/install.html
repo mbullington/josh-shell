@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8cdb3726.js";
+            window.path_to_searchindex_js = "../searchindex-93c431d1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-601258de.js"></script>
@@ -179,10 +179,13 @@
 <p><a id="J-CLI-001-install"></a></p>
 <h2 id="build-josh"><a class="header" href="#build-josh">Build Josh</a></h2>
 <p><strong>Host command</strong></p>
-<pre><code class="language-sh">cargo build --locked --workspace --all-targets
+<pre><code class="language-sh">cargo install patch-crate --version 0.1.13 --locked
+cargo patch-crate
+cargo build --locked --workspace --all-targets
 cargo test --locked --workspace --all-targets
 ./target/debug/josh --version
 </code></pre>
+<p>Run <code>cargo patch-crate</code> from the repository root after a fresh checkout or <code>cargo clean</code>. Use <code>cargo patch-crate --force</code> after pulling patch changes; it replaces the generated sources under <code>target/patch/</code>. Git and the native build dependencies for <code>patch-crate</code> are required, including OpenSSL development headers on Linux.</p>
 <p>The verified binary reports <code>josh 0.1.0</code>. Use <code>cargo install --path crates/josh-cli --locked</code> if you want it on Cargo’s binary path.</p>
 <h2 id="platform-boundary"><a class="header" href="#platform-boundary">Platform boundary</a></h2>
 <p>Josh is Unix-first. Byte-preserving command arguments and signal behavior have Unix-specific paths. The parser can compile elsewhere, but this manual does not claim complete shell behavior on Windows.</p>

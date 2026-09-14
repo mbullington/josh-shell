@@ -5,11 +5,15 @@ Josh is a Unix-first JavaScript Object Shell. It combines deterministic command/
 ## Build and run
 
 ```sh
+cargo install patch-crate --version 0.1.13 --locked
+cargo patch-crate
 cargo build --workspace
 cargo run -- -c 'printf hello | tr a-z A-Z'
 cargo run -- script.josh
 cargo run
 ```
+
+Run `cargo patch-crate --force` after pulling changes to `patches/`, or `cargo patch-crate` after `cargo clean`. The generated Reedline source lives under `target/patch/`; only the patch is checked in. See [dependency patch maintenance](patches/README.md).
 
 The editor language server is a separate binary: `cargo install --path crates/josh-cli` installs `josh`, `cargo install --path crates/josh-lsp` installs `josh-lsp`, and `josh lsp` looks for the server next to the `josh` binary first, then on `PATH`.
 
@@ -26,7 +30,7 @@ Use `--no-config` for reproducible automation. Otherwise Josh runs `$XDG_CONFIG_
 - `if/else`, `while`, `loop`, `try/catch`, `throw`, `return`, `break`, `continue`, command `&&`/`||`, and `status pipeline`.
 - External commands, PATH planning, OS byte pipes, pipefail, capture, redirections, and sorted quote-aware glob expansion.
 - Explicit `text`, `json`, `lines`, `jsonl`, `chunks(n)`, function, `map`, `filter`, `take`, `first`, and `collect` stages with bounded channels and stable capture cardinality.
-- Reedline REPL with continuation, highlighting, completion, hints, history, and configured prompts.
+- Reedline REPL with continuation, highlighting, completion, hints, history, configured prompts, and click-to-position in terminals supporting OSC 133 `click_events`.
 - VSCode extension (`editors/vscode/`): TextMate highlighting plus live parser diagnostics from `josh lsp`; `npm run package` builds a local `.vsix`.
 
 ## Excluded

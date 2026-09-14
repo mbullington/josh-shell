@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8cdb3726.js";
+            window.path_to_searchindex_js = "../searchindex-93c431d1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-601258de.js"></script>
@@ -180,6 +180,8 @@
 <p><strong>Host command</strong></p>
 <pre><code class="language-sh">git clone https://github.com/mbullington/josh-shell
 cd josh-shell
+cargo install patch-crate --version 0.1.13 --locked
+cargo patch-crate
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --all-targets

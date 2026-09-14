@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8cdb3726.js";
+            window.path_to_searchindex_js = "searchindex-93c431d1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-601258de.js"></script>
@@ -192,10 +192,13 @@
 <p><a id="J-CLI-001-install"></a></p>
 <h2 id="build-josh"><a class="header" href="#build-josh">Build Josh</a></h2>
 <p><strong>Host command</strong></p>
-<pre><code class="language-sh">cargo build --locked --workspace --all-targets
+<pre><code class="language-sh">cargo install patch-crate --version 0.1.13 --locked
+cargo patch-crate
+cargo build --locked --workspace --all-targets
 cargo test --locked --workspace --all-targets
 ./target/debug/josh --version
 </code></pre>
+<p>Run <code>cargo patch-crate</code> from the repository root after a fresh checkout or <code>cargo clean</code>. Use <code>cargo patch-crate --force</code> after pulling patch changes; it replaces the generated sources under <code>target/patch/</code>. Git and the native build dependencies for <code>patch-crate</code> are required, including OpenSSL development headers on Linux.</p>
 <p>The verified binary reports <code>josh 0.1.0</code>. Use <code>cargo install --path crates/josh-cli --locked</code> if you want it on Cargo’s binary path.</p>
 <h2 id="platform-boundary"><a class="header" href="#platform-boundary">Platform boundary</a></h2>
 <p>Josh is Unix-first. Byte-preserving command arguments and signal behavior have Unix-specific paths. The parser can compile elsewhere, but this manual does not claim complete shell behavior on Windows.</p>
@@ -417,6 +420,10 @@ josh smoke.josh
 </code></pre>
 <p>An open quote, delimiter, interpolation, block, trailing pipe, or missing EOF operand can be Incomplete. A hard error such as an unexpected closer is Invalid and submits immediately so the normal diagnostic path can report it; the REPL does not trap the user in multiline input.</p>
 <p>Whole-buffer reparsing is intentional for short interactive buffers. Every span is a UTF-8 byte range, and completion floors an incoming cursor to a character boundary before constructing replacement spans.</p>
+<h2 id="click-to-position-the-cursor"><a class="header" href="#click-to-position-the-cursor">Click to position the cursor</a></h2>
+<p>In terminals supporting Kitty’s OSC 133 <code>click_events</code> extension, including compatible Ghostty builds, click command text without modifiers to move the editing cursor. Josh advertises <code>click_events=1</code> and lets Reedline map the terminal coordinates to the buffer. This handles wrapped lines, Unicode text, indentation, and the <code>...&gt; </code> continuation indicator. Clicks on prompt text do not move the cursor.</p>
+<p>Josh closes the input region before executing a command and finishes the prompt on cancellation or exit. It does not enable terminal-wide mouse capture. Terminals without this extension retain their existing mouse behavior.</p>
+<p>The PTY tests <code>prompt_clicks_move_cursor</code> and <code>prompt_markers_bound_execution</code> cover these interactions and the OSC 133 command boundaries.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="highlighting"><a class="header" href="#highlighting">Highlighting</a></h1>
 <p><a id="J-REPL-002"></a></p>
@@ -439,7 +446,7 @@ josh smoke.josh
 <p><a id="J-REPL-004"></a></p>
 <h2 id="hints-and-history"><a class="header" href="#hints-and-history">Hints and history</a></h2>
 <p>Prefix hints come from up to 10,000 plain file-backed history entries. Set <code>JOSH_HISTORY</code> to select a path and <code>JOSH_HISTORY_SIZE</code> to change the cap. Otherwise Josh uses <code>$HOME/.josh_history</code>, falling back to <code>.josh_history</code> in the current directory when HOME is absent.</p>
-<p>Ctrl+R opens the history menu: a reverse-chronological, deduplicated list of entries containing the typed substring. Typing refilters the list, arrows navigate it, and Enter copies the selected entry into the buffer.</p>
+<p>Ctrl+R opens the history menu: a reverse-chronological, deduplicated list of entries containing the text before the cursor. Typing refilters the list, arrows navigate it, and Enter replaces the entire buffer with the selected entry without executing it.</p>
 <p>There is no SQLite database, remote sync, history schema, or semantic ranking in this slice. Treat the history file as sensitive because commands may contain paths or literal data.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="signals-and-troubleshooting"><a class="header" href="#signals-and-troubleshooting">Signals and troubleshooting</a></h1>
@@ -1446,6 +1453,8 @@ letters[-2..]    # ["d", "e"] — negative counts from the end
 <p><strong>Host command</strong></p>
 <pre><code class="language-sh">git clone https://github.com/mbullington/josh-shell
 cd josh-shell
+cargo install patch-crate --version 0.1.13 --locked
+cargo patch-crate
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --all-targets

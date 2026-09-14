@@ -16,9 +16,10 @@ use theme::Palette;
 
 use reedline::{
     ColumnarMenu, Completer, DefaultHinter, Emacs, FileBackedHistory, Highlighter, Hinter, History,
-    InputMode, KeyCode, KeyModifiers, ListMenu, MenuBuilder, Prompt, PromptEditMode,
-    PromptHistorySearch, Reedline, ReedlineEvent, ReedlineMenu, Signal, Span as ReedlineSpan,
-    StyledText, Suggestion, ValidationResult, Validator, default_emacs_keybindings,
+    InputMode, KeyCode, KeyModifiers, ListMenu, MenuBuilder, MouseClickMode, OutputMode, Prompt,
+    PromptEditMode, PromptHistorySearch, Reedline, ReedlineEvent, ReedlineMenu, Signal,
+    Span as ReedlineSpan, StyledText, Suggestion, ValidationResult, Validator,
+    default_emacs_keybindings,
 };
 
 use josh_runtime::{
@@ -935,6 +936,8 @@ pub fn run_repl(engine: &mut Engine) -> Result<i32, Box<dyn std::error::Error>> 
     let history_menu = Box::new(
         ListMenu::default()
             .with_name("history_menu")
+            .with_input_mode(InputMode::CursorPrefix)
+            .with_output_mode(OutputMode::FullBuffer)
             .with_text_style(menu_text)
             .with_match_text_style(menu_text)
             .with_selected_text_style(menu_selection)
@@ -962,6 +965,7 @@ pub fn run_repl(engine: &mut Engine) -> Result<i32, Box<dyn std::error::Error>> 
         ]),
     );
     let mut editor = Reedline::create()
+        .with_mouse_click(MouseClickMode::EnabledWithOsc133)
         .with_quick_completions(true)
         .with_partial_completions(true)
         .with_history(Box::new(history))
@@ -996,6 +1000,7 @@ pub fn run_repl(engine: &mut Engine) -> Result<i32, Box<dyn std::error::Error>> 
         };
         match editor.read_line(&prompt)? {
             Signal::Success(line) => {
+                eprint!("\x1b]133;C\x1b\\");
                 interrupted.store(false, Ordering::Release);
                 // Persist the accepted line now so a crash or kill does not
                 // lose the session's history (FileBackedHistory only syncs
@@ -1008,6 +1013,7 @@ pub fn run_repl(engine: &mut Engine) -> Result<i32, Box<dyn std::error::Error>> 
                 }
                 match engine.run_source(Arc::<str>::from(line)) {
                     Ok(RunResult::Exit(code)) => {
+                        eprint!("\x1b]133;D\x1b\\");
                         return Ok(code);
                     }
                     Ok(RunResult::Value(value)) => {
@@ -1017,15 +1023,18 @@ pub fn run_repl(engine: &mut Engine) -> Result<i32, Box<dyn std::error::Error>> 
                     }
                     Err(error) => print_engine_error(&error),
                 }
+                eprint!("\x1b]133;D\x1b\\");
                 interrupted.store(false, Ordering::Release);
                 *snapshot.write().expect("completion snapshot lock poisoned") =
                     Arc::new(CompletionSnapshot::build(engine));
             }
             Signal::CtrlC => {
+                eprint!("\x1b]133;D\x1b\\");
                 interrupted.store(false, Ordering::Release);
                 continue;
             }
             Signal::CtrlD => {
+                eprint!("\x1b]133;D\x1b\\");
                 return Ok(0);
             }
             Signal::HostCommand(_) | Signal::ExternalBreak(_) => continue,

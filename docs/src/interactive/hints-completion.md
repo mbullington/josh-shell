@@ -24,6 +24,6 @@ When an external `carapace` binary resolves on the session PATH, argument comple
 
 Prefix hints come from up to 10,000 plain file-backed history entries. Set `JOSH_HISTORY` to select a path and `JOSH_HISTORY_SIZE` to change the cap. Otherwise Josh uses `$HOME/.josh_history`, falling back to `.josh_history` in the current directory when HOME is absent.
 
-Ctrl+R opens the history menu: a reverse-chronological, deduplicated list of entries containing the typed substring. Typing refilters the list, arrows navigate it, and Enter copies the selected entry into the buffer.
+Ctrl+R opens the history menu: a reverse-chronological, deduplicated list of entries containing the text before the cursor. Typing refilters the list, arrows navigate it, and Enter replaces the entire buffer with the selected entry without executing it.
 
 There is no SQLite database, remote sync, history schema, or semantic ranking in this slice. Treat the history file as sensitive because commands may contain paths or literal data.

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8cdb3726.js";
+            window.path_to_searchindex_js = "../searchindex-93c431d1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-601258de.js"></script>
@@ -186,6 +186,10 @@
 </code></pre>
 <p>An open quote, delimiter, interpolation, block, trailing pipe, or missing EOF operand can be Incomplete. A hard error such as an unexpected closer is Invalid and submits immediately so the normal diagnostic path can report it; the REPL does not trap the user in multiline input.</p>
 <p>Whole-buffer reparsing is intentional for short interactive buffers. Every span is a UTF-8 byte range, and completion floors an incoming cursor to a character boundary before constructing replacement spans.</p>
+<h2 id="click-to-position-the-cursor"><a class="header" href="#click-to-position-the-cursor">Click to position the cursor</a></h2>
+<p>In terminals supporting Kitty’s OSC 133 <code>click_events</code> extension, including compatible Ghostty builds, click command text without modifiers to move the editing cursor. Josh advertises <code>click_events=1</code> and lets Reedline map the terminal coordinates to the buffer. This handles wrapped lines, Unicode text, indentation, and the <code>...&gt; </code> continuation indicator. Clicks on prompt text do not move the cursor.</p>
+<p>Josh closes the input region before executing a command and finishes the prompt on cancellation or exit. It does not enable terminal-wide mouse capture. Terminals without this extension retain their existing mouse behavior.</p>
+<p>The PTY tests <code>prompt_clicks_move_cursor</code> and <code>prompt_markers_bound_execution</code> cover these interactions and the OSC 133 command boundaries.</p>
 
                     </main>
 

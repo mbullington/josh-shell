@@ -162,7 +162,7 @@ def run():
             send_line(fd, f"{probe} terminal-modes {modes}")
             mode_output = read_command_prompt(fd)
             transcript.extend(mode_output)
-            if b" echo " not in mode_output.replace(b"-echo", b""):
+            if b"echo" not in mode_output.split():
                 fail("Josh did not restore terminal echo after the child exited", mode_output)
             assert_shell_owns_terminal(fd, pid)
 

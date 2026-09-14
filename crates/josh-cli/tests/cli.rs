@@ -493,3 +493,39 @@ fn foreground_pipelines_own_and_restore_the_pty() {
         String::from_utf8_lossy(&output.stderr)
     );
 }
+
+#[cfg(unix)]
+fn check_editing_pty(scenario: &str) {
+    let driver =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/pty_editing.py");
+    let output = Command::new("python3")
+        .arg(driver)
+        .arg(env!("CARGO_BIN_EXE_josh"))
+        .arg(scenario)
+        .output()
+        .expect("python3 is required for Unix PTY integration tests");
+    assert!(
+        output.status.success(),
+        "PTY {scenario} driver failed:\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn history_menu_replaces_the_entire_buffer() {
+    check_editing_pty("history");
+}
+
+#[cfg(unix)]
+#[test]
+fn prompt_clicks_move_cursor() {
+    check_editing_pty("clicks");
+}
+
+#[cfg(unix)]
+#[test]
+fn prompt_markers_bound_execution() {
+    check_editing_pty("markers");
+}
