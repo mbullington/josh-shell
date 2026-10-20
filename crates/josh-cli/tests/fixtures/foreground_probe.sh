@@ -4,8 +4,11 @@ set -eu
 mode=$1
 report=$2
 pid=$$
-pgid=$(ps -o pgid= -p "$pid" | tr -d ' ')
-tpgid=$(ps -o tpgid= -p "$pid" | tr -d ' ')
+# Query the controlling terminal directly: ps may be unavailable or denied
+# process-list access even when terminal process-group control works.
+groups=$(python3 -c 'import os; fd = os.open("/dev/tty", os.O_RDONLY); print(os.getpgrp(), os.tcgetpgrp(fd))')
+pgid=${groups%% *}
+tpgid=${groups#* }
 printf 'pid=%s pgid=%s tpgid=%s\n' "$pid" "$pgid" "$tpgid" > "$report"
 
 case "$mode" in
@@ -19,6 +22,7 @@ case "$mode" in
     resize_report=$3
     trap 'printf resized > "$resize_report"' WINCH
     trap 'exit 130' INT
+    printf ready > "$resize_report.ready"
     while :; do
       sleep 1
     done

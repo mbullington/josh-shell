@@ -170,6 +170,7 @@ def run():
             resized = root / "resized.report"
             send_line(fd, f"{probe} interrupt {interrupt} {resized}")
             running = assert_foreground_report(interrupt)
+            wait_for_file(pathlib.Path(f"{resized}.ready"))
             fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", 41, 101, 0, 0))
             wait_for_file(resized)
             os.write(fd, b"\x03")

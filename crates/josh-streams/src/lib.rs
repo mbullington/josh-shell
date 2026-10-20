@@ -3,10 +3,8 @@
 //! Typed byte/value pipeline execution with bounded in-shell channels.
 
 use std::{
-    ffi::OsString,
     fs::File,
     io::{self, BufRead, BufReader, Read, Write},
-    path::PathBuf,
     process::{Child, Command, ExitStatus, Stdio},
     sync::{
         Arc,
@@ -20,8 +18,9 @@ use std::{
 use josh_runtime::{
     BoundedBytes, CancellationToken, Captured, EngineError, ExecutionError, ExecutionResult,
     FunctionValue, JoshStr, MAX_CHUNK_SIZE, MAX_MATERIALIZED_BYTES, MAX_MATERIALIZED_ITEMS,
-    MaterializationLimit, ObjectValue, ShellContext, ShellSnapshot, StageOutcome, Value,
-    materialization_limit, read_bounded, value_materialized_bytes, value_materialized_items,
+    MaterializationLimit, ObjectValue, PlannedExternal, PlannedRedirection, ShellContext,
+    ShellSnapshot, StageOutcome, Value, materialization_limit, read_bounded,
+    value_materialized_bytes, value_materialized_items,
 };
 use os_pipe::{PipeReader, PipeWriter};
 use serde_json::Value as JsonValue;
@@ -39,23 +38,6 @@ impl MaterializationLimits {
         bytes: MAX_MATERIALIZED_BYTES,
         items: MAX_MATERIALIZED_ITEMS,
     };
-}
-
-#[derive(Debug, Clone)]
-pub struct PlannedExternal {
-    pub executable: PathBuf,
-    pub argv: Vec<OsString>,
-    pub rendered: String,
-    pub redirections: Vec<PlannedRedirection>,
-}
-
-#[derive(Debug, Clone)]
-pub enum PlannedRedirection {
-    Input(Arc<File>),
-    Output(Arc<File>),
-    Error(Arc<File>),
-    ErrorToOutput,
-    OutputAndError(Arc<File>),
 }
 
 #[derive(Debug, Clone)]
@@ -157,26 +139,6 @@ enum Port {
 enum Cardinality {
     One,
     Many,
-}
-
-#[derive(Debug)]
-enum Stage {
-    External(PlannedExternal),
-    Source(Vec<Value>),
-    BytesToText,
-    ValuesToText,
-    Json,
-    Lines,
-    JsonLines,
-    Chunks(usize),
-    BytesToFunction(Arc<FunctionValue>),
-    Function(Arc<FunctionValue>),
-    Map(Arc<FunctionValue>),
-    Filter(Arc<FunctionValue>),
-    Take(usize),
-    TakeLast(usize),
-    First,
-    Collect,
 }
 
 #[derive(Debug)]
@@ -295,7 +257,7 @@ fn run_with_materialization_limits(
                 outputs[index] = Some(Output::Bytes(writer));
                 inputs[index + 1] = Some(Input::Bytes(reader));
             }
-            Port::Values if matches!(stages[index + 1], Stage::External(_)) => {
+            Port::Values if matches!(stages[index + 1], PlannedStage::External(_)) => {
                 let (sender, receiver) = mpsc::sync_channel(VALUE_CHANNEL_CAPACITY);
                 let (reader, writer) = os_pipe::pipe().map_err(ExecutionError::Collect)?;
                 outputs[index] = Some(Output::Values(sender));
@@ -338,7 +300,7 @@ fn run_with_materialization_limits(
 
     let mut children = Vec::<(usize, String, Child)>::new();
     for (index, stage) in stages.iter().enumerate() {
-        let Stage::External(command) = stage else {
+        let PlannedStage::External(command) = stage else {
             continue;
         };
         let mut process = Command::new(&command.executable);
@@ -400,13 +362,13 @@ fn run_with_materialization_limits(
         }));
     }
     for (index, stage) in stages.into_iter().enumerate() {
-        if matches!(stage, Stage::External(_)) {
+        if matches!(stage, PlannedStage::External(_)) {
             continue;
         }
         let output = outputs[index].take().expect("every stage has an output");
         let cancellation = cancellation.clone();
         let early = Arc::clone(&early);
-        if let Stage::Source(values) = stage {
+        if let PlannedStage::Source { values, .. } = stage {
             workers.push(thread::spawn(move || {
                 let result = run_source_worker(values, output, &cancellation, &early);
                 if result.is_err() {
@@ -571,106 +533,84 @@ fn run_with_materialization_limits(
 
 fn resolve(
     stages: Vec<PlannedStage>,
-) -> Result<(Vec<Stage>, Vec<Port>, Cardinality), ExecutionError> {
+) -> Result<(Vec<PlannedStage>, Vec<Port>, Cardinality), ExecutionError> {
     let mut port = None;
     let mut cardinality = Cardinality::Many;
-    let mut resolved = Vec::with_capacity(stages.len());
     let mut ports = Vec::with_capacity(stages.len());
-    for (index, stage) in stages.into_iter().enumerate() {
-        let (stage, output) = match stage {
-            PlannedStage::External(command) => (Stage::External(command), Port::Bytes),
-            PlannedStage::Source { values, scalar } => {
+    for (index, stage) in stages.iter().enumerate() {
+        let output = match stage {
+            PlannedStage::External(_) => Port::Bytes,
+            PlannedStage::Source { scalar, .. } => {
                 if port.is_some() {
                     return Err(transition_error(
                         index,
                         "source must be the first pipeline stage",
                     ));
                 }
-                if scalar {
+                if *scalar {
                     cardinality = Cardinality::One;
                 }
-                (Stage::Source(values), Port::Values)
+                Port::Values
             }
             PlannedStage::Text => match port {
                 Some(Port::Bytes) => {
                     cardinality = Cardinality::One;
-                    (Stage::BytesToText, Port::Values)
+                    Port::Values
                 }
-                Some(Port::Values) => (Stage::ValuesToText, Port::Bytes),
+                Some(Port::Values) => Port::Bytes,
                 None => return Err(transition_error(index, "text requires an input")),
             },
             PlannedStage::Json => {
                 require_port(index, port, Port::Bytes)?;
                 cardinality = Cardinality::One;
-                (Stage::Json, Port::Values)
+                Port::Values
             }
-            PlannedStage::Lines => {
+            PlannedStage::Lines | PlannedStage::JsonLines => {
                 require_port(index, port, Port::Bytes)?;
                 cardinality = Cardinality::Many;
-                (Stage::Lines, Port::Values)
-            }
-            PlannedStage::JsonLines => {
-                require_port(index, port, Port::Bytes)?;
-                cardinality = Cardinality::Many;
-                (Stage::JsonLines, Port::Values)
+                Port::Values
             }
             PlannedStage::Chunks(size) => {
                 require_port(index, port, Port::Bytes)?;
-                if size == 0 {
+                if *size == 0 {
                     return Err(transition_error(index, "chunks size must be positive"));
                 }
-                if size > MAX_CHUNK_SIZE {
+                if *size > MAX_CHUNK_SIZE {
                     return Err(transition_error(
                         index,
                         &format!("chunks size {size} exceeds the {MAX_CHUNK_SIZE}-byte limit"),
                     ));
                 }
                 cardinality = Cardinality::Many;
-                (Stage::Chunks(size), Port::Values)
+                Port::Values
             }
-            PlannedStage::Function(function) => match port {
+            PlannedStage::Function(_) => match port {
                 Some(Port::Bytes) => {
                     cardinality = Cardinality::One;
-                    (Stage::BytesToFunction(function), Port::Values)
+                    Port::Values
                 }
-                Some(Port::Values) => (Stage::Function(function), Port::Values),
+                Some(Port::Values) => Port::Values,
                 None => return Err(transition_error(index, "stage requires a value stream")),
             },
-            PlannedStage::Map(function) => {
+            PlannedStage::Map(_) => {
                 require_values(index, port)?;
-                (Stage::Map(function), Port::Values)
+                Port::Values
             }
-            PlannedStage::Filter(function) => {
-                require_values(index, port)?;
-                cardinality = Cardinality::Many;
-                (Stage::Filter(function), Port::Values)
-            }
-            PlannedStage::Take(count) => {
+            PlannedStage::Filter(_) | PlannedStage::Take(_) | PlannedStage::TakeLast(_) => {
                 require_values(index, port)?;
                 cardinality = Cardinality::Many;
-                (Stage::Take(count), Port::Values)
+                Port::Values
             }
-            PlannedStage::TakeLast(count) => {
-                require_values(index, port)?;
-                cardinality = Cardinality::Many;
-                (Stage::TakeLast(count), Port::Values)
-            }
-            PlannedStage::First => {
+            PlannedStage::First | PlannedStage::Collect => {
                 require_values(index, port)?;
                 cardinality = Cardinality::One;
-                (Stage::First, Port::Values)
-            }
-            PlannedStage::Collect => {
-                require_values(index, port)?;
-                cardinality = Cardinality::One;
-                (Stage::Collect, Port::Values)
+                Port::Values
             }
         };
         port = Some(output);
         ports.push(output);
-        resolved.push(stage);
     }
-    Ok((resolved, ports, cardinality))
+    Ok((stages, ports, cardinality))
 }
 
 fn require_port(stage: usize, actual: Option<Port>, expected: Port) -> Result<(), ExecutionError> {
@@ -793,7 +733,7 @@ fn run_source_worker(
 }
 
 fn run_worker(
-    stage: Stage,
+    stage: PlannedStage,
     input: Input,
     output: Output,
     run_function: FunctionRunner,
@@ -802,7 +742,7 @@ fn run_worker(
     limits: MaterializationLimits,
 ) -> Result<(), WorkerError> {
     match (stage, input, output) {
-        (Stage::BytesToText, Input::Bytes(mut input), Output::Values(output)) => {
+        (PlannedStage::Text, Input::Bytes(mut input), Output::Values(output)) => {
             let bytes = read_bounded(&mut input, "`text` input", limits.bytes)?;
             let value = match String::from_utf8(bytes) {
                 Ok(text) => Value::String(JoshStr::from(text)),
@@ -811,7 +751,7 @@ fn run_worker(
             let _ = send_value(&output, value, cancellation, early);
             Ok(())
         }
-        (Stage::ValuesToText, Input::Values(input), Output::Bytes(mut output)) => {
+        (PlannedStage::Text, Input::Values(input), Output::Bytes(mut output)) => {
             let mut first = true;
             for value in input {
                 if !first && !write_graceful(&mut output, b"\n", cancellation, early)? {
@@ -825,7 +765,7 @@ fn run_worker(
             }
             Ok(())
         }
-        (Stage::ValuesToText, Input::Values(input), Output::Inherit) => {
+        (PlannedStage::Text, Input::Values(input), Output::Inherit) => {
             let stdout = io::stdout();
             let mut output = stdout.lock();
             let mut first = true;
@@ -846,14 +786,14 @@ fn run_worker(
             flush_graceful(&mut output, cancellation, early)?;
             Ok(())
         }
-        (Stage::Json, Input::Bytes(mut input), Output::Values(output)) => {
+        (PlannedStage::Json, Input::Bytes(mut input), Output::Values(output)) => {
             let bytes = read_bounded(&mut input, "`json` input", limits.bytes)?;
             let json: JsonValue =
                 serde_json::from_slice(&bytes).map_err(|error| format!("invalid JSON: {error}"))?;
             let _ = send_value(&output, from_json(json)?, cancellation, early);
             Ok(())
         }
-        (Stage::Lines, Input::Bytes(input), Output::Values(output)) => stream_lines(
+        (PlannedStage::Lines, Input::Bytes(input), Output::Values(output)) => stream_lines(
             input,
             output,
             cancellation,
@@ -866,7 +806,7 @@ fn run_worker(
                     .map_err(|error| format!("line {number} is not valid UTF-8: {error}"))
             },
         ),
-        (Stage::JsonLines, Input::Bytes(input), Output::Values(output)) => stream_lines(
+        (PlannedStage::JsonLines, Input::Bytes(input), Output::Values(output)) => stream_lines(
             input,
             output,
             cancellation,
@@ -879,7 +819,7 @@ fn run_worker(
                 from_json(json)
             },
         ),
-        (Stage::Chunks(size), Input::Bytes(mut input), Output::Values(output)) => {
+        (PlannedStage::Chunks(size), Input::Bytes(mut input), Output::Values(output)) => {
             let mut buffer = Vec::new();
             buffer
                 .try_reserve_exact(size)
@@ -908,7 +848,7 @@ fn run_worker(
             }
             Ok(())
         }
-        (Stage::BytesToFunction(function), Input::Bytes(mut input), Output::Values(output)) => {
+        (PlannedStage::Function(function), Input::Bytes(mut input), Output::Values(output)) => {
             let bytes = read_bounded(&mut input, "function stage input", limits.bytes)?;
             let value = run_function(function, Value::Bytes(Arc::from(bytes)))
                 .map_err(|error| error.to_string())?;
@@ -916,7 +856,7 @@ fn run_worker(
             Ok(())
         }
         (
-            Stage::Function(function) | Stage::Map(function),
+            PlannedStage::Function(function) | PlannedStage::Map(function),
             Input::Values(input),
             Output::Values(output),
         ) => {
@@ -932,7 +872,7 @@ fn run_worker(
             }
             Ok(())
         }
-        (Stage::Filter(function), Input::Values(input), Output::Values(output)) => {
+        (PlannedStage::Filter(function), Input::Values(input), Output::Values(output)) => {
             for value in input {
                 if cancellation.is_cancelled() {
                     break;
@@ -945,7 +885,7 @@ fn run_worker(
             }
             Ok(())
         }
-        (Stage::Take(count), Input::Values(input), Output::Values(output)) => {
+        (PlannedStage::Take(count), Input::Values(input), Output::Values(output)) => {
             if count == 0 {
                 early.store(true, Ordering::Release);
                 cancellation.cancel();
@@ -968,7 +908,7 @@ fn run_worker(
             }
             Ok(())
         }
-        (Stage::TakeLast(count), Input::Values(input), Output::Values(output)) => {
+        (PlannedStage::TakeLast(count), Input::Values(input), Output::Values(output)) => {
             if count == 0 {
                 early.store(true, Ordering::Release);
                 cancellation.cancel();
@@ -991,7 +931,7 @@ fn run_worker(
             }
             Ok(())
         }
-        (Stage::First, Input::Values(input), Output::Values(output)) => {
+        (PlannedStage::First, Input::Values(input), Output::Values(output)) => {
             if let Some(value) = input.into_iter().next() {
                 let _ = send_value(&output, value.value.clone(), cancellation, early);
                 early.store(true, Ordering::Release);
@@ -999,7 +939,7 @@ fn run_worker(
             }
             Ok(())
         }
-        (Stage::Collect, Input::Values(input), Output::Values(output)) => {
+        (PlannedStage::Collect, Input::Values(input), Output::Values(output)) => {
             let mut values = ValueAccumulator::new("`collect`", limits);
             for value in input {
                 values.push(value.value.clone())?;

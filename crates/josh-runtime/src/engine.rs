@@ -695,20 +695,7 @@ impl Engine {
             .collect::<EvalResult<Vec<_>>>()?;
         validate_stream_shapes(stages.iter().map(stream_shape))?;
 
-        if stages
-            .iter()
-            .all(|stage| matches!(stage, StreamStage::External(_)))
-        {
-            let argvs = stages
-                .into_iter()
-                .map(|stage| match stage {
-                    StreamStage::External(command) => command,
-                    _ => unreachable!("all stages were checked as external"),
-                })
-                .collect();
-            return self.run_external(argvs, capture);
-        }
-        let result = self.host.execute_stream(
+        let result = self.host.execute(
             stages,
             capture,
             self.execution_cancellation.clone(),
@@ -1099,8 +1086,9 @@ impl Engine {
         commands: Vec<CommandSpec>,
         capture: bool,
     ) -> EvalResult<Completion> {
+        let stages = commands.into_iter().map(StreamStage::External).collect();
         let result = self.host.execute(
-            commands,
+            stages,
             capture,
             self.execution_cancellation.clone(),
             self.context.clone(),

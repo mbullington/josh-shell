@@ -1,9 +1,9 @@
 //! REPL syntax colors resolved from a TextMate theme (`.tmTheme`).
 //!
 //! `JOSH_THEME` points at a `.tmTheme` file. Each color slot probes the
-//! theme with the scope selectors used by the editor grammar in
-//! `editors/vscode` (generic prefixes like `string` still match, so any
-//! standard theme applies), falling back to a fixed ANSI palette when no
+//! theme with TextMate scope selectors (generic prefixes like `string`
+//! still match, so any standard theme applies), falling back to a fixed
+//! ANSI palette when no
 //! selector has a foreground or no theme is configured. Only foregrounds
 //! and font styles transfer; the terminal owns the background.
 

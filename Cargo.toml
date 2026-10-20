@@ -3,7 +3,6 @@ members = [
     "crates/josh-cli",
     "crates/josh-exec",
     "crates/josh-interactive",
-    "crates/josh-lsp",
     "crates/josh-runtime",
     "crates/josh-streams",
     "crates/josh-syntax",
@@ -18,11 +17,6 @@ crates = ["reedline"]
 [patch.crates-io]
 reedline = { path = "target/patch/reedline-0.49.0" }
 
-# josh-lsp stays a separate binary on purpose: the tower-lsp/tokio/ICU
-# dependency stack adds ~1.6MB of cold code, and linking it into the josh
-# binary erases the PGO layout win (~285ms -> ~395ms bench_total, measured
-# 2026-08-17). `josh lsp` execs the sibling josh-lsp binary instead.
-
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
@@ -33,7 +27,6 @@ homepage = "https://github.com/mbullington/josh-shell"
 [workspace.dependencies]
 josh-exec = { path = "crates/josh-exec" }
 josh-interactive = { path = "crates/josh-interactive" }
-josh-lsp = { path = "crates/josh-lsp" }
 josh-runtime = { path = "crates/josh-runtime" }
 josh-streams = { path = "crates/josh-streams" }
 josh-syntax = { path = "crates/josh-syntax" }

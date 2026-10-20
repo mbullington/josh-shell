@@ -18,7 +18,7 @@ rustPlatform.buildRustPackage {
 
   src = ./.;
 
-  cargoHash = "sha256-9sNh2Hp2ckH3SwHtflb3Alf3TCWAAbGZk0SyrRjZbUM=";
+  cargoHash = "sha256-aChRFdy6PQHThQUJu3pdSyPAx/HZ8ONoKUCaFhG75Tc=";
 
   # Cargo.toml patches crates-io reedline to target/patch/reedline-0.49.0,
   # which `cargo patch-crate` normally generates (see patches/README.md).
@@ -41,7 +41,6 @@ rustPlatform.buildRustPackage {
     runHook preInstall
 
     install -D target/${stdenv.hostPlatform.rust.cargoShortTarget}/release/josh $out/bin/josh
-    install -D target/${stdenv.hostPlatform.rust.cargoShortTarget}/release/josh-lsp $out/bin/josh-lsp
     install -D docs/man/josh.1 $out/share/man/man1/josh.1
     cp -r share $out/share/josh
 

@@ -15,10 +15,10 @@ use std::{
 
 use josh_runtime::{
     CancellationToken, Captured, CommandSpec, Engine, ExecutionError, ExecutionHost,
-    ExecutionResult, GlobPathForm, MAX_MATERIALIZED_BYTES, RedirectionSpec, ShellContext,
-    ShellSnapshot, StageOutcome, StreamStage, read_bounded,
+    ExecutionResult, GlobPathForm, MAX_MATERIALIZED_BYTES, PlannedExternal, PlannedRedirection,
+    RedirectionSpec, ShellContext, ShellSnapshot, StageOutcome, StreamStage, read_bounded,
 };
-use josh_streams::{PlannedExternal, PlannedRedirection, PlannedStage, configure_external_stdio};
+use josh_streams::{PlannedStage, configure_external_stdio};
 use nix::poll::{PollFd, PollFlags, poll};
 use os_pipe::PipeWriter;
 #[cfg(not(unix))]
@@ -28,14 +28,6 @@ use std::{process::ExitStatus, sync::mpsc};
 mod terminal;
 #[cfg(unix)]
 use terminal::TerminalController;
-
-#[derive(Debug, Clone)]
-pub struct PlannedCommand {
-    pub executable: PathBuf,
-    pub argv: Vec<OsString>,
-    pub rendered: String,
-    pub redirections: Vec<PlannedRedirection>,
-}
 
 #[derive(Debug, Default)]
 pub struct ProcessHost {
@@ -64,33 +56,38 @@ impl ProcessHost {
 impl ExecutionHost for ProcessHost {
     fn execute(
         &mut self,
-        commands: Vec<CommandSpec>,
-        capture: bool,
-        cancellation: CancellationToken,
-        context: ShellContext,
-    ) -> Result<ExecutionResult, ExecutionError> {
-        let snapshot = context.snapshot();
-        let planned = plan_specs(commands, &snapshot)?;
-        run_with_cancellation(
-            &planned,
-            capture,
-            cancellation,
-            &snapshot,
-            #[cfg(unix)]
-            self.terminal.as_ref(),
-        )
-    }
-
-    fn execute_stream(
-        &mut self,
         stages: Vec<StreamStage>,
         capture: bool,
         cancellation: CancellationToken,
         context: ShellContext,
     ) -> Result<ExecutionResult, ExecutionError> {
         let snapshot = context.snapshot();
+        // A pipeline of only external commands runs on the process graph
+        // below, which owns foreground-terminal transfer. Anything with an
+        // in-shell stage runs on the structured stream graph instead.
+        if stages
+            .iter()
+            .all(|stage| matches!(stage, StreamStage::External(_)))
+        {
+            let commands = stages
+                .into_iter()
+                .map(|stage| match stage {
+                    StreamStage::External(command) => command,
+                    _ => unreachable!("all stages were checked as external"),
+                })
+                .collect();
+            let planned = plan_specs(commands, &snapshot)?;
+            return run_with_cancellation(
+                &planned,
+                capture,
+                cancellation,
+                &snapshot,
+                #[cfg(unix)]
+                self.terminal.as_ref(),
+            );
+        }
         enum PreflightStage {
-            External(PlannedCommand, Vec<RedirectionSpec>),
+            External(PlannedExternal, Vec<RedirectionSpec>),
             Ready(PlannedStage),
         }
         let preflight = stages
@@ -180,7 +177,7 @@ impl ExecutionHost for ProcessHost {
     }
 }
 
-pub fn plan(argvs: Vec<Vec<OsString>>) -> Result<Vec<PlannedCommand>, ExecutionError> {
+pub fn plan(argvs: Vec<Vec<OsString>>) -> Result<Vec<PlannedExternal>, ExecutionError> {
     let snapshot = ShellContext::from_process().snapshot();
     argvs
         .into_iter()
@@ -192,7 +189,7 @@ pub fn plan(argvs: Vec<Vec<OsString>>) -> Result<Vec<PlannedCommand>, ExecutionE
 fn plan_specs(
     commands: Vec<CommandSpec>,
     snapshot: &ShellSnapshot,
-) -> Result<Vec<PlannedCommand>, ExecutionError> {
+) -> Result<Vec<PlannedExternal>, ExecutionError> {
     let converted = commands
         .into_iter()
         .map(|command| {
@@ -285,7 +282,7 @@ fn plan_command(
     stage: usize,
     argv: Vec<OsString>,
     snapshot: &ShellSnapshot,
-) -> Result<PlannedCommand, ExecutionError> {
+) -> Result<PlannedExternal, ExecutionError> {
     let Some(name) = argv.first() else {
         return Err(ExecutionError::CommandNotFound {
             stage,
@@ -301,7 +298,7 @@ fn plan_command(
         .map(|x| shell_render(x))
         .collect::<Vec<_>>()
         .join(" ");
-    Ok(PlannedCommand {
+    Ok(PlannedExternal {
         executable,
         argv,
         rendered,
@@ -309,7 +306,7 @@ fn plan_command(
     })
 }
 
-pub fn run(planned: &[PlannedCommand], capture: bool) -> Result<ExecutionResult, ExecutionError> {
+pub fn run(planned: &[PlannedExternal], capture: bool) -> Result<ExecutionResult, ExecutionError> {
     let snapshot = ShellContext::from_process().snapshot();
     run_with_cancellation(
         planned,
@@ -322,7 +319,7 @@ pub fn run(planned: &[PlannedCommand], capture: bool) -> Result<ExecutionResult,
 }
 
 fn run_with_cancellation(
-    planned: &[PlannedCommand],
+    planned: &[PlannedExternal],
     capture: bool,
     cancellation: CancellationToken,
     snapshot: &ShellSnapshot,
@@ -340,7 +337,7 @@ fn run_with_cancellation(
 }
 
 fn run_with_cancellation_and_limit(
-    planned: &[PlannedCommand],
+    planned: &[PlannedExternal],
     capture: bool,
     cancellation: CancellationToken,
     snapshot: &ShellSnapshot,
@@ -359,7 +356,7 @@ fn run_with_cancellation_and_limit(
 }
 
 fn run_graph_with_limit(
-    planned: &[PlannedCommand],
+    planned: &[PlannedExternal],
     capture: bool,
     cancellation: CancellationToken,
     snapshot: &ShellSnapshot,
@@ -587,7 +584,7 @@ fn run_graph_with_limit(
 
 #[cfg(unix)]
 fn run_graph_unix(
-    planned: &[PlannedCommand],
+    planned: &[PlannedExternal],
     capture: bool,
     cancellation: CancellationToken,
     snapshot: &ShellSnapshot,

@@ -12,7 +12,7 @@ use std::{
 
 use josh_exec::{ProcessHost, plan, run};
 use josh_runtime::{
-    CancellationToken, Captured, CommandSpec, Engine, EngineError, ExecutionError, ExecutionHost,
+    CancellationToken, Captured, Engine, EngineError, ExecutionError, ExecutionHost,
     ExecutionResult, GlobPathForm, JoshStr, MaterializationLimit, RunResult, ShellContext,
     ShellContextError, StreamStage, Value,
 };
@@ -124,7 +124,7 @@ struct MaterializationFailureHost;
 impl ExecutionHost for MaterializationFailureHost {
     fn execute(
         &mut self,
-        _commands: Vec<CommandSpec>,
+        _stages: Vec<StreamStage>,
         _capture: bool,
         _cancellation: CancellationToken,
         _context: ShellContext,
@@ -133,21 +133,6 @@ impl ExecutionHost for MaterializationFailureHost {
             boundary: "test capture",
             limit: MaterializationLimit::Bytes(4),
         })
-    }
-
-    fn execute_stream(
-        &mut self,
-        _stages: Vec<StreamStage>,
-        _capture: bool,
-        _cancellation: CancellationToken,
-        _context: ShellContext,
-    ) -> Result<ExecutionResult, ExecutionError> {
-        self.execute(
-            Vec::new(),
-            true,
-            CancellationToken::default(),
-            ShellContext::from_process(),
-        )
     }
 
     fn glob(

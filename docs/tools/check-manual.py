@@ -30,9 +30,6 @@ class ArtifactParser(HTMLParser):
         self.pre_depth = 0
         self.code_blocks = 0
         self.literal_fences = 0
-        self.current_row: list[str] | None = None
-        self.current_cell: list[str] | None = None
-        self.rows: list[list[str]] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         for name, value in attrs:
@@ -42,26 +39,13 @@ class ArtifactParser(HTMLParser):
             self.pre_depth += 1
         elif tag == "code" and self.pre_depth:
             self.code_blocks += 1
-        elif tag == "tr":
-            self.current_row = []
-        elif tag in {"td", "th"} and self.current_row is not None:
-            self.current_cell = []
 
     def handle_endtag(self, tag: str) -> None:
         if tag == "pre":
             self.pre_depth -= 1
-        elif tag in {"td", "th"} and self.current_cell is not None:
-            assert self.current_row is not None
-            self.current_row.append("".join(self.current_cell).strip())
-            self.current_cell = None
-        elif tag == "tr" and self.current_row is not None:
-            self.rows.append(self.current_row)
-            self.current_row = None
 
     def handle_data(self, data: str) -> None:
         self.literal_fences += data.count("```")
-        if self.current_cell is not None:
-            self.current_cell.append(data)
 
 
 def fail(message: str) -> None:
@@ -200,10 +184,6 @@ else:
                 source_fences = sum(1 for line in text.splitlines() if line.startswith("```")) // 2
                 if parser.code_blocks < source_fences:
                     fail(f"{relative} rendered {parser.code_blocks} code blocks for {source_fences} source fences")
-            cli_parser = parsed_artifacts.get(built / "agent-terminal/cli-reference.html")
-            wait_rows = [] if cli_parser is None else [row for row in cli_parser.rows if row and row[0] == "wait"]
-            if len(wait_rows) != 1 or len(wait_rows[0]) != 3 or "--stable DURATION" not in wait_rows[0][1] or not wait_rows[0][2].startswith("Session/revision/process"):
-                fail("generated agent-terminal wait table row is malformed")
 
 if errors:
     for error in errors:

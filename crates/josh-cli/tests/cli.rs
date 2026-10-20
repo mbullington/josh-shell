@@ -29,6 +29,35 @@ fn command_and_script_modes_share_observable_behavior() {
 }
 
 #[test]
+fn check_mode_reports_diagnostics_without_running_anything() {
+    let temp = tempdir().unwrap();
+    let marker = temp.path().join("ran");
+    let script = temp.path().join("ok.josh");
+    fs::write(&script, format!("sh -c 'touch {}'\n", marker.display())).unwrap();
+    fs::create_dir(temp.path().join("josh")).unwrap();
+    fs::write(temp.path().join("josh/env.josh"), "echo |").unwrap();
+    let valid = josh()
+        .env("XDG_CONFIG_HOME", temp.path())
+        .arg("--check")
+        .arg(&script)
+        .output()
+        .unwrap();
+    assert!(valid.status.success());
+    assert!(valid.stderr.is_empty());
+    assert!(!marker.exists(), "--check must not execute the script");
+
+    let invalid = josh_no_config()
+        .args(["--check", "-c", "echo |"])
+        .output()
+        .unwrap();
+    assert_eq!(invalid.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&invalid.stderr).contains("pipeline cannot end"));
+
+    let missing = josh_no_config().arg("--check").output().unwrap();
+    assert_eq!(missing.status.code(), Some(2));
+}
+
+#[test]
 fn batch_errors_are_nonzero_and_exit_status_is_honored() {
     let parse_error = josh_no_config().args(["-c", "echo |"]).output().unwrap();
     assert_eq!(parse_error.status.code(), Some(1));

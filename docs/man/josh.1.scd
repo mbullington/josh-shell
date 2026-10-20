@@ -12,6 +12,10 @@ josh - JavaScript Object Shell
 
 *josh* [--no-config] <script.josh>
 
+*josh* --check <script.josh>
+
+*josh* --check -c <source>
+
 *josh* -h | --help
 
 *josh* -V | --version
@@ -35,13 +39,16 @@ equality, no _++/--_, and no background jobs, job control, or module system;
 _import_/_export_ are rejected.
 
 For the full language reference see the mdBook manual in _docs/_ of the
-source tree (_mdbook serve docs_) or the rendered copy committed at
-_docs/book/index.html_.
+source tree (_mdbook serve docs_) or the manual published at
+_https://mbullington.github.io/josh-shell/manual/_. The rendered HTML is built by CI.
 
 # OPTIONS
 
 *--no-config*
 	Skip the _env.josh_ and interactive _init.josh_ startup files.
+
+*--check*
+	Parse source and report diagnostics without running commands or loading startup files.
 
 *-h*, *--help*
 	Show help and exit 0 without loading config.
@@ -60,6 +67,9 @@ _docs/book/index.html_.
 
 *josh PATH*
 	Run startup environment, then evaluate one UTF-8 script file and exit.
+
+*josh --check PATH*
+	Check a UTF-8 script without executing it. Also accepts _--check -c SOURCE_.
 
 Neither _-c_ nor script mode accepts trailing positional arguments.
 
@@ -110,11 +120,8 @@ Neither _-c_ nor script mode accepts trailing positional arguments.
 
 # SEE ALSO
 
-The Josh manual: _docs/book/index.html_ in the source tree, and the capability
-status matrix at _docs/src/status/matrix.md_, which is the availability
-authority.
+The Josh manual: _docs/src/_ in the source tree, rendered by _mdbook build docs_ and published at _https://mbullington.github.io/josh-shell/manual/_.
 
 # BUGS
 
-Known gaps and deliberate exclusions are tracked in the manual's status matrix
-and roadmap rather than in bug lists.
+Known gaps and deliberate exclusions are tracked in the manual's roadmap.

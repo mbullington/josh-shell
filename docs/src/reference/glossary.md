@@ -14,12 +14,4 @@
 
 **Splice** — insertion of a Josh value into a command word; a sole unquoted array variable expands to multiple argv entries.
 
-**Semantic snapshot** — terminal text plus structured grid, cursor, row, cell, style, title, process, and revision facts. It is not a screenshot.
-
-**Session** — one agent-terminal daemon's ownership unit: one PTY, child, Ghostty state, socket, and lifecycle.
-
-**Protocol version** — compatibility discriminator for agent-terminal request/response envelopes.
-
-**Revision** — monotonic per-session counter advanced by processed output batches and resize; not a timestamp.
-
 **Pipefail** — pipeline policy under which any non-suppressed stage failure fails the pipeline.

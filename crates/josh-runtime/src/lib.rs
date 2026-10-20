@@ -12,7 +12,7 @@ pub use context::{ShellContext, ShellContextError, ShellSnapshot};
 pub use engine::{Engine, EngineError, MAX_CHUNK_SIZE, ParseFailure, RunResult};
 pub use host::{
     CancellationToken, Captured, CommandSpec, ExecutionError, ExecutionHost, ExecutionResult,
-    GlobPathForm, RedirectionSpec, StageOutcome, StreamStage,
+    GlobPathForm, PlannedExternal, PlannedRedirection, RedirectionSpec, StageOutcome, StreamStage,
 };
 pub use materialize::{
     BoundedBytes, MAX_MATERIALIZED_BYTES, MAX_MATERIALIZED_ITEMS, MaterializationLimit,

@@ -1,6 +1,6 @@
 [book]
 title = "Josh Manual"
-description = "The manual for Josh and agent-terminal"
+description = "The manual for Josh"
 authors = ["Josh contributors"]
 language = "en"
 src = "src"

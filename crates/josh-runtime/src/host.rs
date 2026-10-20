@@ -1,5 +1,8 @@
 use std::{
+    ffi::OsString,
+    fs::File,
     io,
+    path::PathBuf,
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -122,6 +125,27 @@ pub enum StreamStage {
     Collect,
 }
 
+/// An external command after planning: PATH resolution is done and
+/// redirections are opened files, so spawning cannot fail on either.
+/// Planning happens in `josh-exec`; the type lives here because both
+/// `josh-exec` and `josh-streams` consume it and both sit above the runtime.
+#[derive(Debug, Clone)]
+pub struct PlannedExternal {
+    pub executable: PathBuf,
+    pub argv: Vec<OsString>,
+    pub rendered: String,
+    pub redirections: Vec<PlannedRedirection>,
+}
+
+#[derive(Debug, Clone)]
+pub enum PlannedRedirection {
+    Input(Arc<File>),
+    Output(Arc<File>),
+    Error(Arc<File>),
+    ErrorToOutput,
+    OutputAndError(Arc<File>),
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct ExecutionResult {
     pub outcomes: Vec<StageOutcome>,
@@ -194,15 +218,10 @@ pub enum GlobPathForm {
 }
 
 pub trait ExecutionHost {
+    /// Run one pipeline. A pipeline of only `StreamStage::External` stages
+    /// is a plain command pipeline; any other stage makes it a structured
+    /// stream graph. Hosts dispatch on that distinction internally.
     fn execute(
-        &mut self,
-        commands: Vec<CommandSpec>,
-        capture: bool,
-        cancellation: CancellationToken,
-        context: ShellContext,
-    ) -> Result<ExecutionResult, ExecutionError>;
-
-    fn execute_stream(
         &mut self,
         stages: Vec<StreamStage>,
         capture: bool,

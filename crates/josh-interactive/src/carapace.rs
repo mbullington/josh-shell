@@ -392,7 +392,10 @@ printf '%s' '{"nospace":"/","values":[{"value":"src/","display":"src/"}]}'
             .unwrap();
         assert_eq!(
             fs::read_to_string(record).unwrap(),
-            format!("{}\nfrom-josh", directory.path().display())
+            format!(
+                "{}\nfrom-josh",
+                directory.path().canonicalize().unwrap().display()
+            )
         );
     }
 

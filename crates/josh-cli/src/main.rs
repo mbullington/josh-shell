@@ -1,6 +1,4 @@
-use std::{
-    env, ffi::OsString, fs, io, path::PathBuf, process::Command, process::ExitCode, sync::Arc,
-};
+use std::{env, ffi::OsString, fs, io, path::PathBuf, process::ExitCode, sync::Arc};
 
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
@@ -22,7 +20,8 @@ fn main() -> ExitCode {
 enum Mode {
     Interactive,
     Command(OsString),
-    Lsp,
+    CheckFile(OsString),
+    CheckSource(OsString),
     Script(OsString),
     Help,
     Version,
@@ -39,17 +38,17 @@ fn run() -> Result<i32, String> {
             println!("josh {}", env!("CARGO_PKG_VERSION"));
             return Ok(0);
         }
-        // The LSP server is a separate binary so the editor stack's
-        // dependencies never link into the shell (see workspace Cargo.toml).
-        // `josh lsp` execs it for identical UX, before terminal/ProcessHost
-        // setup and startup files: stdout must carry only protocol frames.
-        Mode::Lsp => {
-            return exec_lsp_server().map_err(|error| {
-                format!(
-                    "failed to launch the josh-lsp server binary \
-                     (install it next to josh or on PATH): {error}"
-                )
-            });
+        // Checking is pure syntax: no startup files, host, or terminal.
+        Mode::CheckFile(path) => {
+            let source = fs::read_to_string(&path)
+                .map_err(|error| format!("cannot read {}: {error}", path.to_string_lossy()))?;
+            return Ok(check_source(Arc::from(source), &path.to_string_lossy()));
+        }
+        Mode::CheckSource(source) => {
+            return Ok(check_source(
+                Arc::from(source.to_string_lossy().into_owned()),
+                "<input>",
+            ));
         }
         _ => {}
     }
@@ -76,43 +75,43 @@ fn run() -> Result<i32, String> {
                 .map_err(|error| format!("cannot read {}: {error}", path.to_string_lossy()))?;
             run_noninteractive(&mut engine, Arc::<str>::from(source))
         }
-        Mode::Help | Mode::Version | Mode::Lsp => unreachable!("handled before startup"),
+        Mode::Help | Mode::Version | Mode::CheckFile(_) | Mode::CheckSource(_) => {
+            unreachable!("handled before startup")
+        }
     }
 }
 
-/// Run the LSP server binary. It ships as a sibling executable so the
-/// editor protocol stack (tower-lsp/tokio) never links into josh: the shell
-/// binary is layout-sensitive enough that the extra cold code measurably
-/// slows the interpreter hot paths. Prefer the `josh-lsp` binary next to the
-/// current executable (guarantees a version-matched install), then PATH.
-fn exec_lsp_server() -> io::Result<i32> {
-    let program: OsString = env::current_exe()
-        .ok()
-        .and_then(|exe| exe.canonicalize().ok())
-        .map(|exe| exe.with_file_name(format!("josh-lsp{}", env::consts::EXE_SUFFIX)))
-        .filter(|sibling| sibling.is_file())
-        .map(PathBuf::into_os_string)
-        .unwrap_or_else(|| OsString::from("josh-lsp"));
-    #[cfg(unix)]
-    {
-        use std::os::unix::process::CommandExt;
-        Err(Command::new(program).exec())
+/// Parse `source` under the same strict gate the engine applies before
+/// running anything, render its diagnostics, and return the process exit
+/// code: 0 when the source would run, 1 when it would be rejected.
+fn check_source(source: Arc<str>, origin: &str) -> i32 {
+    let parsed = josh_syntax::parse(Arc::clone(&source));
+    let strict = parsed.strict_program();
+    for diagnostic in &parsed.diagnostics {
+        eprintln!("{}", diagnostic.render(&source, origin));
     }
-    #[cfg(not(unix))]
-    {
-        let status = Command::new(program).status()?;
-        Ok(status.code().unwrap_or(1))
+    if strict.is_ok() {
+        0
+    } else {
+        if parsed.diagnostics.is_empty() {
+            eprintln!("error: incomplete input");
+        }
+        1
     }
 }
 
 fn parse_args() -> Result<(Mode, bool), String> {
     let mut args = env::args_os().skip(1).peekable();
     let mut no_config = false;
-    while args
-        .peek()
-        .is_some_and(|argument| argument == "--no-config")
-    {
-        no_config = true;
+    let mut check = false;
+    while let Some(argument) = args.peek() {
+        if argument == "--no-config" {
+            no_config = true;
+        } else if argument == "--check" {
+            check = true;
+        } else {
+            break;
+        }
         args.next();
     }
     let mode = match args.next() {
@@ -123,7 +122,6 @@ fn parse_args() -> Result<(Mode, bool), String> {
             args.next()
                 .ok_or_else(|| "-c requires a source argument".to_owned())?,
         ),
-        Some(arg) if arg == "lsp" => Mode::Lsp,
         Some(flag) if flag.to_string_lossy().starts_with('-') => {
             return Err(format!("unknown option: {}", flag.to_string_lossy()));
         }
@@ -136,6 +134,15 @@ fn parse_args() -> Result<(Mode, bool), String> {
             _ => "unexpected argument".into(),
         });
     }
+    let mode = if check {
+        match mode {
+            Mode::Script(path) => Mode::CheckFile(path),
+            Mode::Command(source) => Mode::CheckSource(source),
+            _ => return Err("--check requires a script path or -c <source>".into()),
+        }
+    } else {
+        mode
+    };
     Ok((mode, no_config))
 }
 
@@ -233,6 +240,6 @@ fn run_noninteractive(engine: &mut Engine, source: Arc<str>) -> Result<i32, Stri
 
 fn print_help() {
     println!(
-        "Josh — JavaScript Object Shell\n\nUsage:\n  josh [--no-config]\n  josh [--no-config] -c <source>\n  josh [--no-config] <script.josh>\n  josh lsp\n\nOptions:\n  --no-config  Skip env.josh and interactive init.josh startup files\n  -h, --help   Show this help\n  -V, --version\n               Show the version\n\nJosh supports external commands and structured pipelines, redirections and globs,\nvariables, functions/closures/UFCS, and non-job control flow. Jobs and modules are unavailable.\n\nThe lsp subcommand serves the errors-only language server over stdin/stdout\nfor editor integrations (see editors/vscode/)."
+        "Josh — JavaScript Object Shell\n\nUsage:\n  josh [--no-config]\n  josh [--no-config] -c <source>\n  josh [--no-config] <script.josh>\n  josh --check <script.josh>\n  josh --check -c <source>\n\nOptions:\n  --no-config  Skip env.josh and interactive init.josh startup files\n  --check      Parse only: report diagnostics, exit nonzero on errors\n  -h, --help   Show this help\n  -V, --version\n               Show the version\n\nJosh supports external commands and structured pipelines, redirections and globs,\nvariables, functions/closures/UFCS, and non-job control flow. Jobs and modules are unavailable."
     );
 }
