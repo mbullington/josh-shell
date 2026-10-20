@@ -36,6 +36,8 @@ It runs `<root>/josh/env.josh` for every batch, script, and interactive session.
 
 A visible lexical function named `prompt` controls the interactive primary prompt. It must take zero arguments and return String. Josh calls it before each read. Missing `prompt` uses `josh> `; a nonfunction, wrong arity, thrown error, or non-String result prints a diagnostic and falls back to `josh> `. The multiline prompt remains `...> `.
 
+A visible lexical function named `title` controls the terminal title (OSC 2). It must take one argument and return String or null. Josh calls it with null before each read and with the submitted line before execution. Missing `title`, or a null result, uses the abbreviated working directory before a read (`~` for home, `…/` plus the last three components for deeper paths) and the submitted line during execution. A nonfunction, wrong arity, thrown error, or other result prints a diagnostic and falls back the same way; a failing `title` never blocks the command from running. Whatever text is chosen, Josh strips control characters, collapses whitespace, and truncates it to 80 characters before emitting it. Before each read Josh also reports the working directory to the terminal with OSC 7.
+
 `JOSH_HISTORY` selects the Reedline history path. Without it, Josh uses `$HOME/.josh_history`, or `./.josh_history` when HOME is absent.
 
 <p class="example-label"><strong>Runnable example</strong></p>
