@@ -20,7 +20,7 @@ use crate::{
     context::{ShellContext, ShellContextError, ShellSnapshot},
     host::{
         CancellationToken, Captured, CommandSpec, ExecutionError, ExecutionHost, ExecutionResult,
-        RedirectionSpec, StreamStage,
+        GlobPathForm, RedirectionSpec, StreamStage,
     },
     value::{
         ErrorValue, Frame, FunctionKind, FunctionValue, JoshStr, ObjectValue, StatusValue, Value,
@@ -1192,7 +1192,7 @@ impl Engine {
         }
         if glob_active {
             self.host
-                .glob(&pattern, &self.context)
+                .glob(&pattern, &self.context, GlobPathForm::PreservePattern)
                 .map_err(EngineError::from)
                 .map_err(Into::into)
         } else {
@@ -1203,7 +1203,7 @@ impl Engine {
     fn expand_glob(&self, bytes: Vec<u8>, eligible: bool) -> EvalResult<Vec<Vec<u8>>> {
         if eligible && contains_glob_meta(&bytes) {
             self.host
-                .glob(&bytes, &self.context)
+                .glob(&bytes, &self.context, GlobPathForm::PreservePattern)
                 .map_err(EngineError::from)
                 .map_err(Into::into)
         } else {

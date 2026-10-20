@@ -13,8 +13,8 @@ use std::{
 use josh_exec::{ProcessHost, plan, run};
 use josh_runtime::{
     CancellationToken, Captured, CommandSpec, Engine, EngineError, ExecutionError, ExecutionHost,
-    ExecutionResult, JoshStr, MaterializationLimit, RunResult, ShellContext, ShellContextError,
-    StreamStage, Value,
+    ExecutionResult, GlobPathForm, JoshStr, MaterializationLimit, RunResult, ShellContext,
+    ShellContextError, StreamStage, Value,
 };
 use tempfile::tempdir;
 
@@ -154,6 +154,7 @@ impl ExecutionHost for MaterializationFailureHost {
         &self,
         _pattern: &[u8],
         _context: &ShellContext,
+        _form: GlobPathForm,
     ) -> Result<Vec<Vec<u8>>, ExecutionError> {
         unreachable!("test does not glob")
     }
@@ -831,7 +832,10 @@ fn session_cwd_path_globs_redirections_and_stream_functions_share_context() {
         Value::array(vec![
             string("session-path"),
             string(&cwd),
-            Value::array(vec![string("a.txt"), string("output.txt")]),
+            Value::array(vec![
+                string(&format!("{cwd}/a.txt")),
+                string(&format!("{cwd}/output.txt")),
+            ]),
             Value::array(vec![string(&cwd)]),
         ])
     );

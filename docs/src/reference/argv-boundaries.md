@@ -12,7 +12,7 @@
 | Null/bool/int/float | Canonical scalar text |
 | Bytes on Unix | Original bytes |
 | Object | Type error outside a structured value stream |
-| Unquoted glob | One sorted argv entry per match; no match is an error |
+| Unquoted glob | One sorted argv entry per match, preserving the pattern's relative/absolute form; no match is an error |
 | Unquoted `~` or `~/...` at a word boundary | Expands to the session HOME before globbing |
 
 There is no shell word splitting. Quotes suppress glob and tilde expansion. Only bare `~` and `~/` prefixes expand (`~/x` is one string when HOME is one string); `~user` forms are not expanded.

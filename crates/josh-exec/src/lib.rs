@@ -15,8 +15,8 @@ use std::{
 
 use josh_runtime::{
     CancellationToken, Captured, CommandSpec, Engine, ExecutionError, ExecutionHost,
-    ExecutionResult, MAX_MATERIALIZED_BYTES, RedirectionSpec, ShellContext, ShellSnapshot,
-    StageOutcome, StreamStage, read_bounded,
+    ExecutionResult, GlobPathForm, MAX_MATERIALIZED_BYTES, RedirectionSpec, ShellContext,
+    ShellSnapshot, StageOutcome, StreamStage, read_bounded,
 };
 use josh_streams::{PlannedExternal, PlannedRedirection, PlannedStage, configure_external_stdio};
 use nix::poll::{PollFd, PollFlags, poll};
@@ -170,8 +170,13 @@ impl ExecutionHost for ProcessHost {
         )
     }
 
-    fn glob(&self, pattern: &[u8], context: &ShellContext) -> Result<Vec<Vec<u8>>, ExecutionError> {
-        expand_glob(pattern, context.snapshot().cwd())
+    fn glob(
+        &self,
+        pattern: &[u8],
+        context: &ShellContext,
+        form: GlobPathForm,
+    ) -> Result<Vec<Vec<u8>>, ExecutionError> {
+        expand_glob(pattern, context.snapshot().cwd(), form)
     }
 }
 
@@ -917,16 +922,22 @@ fn kill_process_group(_pid: u32) -> io::Result<()> {
     Ok(())
 }
 
-fn expand_glob(pattern: &[u8], cwd: &Path) -> Result<Vec<Vec<u8>>, ExecutionError> {
+fn expand_glob(
+    pattern: &[u8],
+    cwd: &Path,
+    form: GlobPathForm,
+) -> Result<Vec<Vec<u8>>, ExecutionError> {
     let pattern_text =
         std::str::from_utf8(pattern).map_err(|error| ExecutionError::InvalidGlob {
             pattern: String::from_utf8_lossy(pattern).into_owned(),
             message: error.to_string(),
         })?;
     let pattern_path = Path::new(pattern_text);
-    let absolute = pattern_path.is_absolute();
-    let search_pattern = if absolute {
+    let absolute = pattern_path.is_absolute() || form == GlobPathForm::Absolute;
+    let search_pattern = if pattern_path.is_absolute() {
         pattern_path.to_path_buf()
+    } else if form == GlobPathForm::Absolute {
+        absolutize_pattern(cwd, pattern_path)
     } else {
         cwd.join(pattern_path)
     };
@@ -967,6 +978,35 @@ fn expand_glob(pattern: &[u8], cwd: &Path) -> Result<Vec<Vec<u8>>, ExecutionErro
         });
     }
     Ok(matches)
+}
+
+/// Build the absolute search pattern for a relative pattern. Leading `.`
+/// components drop out (always the identity) and leading `..` components
+/// pop cwd components — sound because the session cwd is a physical path
+/// (`cd` canonicalizes), so its lexical parent is its real parent. A `..`
+/// after a pattern component stays literal: resolving it lexically could
+/// point elsewhere when that component is a symlink, and the glob walk
+/// resolves it physically instead. No canonicalization happens here, so
+/// matched symlinks keep their own names.
+fn absolutize_pattern(cwd: &Path, pattern: &Path) -> PathBuf {
+    use std::path::Component;
+
+    let mut search = cwd.to_path_buf();
+    let mut within_cwd = true;
+    for component in pattern.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir if within_cwd => {
+                search.pop();
+            }
+            Component::Normal(part) => {
+                within_cwd = false;
+                search.push(part);
+            }
+            other => search.push(other.as_os_str()),
+        }
+    }
+    search
 }
 
 #[cfg(unix)]

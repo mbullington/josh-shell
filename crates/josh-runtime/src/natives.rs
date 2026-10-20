@@ -12,6 +12,7 @@ use crate::engine::{
     Engine, EvalResult, bytes_to_value, expect_arity, expect_int, expect_string, flatten,
     scalar_to_string, sequence_at, string_at, type_error, usize_value,
 };
+use crate::host::GlobPathForm;
 use crate::value::{ErrorValue, Frame, FunctionValue, JoshStr, NativeFn, ObjectValue, Value};
 
 /// Per-engine type prototype values, terminal-rooted at `Object.prototype`.
@@ -350,7 +351,11 @@ fn glob_expand(engine: &mut Engine, mut args: Vec<Value>) -> EvalResult<Value> {
     let pattern = expect_string(&value)?;
     let matches = engine
         .host()
-        .glob(pattern.as_bytes(), engine.shell_context_shared())
+        .glob(
+            pattern.as_bytes(),
+            engine.shell_context_shared(),
+            GlobPathForm::Absolute,
+        )
         .map_err(crate::EngineError::from)?;
     Ok(Value::array(
         matches.into_iter().map(bytes_to_value).collect(),

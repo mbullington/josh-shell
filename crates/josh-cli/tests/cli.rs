@@ -100,6 +100,17 @@ fn unquoted_globs_are_sorted_loud_and_quote_aware() {
     assert!(escaped.status.success());
     assert_eq!(escaped.stdout, b"*.txt");
 
+    // `glob()` returns absolute paths even for relative patterns, so the
+    // stored values stay valid after a later `cd`; command-word expansion
+    // above stays relative.
+    let root = temp.path().canonicalize().unwrap();
+    let absolute_lines = |paths: &[&str]| -> Vec<u8> {
+        paths
+            .iter()
+            .map(|path| format!("{}\n", root.join(path).display()))
+            .collect::<String>()
+            .into_bytes()
+    };
     let recursive = josh_no_config()
         .current_dir(temp.path())
         .args(["-c", "files = glob(\"**/*.txt\"); printf '%s\\n' $files"])
@@ -108,7 +119,70 @@ fn unquoted_globs_are_sorted_loud_and_quote_aware() {
     assert!(recursive.status.success());
     assert_eq!(
         recursive.stdout,
-        b"a.txt\nnested/b.txt\nnested/deep/c.txt\nspace name.txt\nz.txt\n"
+        absolute_lines(&[
+            "a.txt",
+            "nested/b.txt",
+            "nested/deep/c.txt",
+            "space name.txt",
+            "z.txt"
+        ])
+    );
+
+    let survives_cd = josh_no_config()
+        .current_dir(temp.path())
+        .args([
+            "-c",
+            "files = glob(\"*.txt\"); cd nested/deep; printf '%s\\n' $files",
+        ])
+        .output()
+        .unwrap();
+    assert!(survives_cd.status.success());
+    assert_eq!(
+        survives_cd.stdout,
+        absolute_lines(&["a.txt", "space name.txt", "z.txt"])
+    );
+
+    let dotted = josh_no_config()
+        .current_dir(temp.path())
+        .args(["-c", "files = glob(\"./*.txt\"); printf '%s\\n' $files"])
+        .output()
+        .unwrap();
+    assert!(dotted.status.success());
+    assert_eq!(
+        dotted.stdout,
+        absolute_lines(&["a.txt", "space name.txt", "z.txt"])
+    );
+
+    let parent = josh_no_config()
+        .current_dir(temp.path().join("nested"))
+        .args(["-c", "files = glob(\"../*.txt\"); printf '%s\\n' $files"])
+        .output()
+        .unwrap();
+    assert!(parent.status.success());
+    assert_eq!(
+        parent.stdout,
+        absolute_lines(&["a.txt", "space name.txt", "z.txt"])
+    );
+
+    let absolute_pattern = josh_no_config()
+        .current_dir(temp.path())
+        .args([
+            "-c",
+            &format!(
+                "files = glob(\"{}/*.txt\"); printf '%s\\n' $files",
+                temp.path().display()
+            ),
+        ])
+        .output()
+        .unwrap();
+    assert!(absolute_pattern.status.success());
+    assert_eq!(
+        absolute_pattern.stdout,
+        ["a.txt", "space name.txt", "z.txt"]
+            .iter()
+            .map(|path| format!("{}\n", temp.path().join(path).display()))
+            .collect::<String>()
+            .into_bytes()
     );
 
     let no_match = josh_no_config()

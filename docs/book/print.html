@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-93c431d1.js";
+            window.path_to_searchindex_js = "searchindex-df119023.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-601258de.js"></script>
@@ -728,8 +728,8 @@ String.prototype.shout = (this) =&gt; this.toUpperCase() + "!"
 <pre><code class="language-josh">sh -c 'printf out; printf err &gt;&amp;2' &gt; output.txt 2&gt;&amp;1
 sh -c 'printf out; printf err &gt;&amp;2' 2&gt;&amp;1 &gt; stdout-only.txt
 </code></pre>
-<p>Unquoted command words expand <code>*</code>, <code>?</code>, bracket classes, and <code>**</code> before invocation. Matching is case-sensitive; path separators and leading dots must be matched literally. Results sort by path bytes, and each match becomes one argv item without word splitting. No match is an error. Quotes and backslash escapes suppress the quoted/escaped metacharacters while leaving other unquoted metacharacters active.</p>
-<p><code>glob(pattern)</code> accepts one String, applies the same matching, sorting, and no-match policy, and returns an Array of String paths on valid UTF-8 platforms or Bytes where a Unix path is not valid UTF-8.</p>
+<p>Unquoted command words expand <code>*</code>, <code>?</code>, bracket classes, and <code>**</code> before invocation. Matching is case-sensitive; path separators and leading dots must be matched literally. Results sort by path bytes, and each match becomes one argv item without word splitting. Command-word matches preserve the pattern’s form: relative patterns yield relative paths and absolute patterns yield absolute paths. No match is an error. Quotes and backslash escapes suppress the quoted/escaped metacharacters while leaving other unquoted metacharacters active.</p>
+<p><code>glob(pattern)</code> accepts one String and applies the same matching, sorting, and no-match policy, but always returns absolute paths: relative patterns resolve against the session cwd at call time (leading <code>./</code> and <code>../</code> components resolve against that cwd; symlinks in matched paths are not resolved). Stored results therefore stay valid after a later <code>cd</code>. It returns an Array of String paths on valid UTF-8 platforms or Bytes where a Unix path is not valid UTF-8.</p>
 <p class="example-label"><strong>Runnable example</strong></p>
 
 <pre><code class="language-josh">printf '%s\n' **/*.md
@@ -1302,7 +1302,7 @@ letters[-2..]    # ["d", "e"] — negative counts from the end
 <tr><td>Null/bool/int/float</td><td>Canonical scalar text</td></tr>
 <tr><td>Bytes on Unix</td><td>Original bytes</td></tr>
 <tr><td>Object</td><td>Type error outside a structured value stream</td></tr>
-<tr><td>Unquoted glob</td><td>One sorted argv entry per match; no match is an error</td></tr>
+<tr><td>Unquoted glob</td><td>One sorted argv entry per match, preserving the pattern’s relative/absolute form; no match is an error</td></tr>
 <tr><td>Unquoted <code>~</code> or <code>~/...</code> at a word boundary</td><td>Expands to the session HOME before globbing</td></tr>
 </tbody>
 </table>

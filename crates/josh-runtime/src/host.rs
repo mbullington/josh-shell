@@ -183,6 +183,16 @@ pub enum ExecutionError {
     },
 }
 
+/// Which path form a glob result takes. Command-word expansion preserves
+/// the pattern's form (relative patterns yield relative paths, like other
+/// shells); the `glob()` function returns absolute paths because its
+/// results are values that can outlive the cwd they were matched in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GlobPathForm {
+    PreservePattern,
+    Absolute,
+}
+
 pub trait ExecutionHost {
     fn execute(
         &mut self,
@@ -200,5 +210,10 @@ pub trait ExecutionHost {
         context: ShellContext,
     ) -> Result<ExecutionResult, ExecutionError>;
 
-    fn glob(&self, pattern: &[u8], context: &ShellContext) -> Result<Vec<Vec<u8>>, ExecutionError>;
+    fn glob(
+        &self,
+        pattern: &[u8],
+        context: &ShellContext,
+        form: GlobPathForm,
+    ) -> Result<Vec<Vec<u8>>, ExecutionError>;
 }

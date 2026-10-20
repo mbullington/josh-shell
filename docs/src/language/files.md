@@ -28,9 +28,9 @@ sh -c 'printf out; printf err >&2' > output.txt 2>&1
 sh -c 'printf out; printf err >&2' 2>&1 > stdout-only.txt
 ```
 
-Unquoted command words expand `*`, `?`, bracket classes, and `**` before invocation. Matching is case-sensitive; path separators and leading dots must be matched literally. Results sort by path bytes, and each match becomes one argv item without word splitting. No match is an error. Quotes and backslash escapes suppress the quoted/escaped metacharacters while leaving other unquoted metacharacters active.
+Unquoted command words expand `*`, `?`, bracket classes, and `**` before invocation. Matching is case-sensitive; path separators and leading dots must be matched literally. Results sort by path bytes, and each match becomes one argv item without word splitting. Command-word matches preserve the pattern's form: relative patterns yield relative paths and absolute patterns yield absolute paths. No match is an error. Quotes and backslash escapes suppress the quoted/escaped metacharacters while leaving other unquoted metacharacters active.
 
-`glob(pattern)` accepts one String, applies the same matching, sorting, and no-match policy, and returns an Array of String paths on valid UTF-8 platforms or Bytes where a Unix path is not valid UTF-8.
+`glob(pattern)` accepts one String and applies the same matching, sorting, and no-match policy, but always returns absolute paths: relative patterns resolve against the session cwd at call time (leading `./` and `../` components resolve against that cwd; symlinks in matched paths are not resolved). Stored results therefore stay valid after a later `cd`. It returns an Array of String paths on valid UTF-8 platforms or Bytes where a Unix path is not valid UTF-8.
 
 <p class="example-label"><strong>Runnable example</strong></p>
 
