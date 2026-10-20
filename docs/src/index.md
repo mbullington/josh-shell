@@ -8,6 +8,7 @@ Background jobs and `import`/`export` modules do not exist yet and are rejected 
 
 ## Choose a path
 
+- Just want to poke it: [Try Josh in your browser](https://mbullington.github.io/josh-shell/) — boots the latest `main` build in a tab via [trynix](https://trynix.dev); type `josh` at the prompt.
 - New to Josh: [Your first session](tutorial/first-session.md).
 - Exact syntax: [Reference](reference/index.md).
 - Terminal automation: [agent-terminal](agent-terminal/index.md).

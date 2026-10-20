@@ -1,0 +1,64 @@
+# Publish the "Try Josh in your browser" page to GitHub Pages.
+#
+# Every push to main builds Josh for x86_64-linux, signs its closure into
+# a binary cache inside the Pages site, and points the site's redirect
+# at a trynix.dev link that boots that build in the reader's tab. The
+# README links to the stable Pages URL; the store path behind it changes
+# every deploy. See scripts/make-try-site.sh for how the site is built
+# and why the signing key is ephemeral (no secrets needed here).
+#
+# One-time setup: Settings -> Pages -> Source: "GitHub Actions".
+name: Try Josh
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - id: build
+        run: |
+          store_path="$(nix build .#default --no-link --print-out-paths)"
+          echo "store_path=$store_path" >> "$GITHUB_OUTPUT"
+          nix path-info -S "$store_path"
+
+      # The cache lives under the same Pages site as the redirect, so its
+      # URL is the site's URL plus /cache. Repository owner/name are
+      # already lowercase for this repo; github.io hosts are lowercase.
+      - run: |
+          ./scripts/make-try-site.sh \
+            "${{ steps.build.outputs.store_path }}" \
+            site \
+            "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/cache" \
+            "${{ github.sha }}"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -2,6 +2,8 @@
 
 Josh is a Unix-first JavaScript Object Shell. It combines deterministic command/expression parsing, lexical functions and objects, explicit byte/value pipelines, and parser-driven interactive editing.
 
+**[▶ Try Josh in your browser](https://mbullington.github.io/josh-shell/)** — no install. The link boots a Linux VM in the tab (via [trynix](https://trynix.dev)) with the latest `main` build on `PATH`; type `josh` at the prompt. Or run it with Nix: `nix run github:mbullington/josh-shell`.
+
 ## Build and run
 
 ```sh

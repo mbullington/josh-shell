@@ -2,6 +2,8 @@
 
 Josh is a six-crate Rust workspace with one `josh` binary. The repository lockfile pins Rust dependencies.
 
+To try Josh without installing anything, open [Try Josh in your browser](https://mbullington.github.io/josh-shell/): it boots the latest `main` build in a browser-tab VM via [trynix](https://trynix.dev). With Nix, `nix run github:mbullington/josh-shell` builds and runs the same flake (`nix build` also produces `josh-lsp`, the man page, and `share/`).
+
 <a id="J-CLI-001-install"></a>
 ## Build Josh
 
