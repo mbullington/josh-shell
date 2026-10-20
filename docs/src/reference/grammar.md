@@ -19,6 +19,8 @@ primary       = scalar | array | object | identifier | arrow | "(" expression ")
 postfix       = adjacent-call | adjacent-member | adjacent-index ;
 ```
 
+A `#` begins a line comment only where a new word could begin — at the start of a line, after whitespace, or right after a separator such as `|`, `;`, or `&&`. Glued to the preceding word it is an ordinary character, so `nixpkgs#cowsay` and URLs with `#fragments` need no quoting.
+
 Expression precedence, low to high: ternary; `||`; `&&`; equality; ordering; `+`/`-`; `*`/`/`/`//`/`%`; unary; adjacent call/member/index. Arrow parsing applies at the lowest expression level.
 
 `for`, jobs, modules, and `source` are not productions. Reserved/excluded forms produce diagnostics rather than argv.

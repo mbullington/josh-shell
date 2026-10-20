@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0a57cb79.js";
+            window.path_to_searchindex_js = "../searchindex-a5051868.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-601258de.js"></script>
@@ -191,6 +191,7 @@ expression    = primary { postfix | binary expression | "?" expression ":" expre
 primary       = scalar | array | object | identifier | arrow | "(" expression ")" | capture | unary expression ;
 postfix       = adjacent-call | adjacent-member | adjacent-index ;
 </code></pre>
+<p>A <code>#</code> begins a line comment only where a new word could begin — at the start of a line, after whitespace, or right after a separator such as <code>|</code>, <code>;</code>, or <code>&amp;&amp;</code>. Glued to the preceding word it is an ordinary character, so <code>nixpkgs#cowsay</code> and URLs with <code>#fragments</code> need no quoting.</p>
 <p>Expression precedence, low to high: ternary; <code>||</code>; <code>&amp;&amp;</code>; equality; ordering; <code>+</code>/<code>-</code>; <code>*</code>/<code>/</code>/<code>//</code>/<code>%</code>; unary; adjacent call/member/index. Arrow parsing applies at the lowest expression level.</p>
 <p><code>for</code>, jobs, modules, and <code>source</code> are not productions. Reserved/excluded forms produce diagnostics rather than argv.</p>
 <p><a id="J-PARSE-004"></a></p>

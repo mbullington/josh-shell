@@ -3154,7 +3154,7 @@ fn lex(source: &str) -> (Vec<Token>, Vec<Diagnostic>) {
             push(&mut tokens, TokenKind::Whitespace, start, at);
             continue;
         }
-        if ch == '#' {
+        if ch == '#' && comment_starts_here(tokens.last()) {
             at += 1;
             while at < source.len() && source.as_bytes()[at] != b'\n' {
                 at += source[at..].chars().next().unwrap().len_utf8();
@@ -3396,6 +3396,41 @@ fn push(tokens: &mut Vec<Token>, kind: TokenKind, start: usize, end: usize) {
         mode: LexMode::Command,
         span: Span::new(start, end),
     });
+}
+/// `#` starts a comment only where a new word could begin: at the start
+/// of input, after trivia, or right after a separator or opener that
+/// ends the previous word. Tokens tile the source, so the previous token
+/// always ends where `#` begins; a `#` glued to any other token (as in
+/// `nixpkgs#cowsay` or a URL fragment) is an ordinary word character and
+/// falls through to the generic `Word` token. Closers such as `)` are
+/// word constituents here: `$(capture)#suffix` must keep its suffix, so
+/// a no-space comment after a call like `f(x)#note` is a parse error
+/// rather than silently dropping word text.
+fn comment_starts_here(previous: Option<&Token>) -> bool {
+    match previous {
+        None => true,
+        Some(token) => matches!(
+            token.kind,
+            TokenKind::Whitespace
+                | TokenKind::Comment
+                | TokenKind::Newline
+                | TokenKind::Pipe
+                | TokenKind::Semicolon
+                | TokenKind::AndAnd
+                | TokenKind::OrOr
+                | TokenKind::Less
+                | TokenKind::Greater
+                | TokenKind::RedirectAppend
+                | TokenKind::RedirectError
+                | TokenKind::RedirectErrorAppend
+                | TokenKind::RedirectErrorToOutput
+                | TokenKind::RedirectOutputAndError
+                | TokenKind::LeftParen
+                | TokenKind::LeftBrace
+                | TokenKind::RightBrace
+                | TokenKind::CaptureStart
+        ),
+    }
 }
 fn is_ident_start(ch: char) -> bool {
     ch == '_' || ch == '$' || unicode_ident::is_xid_start(ch)

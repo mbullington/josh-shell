@@ -39,7 +39,8 @@
 			"patterns": [
 				{
 					"name": "comment.line.number-sign.josh",
-					"match": "#.*$"
+					"comment": "'#' comments only where a new word could begin (line start, after whitespace or a separator/opener); glued to a word like nixpkgs#cowsay it is literal",
+					"match": "(?<=^|[\\s;|&({<>])#.*$"
 				}
 			]
 		},

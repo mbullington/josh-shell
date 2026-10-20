@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0a57cb79.js";
+            window.path_to_searchindex_js = "searchindex-a5051868.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-601258de.js"></script>
@@ -181,6 +181,7 @@
 <p>Background jobs and <code>import</code>/<code>export</code> modules do not exist yet and are rejected with diagnostics; <code>source</code> is the implemented include mechanism. The <a href="#roadmap">roadmap</a> lists what is planned.</p>
 <h2 id="choose-a-path"><a class="header" href="#choose-a-path">Choose a path</a></h2>
 <ul>
+<li>Just want to poke it: <a href="https://mbullington.github.io/josh-shell/">Try Josh in your browser</a> — boots the latest <code>main</code> build in a tab via <a href="https://trynix.dev">trynix</a>; type <code>josh</code> at the prompt.</li>
 <li>New to Josh: <a href="#your-first-session">Your first session</a>.</li>
 <li>Exact syntax: <a href="#reference">Reference</a>.</li>
 <li>Terminal automation: <a href="#agent-terminal">agent-terminal</a>.</li>
@@ -189,6 +190,7 @@
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="install-and-build"><a class="header" href="#install-and-build">Install and build</a></h1>
 <p>Josh is a six-crate Rust workspace with one <code>josh</code> binary. The repository lockfile pins Rust dependencies.</p>
+<p>To try Josh without installing anything, open <a href="https://mbullington.github.io/josh-shell/">Try Josh in your browser</a>: it boots the latest <code>main</code> build in a browser-tab VM via <a href="https://trynix.dev">trynix</a>. With Nix, <code>nix run github:mbullington/josh-shell</code> builds and runs the same flake (<code>nix build</code> also produces <code>josh-lsp</code>, the man page, and <code>share/</code>).</p>
 <p><a id="J-CLI-001-install"></a></p>
 <h2 id="build-josh"><a class="header" href="#build-josh">Build Josh</a></h2>
 <p><strong>Host command</strong></p>
@@ -1179,6 +1181,7 @@ expression    = primary { postfix | binary expression | "?" expression ":" expre
 primary       = scalar | array | object | identifier | arrow | "(" expression ")" | capture | unary expression ;
 postfix       = adjacent-call | adjacent-member | adjacent-index ;
 </code></pre>
+<p>A <code>#</code> begins a line comment only where a new word could begin — at the start of a line, after whitespace, or right after a separator such as <code>|</code>, <code>;</code>, or <code>&amp;&amp;</code>. Glued to the preceding word it is an ordinary character, so <code>nixpkgs#cowsay</code> and URLs with <code>#fragments</code> need no quoting.</p>
 <p>Expression precedence, low to high: ternary; <code>||</code>; <code>&amp;&amp;</code>; equality; ordering; <code>+</code>/<code>-</code>; <code>*</code>/<code>/</code>/<code>//</code>/<code>%</code>; unary; adjacent call/member/index. Arrow parsing applies at the lowest expression level.</p>
 <p><code>for</code>, jobs, modules, and <code>source</code> are not productions. Reserved/excluded forms produce diagnostics rather than argv.</p>
 <p><a id="J-PARSE-004"></a></p>

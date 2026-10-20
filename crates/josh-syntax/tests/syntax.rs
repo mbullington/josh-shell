@@ -626,3 +626,48 @@ fn render_points_a_caret_at_the_offending_span() {
         .join("\n")
     );
 }
+
+#[test]
+fn hash_inside_a_word_is_literal_but_word_initial_hash_comments() {
+    fn words(source: &str) -> Vec<Vec<WordPart>> {
+        let Statement::Command(command) = one(source) else {
+            panic!("expected a command: {source}");
+        };
+        command.stages[0]
+            .words
+            .iter()
+            .map(|word| word.parts.clone())
+            .collect()
+    }
+    fn literal_text(parts: &[WordPart]) -> String {
+        parts
+            .iter()
+            .map(|part| match part {
+                WordPart::Literal { value, .. } => value.clone(),
+                other => panic!("expected literal parts, got {other:?}"),
+            })
+            .collect()
+    }
+
+    // A `#` glued to the previous token stays in the word, so flake
+    // references and URL fragments survive unquoted.
+    let nix = words("echo nixpkgs#cowsay");
+    assert_eq!(nix.len(), 2);
+    assert_eq!(literal_text(&nix[1]), "nixpkgs#cowsay");
+    let bare = words("echo a#b c");
+    assert_eq!(bare.len(), 3);
+    assert_eq!(literal_text(&bare[1]), "a#b");
+    assert_eq!(literal_text(&bare[2]), "c");
+
+    // A capture is part of its word, so a glued `#` after `)` is literal.
+    let capture = words("echo $(echo inner)#tail");
+    assert!(matches!(capture[1][0], WordPart::Capture { .. }));
+    assert_eq!(literal_text(&capture[1][1..]), "#tail");
+
+    // A `#` where a new word could begin comments out the rest of the line.
+    assert_eq!(words("echo foo # bar baz").len(), 2);
+    assert_eq!(words("echo foo;# bar").len(), 2);
+    let parsed = parse("# leading comment\necho ok # trailing\n");
+    assert_eq!(parsed.completeness, Completeness::Complete);
+    assert_eq!(parsed.program.statements.len(), 1);
+}
