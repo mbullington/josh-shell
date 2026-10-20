@@ -603,3 +603,9 @@ fn prompt_clicks_move_cursor() {
 fn prompt_markers_bound_execution() {
     check_editing_pty("markers");
 }
+
+#[cfg(unix)]
+#[test]
+fn terminal_title_and_cwd_are_reported() {
+    check_editing_pty("title");
+}

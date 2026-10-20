@@ -226,6 +226,11 @@ impl Engine {
     }
 
     #[must_use]
+    pub fn current_directory(&self) -> PathBuf {
+        self.context.current_directory()
+    }
+
+    #[must_use]
     pub fn environment_variable_os(&self, name: &str) -> Option<OsString> {
         self.context.environment_variable(OsStr::new(name))
     }
@@ -317,6 +322,49 @@ impl Engine {
             )));
         };
         Ok(Some(prompt.to_string()))
+    }
+
+    /// Resolve the terminal title from a lexical `title` function. It is
+    /// called with `null` before a read and with the submitted line before
+    /// execution; returning `null` (or not defining it) requests the
+    /// caller's default title.
+    pub fn title(&mut self, command: Option<&str>) -> Result<Option<String>, EngineError> {
+        let Some(value) = self.resolve_lexical("title") else {
+            return Ok(None);
+        };
+        let Value::Function(function) = value else {
+            return Err(EngineError::Type(
+                "lexical `title` must be a one-argument function".into(),
+            ));
+        };
+        if !matches!(&function.kind, FunctionKind::User { params, .. } if params.len() == 1) {
+            return Err(EngineError::Type(
+                "lexical `title` must be a one-argument user function".into(),
+            ));
+        }
+        let argument = match command {
+            Some(command) => Value::String(JoshStr::from(command)),
+            None => Value::Null,
+        };
+        let value = match self.call_function(function, vec![argument]) {
+            Ok(value) => value,
+            Err(Unwind::Throw(value)) => return Err(EngineError::Uncaught(value)),
+            Err(Unwind::Error(error)) => return Err(error),
+            Err(Unwind::Exit(_)) => {
+                return Err(EngineError::Unsupported("exit from title()".into()));
+            }
+            Err(Unwind::Return(_)) => return Err(EngineError::InvalidControl("return")),
+            Err(Unwind::Break) => return Err(EngineError::InvalidControl("break")),
+            Err(Unwind::Continue) => return Err(EngineError::InvalidControl("continue")),
+        };
+        match value {
+            Value::Null => Ok(None),
+            Value::String(title) => Ok(Some(title.to_string())),
+            value => Err(EngineError::Type(format!(
+                "title() must return a string or null, got {}",
+                value.type_name()
+            ))),
+        }
     }
 
     pub fn call_stream_function(

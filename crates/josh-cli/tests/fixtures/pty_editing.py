@@ -20,6 +20,8 @@ CLICK_PROMPT = b"\x1b]133;A;k=i;click_events=1\x1b\\"
 CONTINUATION_PROMPT = b"\x1b]133;A;k=s;click_events=1\x1b\\"
 COMMAND_START = b"\x1b]133;C\x1b\\"
 COMMAND_END = b"\x1b]133;D\x1b\\"
+TITLE = b"\x1b]2;"
+CWD_REPORT = b"\x1b]7;file://"
 
 
 class Session:
@@ -198,10 +200,48 @@ def prompt_markers_bound_execution(josh):
         assert CLICK_PROMPT not in output[output.index(COMMAND_END):], output
 
 
+def title_reporting(josh):
+    with session(josh) as shell:
+        # Defaults are reported before the first read.
+        assert TITLE in shell.output, bytes(shell.output)
+        assert CWD_REPORT in shell.output, bytes(shell.output)
+
+        # The submitted line is the title while it runs; the idle title
+        # and cwd are reported again at the next prompt.
+        shell.paste("1 + 2")
+        output = shell.send(b"\r")
+        assert output.index(TITLE + b"1 + 2\x1b\\") < output.index(COMMAND_START)
+        after = output[output.index(COMMAND_END):]
+        assert TITLE in after and CWD_REPORT in after, output
+
+        # A lexical title() hook supplies both titles.
+        shell.paste(
+            'fn title(command) { return if (command === null) '
+            '{ "idle-title" } else { "run-title" } }'
+        )
+        output = shell.send(b"\r")
+        after = output[output.index(COMMAND_END):]
+        assert TITLE + b"idle-title\x1b\\" in after, output
+
+        shell.paste("1 + 2")
+        output = shell.send(b"\r")
+        assert output.index(TITLE + b"run-title\x1b\\") < output.index(COMMAND_START)
+        after = output[output.index(COMMAND_END):]
+        assert TITLE + b"idle-title\x1b\\" in after, output
+
+    with session(josh) as shell:
+        shell.paste("cd /")
+        output = shell.send(b"\r")
+        after = output[output.index(COMMAND_END):]
+        assert CWD_REPORT + b"/\x1b\\" in after, output
+        assert TITLE + b"/\x1b\\" in after, output
+
+
 if __name__ == "__main__":
     josh = os.path.abspath(sys.argv[1])
     {
         "history": history_replaces_buffer,
         "clicks": prompt_clicks_move_cursor,
         "markers": prompt_markers_bound_execution,
+        "title": title_reporting,
     }[sys.argv[2]](josh)

@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-df119023.js";
+            window.path_to_searchindex_js = "searchindex-0a57cb79.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-601258de.js"></script>
@@ -850,6 +850,7 @@ try { sh -c 'exit 7' } catch (problem) { printf '%s\n' (problem.status.code) }
 </div>
 <p><code>--no-config</code> skips both startup files and is the reproducible automation mode. It does not change <code>$NAME</code> environment fallback or <code>JOSH_HISTORY</code>.</p>
 <p>A visible lexical function named <code>prompt</code> controls the interactive primary prompt. It must take zero arguments and return String. Josh calls it before each read. Missing <code>prompt</code> uses <code>josh&gt; </code>; a nonfunction, wrong arity, thrown error, or non-String result prints a diagnostic and falls back to <code>josh&gt; </code>. The multiline prompt remains <code>...&gt; </code>.</p>
+<p>A visible lexical function named <code>title</code> controls the terminal title (OSC 2). It must take one argument and return String or null. Josh calls it with null before each read and with the submitted line before execution. Missing <code>title</code>, or a null result, uses the abbreviated working directory before a read (<code>~</code> for home, <code>…/</code> plus the last three components for deeper paths) and the submitted line during execution. A nonfunction, wrong arity, thrown error, or other result prints a diagnostic and falls back the same way; a failing <code>title</code> never blocks the command from running. Whatever text is chosen, Josh strips control characters, collapses whitespace, and truncates it to 80 characters before emitting it. Before each read Josh also reports the working directory to the terminal with OSC 7.</p>
 <p><code>JOSH_HISTORY</code> selects the Reedline history path. Without it, Josh uses <code>$HOME/.josh_history</code>, or <code>./.josh_history</code> when HOME is absent.</p>
 <p class="example-label"><strong>Runnable example</strong></p>
 

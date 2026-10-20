@@ -990,6 +990,8 @@ pub fn run_repl(engine: &mut Engine) -> Result<i32, Box<dyn std::error::Error>> 
         )));
     let mut history_warning_printed = false;
     loop {
+        report_title(engine, None);
+        report_cwd(engine);
         let prompt = match engine.prompt() {
             Ok(Some(prompt)) => JoshPrompt::new(prompt),
             Ok(None) => JoshPrompt::default(),
@@ -1000,6 +1002,7 @@ pub fn run_repl(engine: &mut Engine) -> Result<i32, Box<dyn std::error::Error>> 
         };
         match editor.read_line(&prompt)? {
             Signal::Success(line) => {
+                report_title(engine, Some(&line));
                 eprint!("\x1b]133;C\x1b\\");
                 interrupted.store(false, Ordering::Release);
                 // Persist the accepted line now so a crash or kill does not
@@ -1040,6 +1043,124 @@ pub fn run_repl(engine: &mut Engine) -> Result<i32, Box<dyn std::error::Error>> 
             Signal::HostCommand(_) | Signal::ExternalBreak(_) => continue,
             _ => continue,
         }
+    }
+}
+
+/// Longest terminal title Josh emits. Titles live in narrow tabs and
+/// titlebars, so anything longer is cut with an ellipsis.
+const TITLE_MAX_CHARS: usize = 80;
+
+/// Emit the OSC 2 terminal title for one REPL moment: `None` before a
+/// read, the submitted line before execution. A lexical `title` function
+/// supplies the text; missing/null (or an invalid hook, diagnosed like a
+/// bad `prompt()`) falls back to the abbreviated cwd or the line itself.
+/// A failing hook never blocks the command from running.
+fn report_title(engine: &mut Engine, command: Option<&str>) {
+    let title = match engine.title(command) {
+        Ok(Some(title)) => title,
+        Ok(None) => fallback_title(engine, command),
+        Err(error) => {
+            eprintln!("error: invalid title(): {error}");
+            fallback_title(engine, command)
+        }
+    };
+    eprint!("\x1b]2;{}\x1b\\", sanitize_title(&title));
+}
+
+fn fallback_title(engine: &Engine, command: Option<&str>) -> String {
+    match command {
+        Some(line) => line.to_string(),
+        None => {
+            let cwd = engine.current_directory();
+            let home = engine
+                .environment_variable_os("HOME")
+                .map(PathBuf::from)
+                .map(|home| resolve_session_path(&cwd, home));
+            abbreviate_path(&cwd, home.as_deref())
+        }
+    }
+}
+
+/// Report the session cwd to the terminal with OSC 7 so it can open new
+/// tabs and splits in the same directory.
+fn report_cwd(engine: &Engine) {
+    eprint!(
+        "\x1b]7;file://{}\x1b\\",
+        percent_encode_path(&engine.current_directory())
+    );
+}
+
+fn percent_encode_path(path: &Path) -> String {
+    let mut encoded = String::new();
+    for byte in path.to_string_lossy().bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' | b'/' => {
+                encoded.push(char::from(byte));
+            }
+            _ => encoded.push_str(&format!("%{byte:02X}")),
+        }
+    }
+    encoded
+}
+
+/// Make hook- or user-supplied text safe inside an OSC sequence: control
+/// characters (including ESC and BEL, which could terminate the sequence
+/// early) are dropped, whitespace runs collapse to single spaces, and the
+/// result is capped at `TITLE_MAX_CHARS`.
+fn sanitize_title(text: &str) -> String {
+    let mut sanitized = String::new();
+    let mut pending_space = false;
+    for ch in text.chars() {
+        if ch.is_whitespace() {
+            pending_space = !sanitized.is_empty();
+            continue;
+        }
+        if ch.is_control() {
+            continue;
+        }
+        if pending_space {
+            sanitized.push(' ');
+            pending_space = false;
+        }
+        sanitized.push(ch);
+    }
+    if sanitized.chars().count() > TITLE_MAX_CHARS {
+        sanitized = sanitized.chars().take(TITLE_MAX_CHARS - 1).collect();
+        sanitized.push('\u{2026}');
+    }
+    sanitized
+}
+
+/// Abbreviate a directory for tab display the way common shell themes do:
+/// home becomes `~`, and paths deeper than three components collapse to
+/// `…/` plus the last three.
+fn abbreviate_path(path: &Path, home: Option<&Path>) -> String {
+    fn components(path: &Path) -> Vec<String> {
+        path.components()
+            .filter_map(|component| match component {
+                std::path::Component::Normal(name) => Some(name.to_string_lossy().into_owned()),
+                _ => None,
+            })
+            .collect()
+    }
+    fn last_three(names: &[String]) -> String {
+        names[names.len() - 3..].join("/")
+    }
+    if let Some(home) = home
+        && let Ok(relative) = path.strip_prefix(home)
+    {
+        let names = components(relative);
+        return match names.len() {
+            0 => "~".to_string(),
+            1..=3 => format!("~/{}", names.join("/")),
+            _ => format!("\u{2026}/{}", last_three(&names)),
+        };
+    }
+    let names = components(path);
+    match names.len() {
+        0 => "/".to_string(),
+        1..=3 => format!("/{}", names.join("/")),
+        _ => format!("\u{2026}/{}", last_three(&names)),
     }
 }
 
@@ -1165,8 +1286,50 @@ mod tests {
 
     use super::{
         Carapace, CompletionKind, CompletionPreview, CompletionSnapshot, JoshCompleter,
-        ReplAnalyzer,
+        ReplAnalyzer, abbreviate_path, percent_encode_path, sanitize_title,
     };
+
+    #[test]
+    fn title_text_is_sanitized_for_osc_sequences() {
+        // ESC/BEL could terminate the OSC sequence early; other controls
+        // and whitespace runs must not reach the terminal verbatim.
+        assert_eq!(
+            sanitize_title("echo\x1b]2;evil\x07 hi\n  there "),
+            "echo]2;evil hi there"
+        );
+        assert_eq!(sanitize_title("  "), "");
+        let long = "x".repeat(100);
+        let truncated = sanitize_title(&long);
+        assert_eq!(truncated.chars().count(), 80);
+        assert!(truncated.ends_with('\u{2026}'));
+    }
+
+    #[test]
+    fn title_paths_abbreviate_home_and_deep_directories() {
+        let home = Path::new("/Users/test");
+        assert_eq!(abbreviate_path(home, Some(home)), "~");
+        assert_eq!(
+            abbreviate_path(Path::new("/Users/test/code/josh"), Some(home)),
+            "~/code/josh"
+        );
+        assert_eq!(
+            abbreviate_path(Path::new("/Users/test/a/b/c/d"), Some(home)),
+            "\u{2026}/b/c/d"
+        );
+        assert_eq!(abbreviate_path(Path::new("/"), Some(home)), "/");
+        assert_eq!(
+            abbreviate_path(Path::new("/a/b/c/d"), None),
+            "\u{2026}/b/c/d"
+        );
+    }
+
+    #[test]
+    fn osc7_paths_are_percent_encoded() {
+        assert_eq!(
+            percent_encode_path(Path::new("/Users/test/my dir/#draft")),
+            "/Users/test/my%20dir/%23draft"
+        );
+    }
 
     fn completer(cwd: &Path, commands: &[&str]) -> JoshCompleter {
         let context = ShellContext::new(cwd, []);

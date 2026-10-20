@@ -914,6 +914,56 @@ fn lexical_prompt_functions_validate_arity_result_and_errors() {
 }
 
 #[test]
+fn lexical_title_functions_validate_arity_result_and_errors() {
+    let mut engine = Engine::new(ProcessHost::default());
+    assert_eq!(engine.title(None).unwrap(), None);
+    assert_eq!(engine.title(Some("echo hi")).unwrap(), None);
+    engine
+        .run_source(
+            "fn title(command) { return if (command === null) { \"idle\" } else { \"run: \" + command } }",
+        )
+        .unwrap();
+    assert_eq!(engine.title(None).unwrap().as_deref(), Some("idle"));
+    assert_eq!(
+        engine.title(Some("echo hi")).unwrap().as_deref(),
+        Some("run: echo hi")
+    );
+
+    let mut null_result = Engine::new(ProcessHost::default());
+    null_result
+        .run_source("fn title(command) { return null }")
+        .unwrap();
+    assert_eq!(null_result.title(None).unwrap(), None);
+
+    let mut invalid_value = Engine::new(ProcessHost::default());
+    invalid_value
+        .run_source("fn title(command) { return 42 }")
+        .unwrap();
+    assert!(matches!(
+        invalid_value.title(None),
+        Err(EngineError::Type(_))
+    ));
+
+    let mut invalid_arity = Engine::new(ProcessHost::default());
+    invalid_arity
+        .run_source("fn title() { return \"x\" }")
+        .unwrap();
+    assert!(matches!(
+        invalid_arity.title(None),
+        Err(EngineError::Type(_))
+    ));
+
+    let mut throwing = Engine::new(ProcessHost::default());
+    throwing
+        .run_source("fn title(command) { throw \"broken\" }")
+        .unwrap();
+    assert!(matches!(
+        throwing.title(Some("echo hi")),
+        Err(EngineError::Uncaught(_))
+    ));
+}
+
+#[test]
 fn objects_spread_and_destructuring_preserve_value_order() {
     // Regression contract: object key order is insertion order, overwrites retain their slot,
     // spreads are value copies, and object/array rest patterns bind independent values.
