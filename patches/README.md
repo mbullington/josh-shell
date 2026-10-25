@@ -1,6 +1,6 @@
 # Dependency patches
 
-Josh uses [patch-crate 0.1.13](https://docs.rs/patch-crate/0.1.13/patch_crate/) to apply `reedline+0.49.0.patch`. The patch accounts for the `...> ` continuation indicator when mapping a screen click to a buffer position. It includes regression tests for cursor splits, wrapping, and a scrolled continuation line.
+Josh uses [patch-crate 0.1.13](https://docs.rs/patch-crate/0.1.13/patch_crate/) to apply `reedline+0.49.0.patch`. The patch accounts for the `...> ` continuation indicator when mapping a screen click to a buffer position. It also keeps the editor usable when a terminal stops answering cursor-position queries. After the first failed query, Reedline stops querying and starts each new prompt on a fresh bottom row. PTY tests cover a missing response; patch tests cover cursor splits, wrapping, and scrolled continuation lines.
 
 ## Prepare a checkout
 

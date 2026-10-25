@@ -25,10 +25,12 @@ CWD_REPORT = b"\x1b]7;file://"
 
 
 class Session:
-    def __init__(self, fd, root):
+    def __init__(self, fd, root, respond_to_cursor_queries=True):
         self.fd = fd
         self.history = root / "history"
         self.output = bytearray()
+        self.respond_to_cursor_queries = respond_to_cursor_queries
+        self.cursor_queries = 0
 
     def read(self, needle=None):
         output = bytearray()
@@ -50,8 +52,11 @@ class Session:
             output.extend(chunk)
             self.output.extend(chunk)
             # Each read_line starts at row 1 in this simulated terminal.
-            if b"\x1b[6n" in output:
-                os.write(self.fd, b"\x1b[1;1R")
+            queries = output.count(b"\x1b[6n")
+            if queries:
+                self.cursor_queries += queries
+                if self.respond_to_cursor_queries:
+                    os.write(self.fd, b"\x1b[1;1R" * queries)
                 output[:] = output.replace(b"\x1b[6n", b"")
         if output and (needle is None or needle in output):
             return bytes(output)
@@ -77,7 +82,7 @@ class Session:
 
 
 @contextlib.contextmanager
-def session(josh, width=80):
+def session(josh, width=80, respond_to_cursor_queries=True):
     with tempfile.TemporaryDirectory(prefix="josh-editing-") as directory:
         root = pathlib.Path(directory)
         (root / "history").write_text("echo history-target\necho unrelated-newest\n")
@@ -92,7 +97,7 @@ def session(josh, width=80):
                 JOSH_CARAPACE="0",
             )
             os.execve(josh, [josh, "--no-config"], environment)
-        shell = Session(fd, root)
+        shell = Session(fd, root, respond_to_cursor_queries)
         try:
             shell.read(PROMPT)
             yield shell
@@ -200,6 +205,44 @@ def prompt_markers_bound_execution(josh):
         assert CLICK_PROMPT not in output[output.index(COMMAND_END):], output
 
 
+def missing_cursor_report(josh):
+    with session(josh, respond_to_cursor_queries=False) as shell:
+        assert shell.cursor_queries == 1, shell.cursor_queries
+
+        shell.paste("1 + 2")
+        output = shell.send(b"\r")
+        assert b"3\r\n" in re.sub(rb"\x1b\[[0-9;]*m", b"", output) and PROMPT in output, output
+        assert shell.cursor_queries == 1, shell.cursor_queries
+
+        # Editing, resize and a cleared screen must not restart the timeout.
+        shell.paste("1 + 4")
+        shell.send(b"\x1b[D\x1b[3~")
+        shell.paste("5")
+        output = shell.send(b"\r")
+        assert b"6\r\n" in re.sub(rb"\x1b\[[0-9;]*m", b"", output) and PROMPT in output, output
+        fcntl.ioctl(shell.fd, termios.TIOCSWINSZ, struct.pack("HHHH", 30, 80, 0, 0))
+        shell.read(PROMPT)
+        shell.send(b"\x0c")
+        assert shell.cursor_queries == 1, shell.cursor_queries
+
+        shell.paste("1 + 7")
+        output = shell.send(b"\r")
+        assert b"8\r\n" in re.sub(rb"\x1b\[[0-9;]*m", b"", output) and PROMPT in output, output
+        assert shell.cursor_queries == 1, shell.cursor_queries
+
+    # The terminal can stop replying after a successful first prompt.
+    with session(josh) as shell:
+        shell.respond_to_cursor_queries = False
+        shell.paste("1 + 2")
+        output = shell.send(b"\r")
+        assert b"3\r\n" in re.sub(rb"\x1b\[[0-9;]*m", b"", output) and PROMPT in output, output
+        assert shell.cursor_queries == 2, shell.cursor_queries
+        shell.paste("1 + 7")
+        output = shell.send(b"\r")
+        assert b"8\r\n" in re.sub(rb"\x1b\[[0-9;]*m", b"", output) and PROMPT in output, output
+        assert shell.cursor_queries == 2, shell.cursor_queries
+
+
 def title_reporting(josh):
     with session(josh) as shell:
         # Defaults are reported before the first read.
@@ -244,4 +287,5 @@ if __name__ == "__main__":
         "clicks": prompt_clicks_move_cursor,
         "markers": prompt_markers_bound_execution,
         "title": title_reporting,
+        "missing_cursor_report": missing_cursor_report,
     }[sys.argv[2]](josh)

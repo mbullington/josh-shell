@@ -20,7 +20,7 @@ index ab263c2..dcc0e91 100644
              menu_start_row: None,
              large_buffer_extra_rows_after_prompt: None,
 diff --git a/src/painting/painter.rs b/src/painting/painter.rs
-index 802fb18..a320c38 100644
+index 802fb18..a6299bd 100644
 --- a/src/painting/painter.rs
 +++ b/src/painting/painter.rs
 @@ -175,6 +175,7 @@ pub struct RenderSnapshot {
@@ -31,7 +31,112 @@ index 802fb18..a320c38 100644
      pub menu_active: bool,
      pub menu_start_row: Option<u16>,
      pub large_buffer_extra_rows_after_prompt: Option<usize>,
-@@ -654,6 +655,7 @@ impl Painter {
+@@ -279,6 +280,7 @@ pub struct Painter {
+     // Stdout
+     stdout: W,
+     prompt_start_row: PromptStartRow,
++    cursor_position_unavailable: bool,
+     // The number of lines that the prompt takes up
+     prompt_height: u16,
+     terminal_size: (u16, u16),
+@@ -297,6 +299,7 @@ impl Painter {
+         Painter {
+             stdout,
+             prompt_start_row: PromptStartRow::Unverified,
++            cursor_position_unavailable: false,
+             prompt_height: 0,
+             terminal_size: (0, 0),
+             last_required_lines: 0,
+@@ -471,7 +474,10 @@ impl Painter {
+                 size
+             }
+         };
+-        let prompt_selector = select_prompt_row(suspended_state, cursor::position()?);
++        let Some(position) = self.query_cursor_position() else {
++            return self.anchor_at_bottom();
++        };
++        let prompt_selector = select_prompt_row(suspended_state, position);
+         let new_row = match prompt_selector {
+             PromptRowSelector::UseExistingPrompt { start_row } => start_row,
+             PromptRowSelector::MakeNewPrompt { new_row } => {
+@@ -494,6 +500,34 @@ impl Painter {
+         Ok(())
+     }
+ 
++    /// Query at most until the first failure. In terminals that do not answer
++    /// cursor-position reports, waiting two seconds at every prompt is worse
++    /// than giving up on the query for this editor session.
++    fn query_cursor_position(&mut self) -> Option<(u16, u16)> {
++        if self.cursor_position_unavailable {
++            return None;
++        }
++        match cursor::position() {
++            Ok(position) => Some(position),
++            Err(_) => {
++                self.cursor_position_unavailable = true;
++                None
++            }
++        }
++    }
++
++    /// Scroll once from a known cell so that the prompt starts on an empty
++    /// row without needing to know where an external command left the cursor.
++    fn anchor_at_bottom(&mut self) -> Result<()> {
++        let row = self.screen_height().saturating_sub(1);
++        self.stdout
++            .queue(MoveTo(0, row))?
++            .queue(Print("\r\n"))?
++            .flush()?;
++        self.prompt_start_row.mark_verified(row);
++        Ok(())
++    }
++
+     /// Mark `prompt_start_row` as possibly out of sync — the next
+     /// `repaint_buffer` will re-query the terminal. Call from any path
+     /// that lets something other than reedline's rendering move the
+@@ -549,7 +583,6 @@ impl Painter {
+         }
+ 
+         // Lines and distance parameters
+-        let remaining_lines = self.remaining_lines();
+         let required_lines = lines.required_lines(screen_width, false, menu);
+ 
+         // Marking the painter state as larger buffer to avoid animations
+@@ -561,18 +594,21 @@ impl Painter {
+         // the query confirms no drift, so later paints can skip it.
+         let should_reset_anchor = match self.prompt_start_row {
+             PromptStartRow::Verified(_) => false,
+-            PromptStartRow::Stale(row) => match cursor::position() {
++            PromptStartRow::Stale(row) => match self.query_cursor_position() {
+                 // The `+1` handles the case where the previous output
+                 // ended without a newline, leaving the cursor on the
+                 // same row as the next prompt.
+-                Ok(position) => {
++                Some(position) => {
+                     let drifted = position.1 + 1 < row;
+                     if !drifted {
+                         self.prompt_start_row.mark_verified(row);
+                     }
+                     drifted
+                 }
+-                Err(_) => false,
++                None => {
++                    self.anchor_at_bottom()?;
++                    false
++                }
+             },
+             // `initialize_prompt_position` runs before any
+             // `repaint_buffer`, so this branch is unreachable in normal
+@@ -588,6 +624,8 @@ impl Painter {
+             }
+         };
+ 
++        let remaining_lines = self.remaining_lines();
++
+         // Moving the start position of the cursor based on the size of the required lines
+         if self.large_buffer || should_reset_anchor {
+             for _ in 0..screen_height.saturating_sub(lines_before_cursor) {
+@@ -654,6 +692,7 @@ impl Painter {
          menu: Option<&ReedlineMenu>,
          raw_before: &str,
          raw_after: &str,
@@ -39,7 +144,7 @@ index 802fb18..a320c38 100644
          layout: &PromptLayout,
      ) -> RenderSnapshot {
          let large_buffer_extra_rows_after_prompt = if self.large_buffer {
-@@ -674,6 +676,8 @@ impl Painter {
+@@ -674,6 +713,8 @@ impl Painter {
              before_cursor: raw_before.to_string(),
              after_cursor: raw_after.to_string(),
              first_buffer_col: layout.first_buffer_col,
@@ -48,7 +153,7 @@ index 802fb18..a320c38 100644
              menu_active: menu.is_some(),
              menu_start_row: layout.menu_start_row,
              large_buffer_extra_rows_after_prompt,
-@@ -785,6 +789,11 @@ impl Painter {
+@@ -785,6 +826,11 @@ impl Painter {
          // Walk through visible buffer content grapheme-by-grapheme, tracking
          // the screen position. When we hit the target (column, row) we return
          // the corresponding byte offset in the full buffer.
@@ -60,7 +165,7 @@ index 802fb18..a320c38 100644
          let mut current_row = buffer_start_row;
          let mut current_col = if current_row == buffer_start_row {
              snapshot.first_buffer_col
-@@ -792,11 +801,16 @@ impl Painter {
+@@ -792,11 +838,16 @@ impl Painter {
              0
          };
  
@@ -79,7 +184,44 @@ index 802fb18..a320c38 100644
                      continue;
                  }
  
-@@ -1375,6 +1389,7 @@ mod tests {
+@@ -1074,7 +1125,7 @@ impl Painter {
+         // bug.
+         #[cfg(not(test))]
+         {
+-            if let Ok(position) = cursor::position() {
++            if let Some(position) = self.query_cursor_position() {
+                 self.prompt_start_row = PromptStartRow::Stale(position.1);
+                 self.just_resized = true;
+             }
+@@ -1108,7 +1159,12 @@ impl Painter {
+             .queue(Clear(ClearType::All))?
+             .queue(MoveTo(0, 0))?
+             .flush()?;
+-        self.initialize_prompt_position(None)
++        if self.cursor_position_unavailable {
++            self.prompt_start_row.mark_verified(0);
++            Ok(())
++        } else {
++            self.initialize_prompt_position(None)
++        }
+     }
+ 
+     pub(crate) fn clear_scrollback(&mut self) -> Result<()> {
+@@ -1117,7 +1173,12 @@ impl Painter {
+             .queue(Clear(ClearType::Purge))?
+             .queue(MoveTo(0, 0))?
+             .flush()?;
+-        self.initialize_prompt_position(None)
++        if self.cursor_position_unavailable {
++            self.prompt_start_row.mark_verified(0);
++            Ok(())
++        } else {
++            self.initialize_prompt_position(None)
++        }
+     }
+ 
+     // The prompt is moved to the end of the buffer after the event was handled
+@@ -1375,6 +1436,7 @@ mod tests {
              before_cursor: "".to_string(),
              after_cursor: "".to_string(),
              first_buffer_col: 2,
@@ -87,7 +229,7 @@ index 802fb18..a320c38 100644
              menu_active: false,
              menu_start_row: None,
              large_buffer_extra_rows_after_prompt: None,
-@@ -1421,6 +1436,44 @@ mod tests {
+@@ -1421,6 +1483,44 @@ mod tests {
          assert_eq!(painter.screen_to_buffer_offset(&snapshot, 1, 1), Some(4));
      }
  

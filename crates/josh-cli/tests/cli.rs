@@ -635,6 +635,12 @@ fn prompt_markers_bound_execution() {
 
 #[cfg(unix)]
 #[test]
+fn missing_cursor_report_keeps_the_repl_usable() {
+    check_editing_pty("missing_cursor_report");
+}
+
+#[cfg(unix)]
+#[test]
 fn terminal_title_and_cwd_are_reported() {
     check_editing_pty("title");
 }
