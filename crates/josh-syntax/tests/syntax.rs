@@ -192,6 +192,40 @@ fn double_quote_interpolations_remain_semantic_parts() {
 }
 
 #[test]
+fn bare_interpolations_are_evaluated_word_parts() {
+    let Statement::Command(command) = one("printf ${a[0]} pre${1 + 2}post") else {
+        panic!("expected command")
+    };
+    let words = &command.stages[0].words;
+    assert!(matches!(
+        words[1].parts.as_slice(),
+        [WordPart::Evaluated { .. }]
+    ));
+    assert!(matches!(
+        words[2].parts.as_slice(),
+        [
+            WordPart::Literal { .. },
+            WordPart::Evaluated { .. },
+            WordPart::Literal { .. }
+        ]
+    ));
+    for source in ["printf ${1 2}", "printf ${}", "x = ${1}"] {
+        assert_eq!(
+            parse(source).completeness,
+            Completeness::Invalid,
+            "{source}"
+        );
+    }
+    for source in ["printf ${", "printf ${1"] {
+        assert_eq!(
+            parse(source).completeness,
+            Completeness::Incomplete,
+            "{source}"
+        );
+    }
+}
+
+#[test]
 fn multiline_command_forms_make_progress_and_preserve_pipelines() {
     let Statement::Expr(Expr::If {
         condition: IfCondition::Command(condition),

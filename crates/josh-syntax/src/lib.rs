@@ -2102,6 +2102,20 @@ impl Parser {
                     end = end_span;
                     continue;
                 }
+                TokenKind::InterpolationStart => {
+                    self.bump_mode(LexMode::Expression);
+                    let expr = self.parse_expr(0);
+                    self.skip_trivia_mode(LexMode::Expression);
+                    let end_span =
+                        self.expect_closer(TokenTag::RightBrace, "}", LexMode::Expression);
+                    let span = Span::new(token.span.start, end_span);
+                    parts.push(WordPart::Evaluated {
+                        expr: Box::new(expr),
+                        span,
+                    });
+                    end = end_span;
+                    continue;
+                }
                 _ => {
                     self.bump_mode(LexMode::Command);
                     let raw = &self.source[token.span.range()];
@@ -3036,6 +3050,7 @@ enum TokenTag {
     RedirectOutputAndError,
     Arrow,
     CaptureStart,
+    InterpolationStart,
     Unsupported,
     Unknown,
 }
@@ -3109,7 +3124,8 @@ fn tag(kind: &TokenKind) -> TokenTag {
         TokenKind::RedirectOutputAndError => TokenTag::RedirectOutputAndError,
         TokenKind::Arrow => TokenTag::Arrow,
         TokenKind::CaptureStart => TokenTag::CaptureStart,
-        TokenKind::Unsupported(_) | TokenKind::InterpolationStart => TokenTag::Unsupported,
+        TokenKind::InterpolationStart => TokenTag::InterpolationStart,
+        TokenKind::Unsupported(_) => TokenTag::Unsupported,
         TokenKind::Unknown => TokenTag::Unknown,
     }
 }
@@ -3232,6 +3248,11 @@ fn lex(source: &str) -> (Vec<Token>, Vec<Diagnostic>) {
                 at += source[at..].chars().next().unwrap().len_utf8();
             }
             push(&mut tokens, TokenKind::Word, start, at);
+            continue;
+        }
+        if source[start..].starts_with("${") {
+            at += 2;
+            push(&mut tokens, TokenKind::InterpolationStart, start, at);
             continue;
         }
         if source[start..].starts_with("$(") {
@@ -3429,6 +3450,7 @@ fn comment_starts_here(previous: Option<&Token>) -> bool {
                 | TokenKind::LeftBrace
                 | TokenKind::RightBrace
                 | TokenKind::CaptureStart
+                | TokenKind::InterpolationStart
         ),
     }
 }

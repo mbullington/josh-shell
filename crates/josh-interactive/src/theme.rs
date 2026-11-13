@@ -121,7 +121,7 @@ impl Palette {
                 self.constant
             }
             TokenKind::DollarVariable => self.variable,
-            TokenKind::CaptureStart => self.capture,
+            TokenKind::CaptureStart | TokenKind::InterpolationStart => self.capture,
             TokenKind::Let
             | TokenKind::Fn
             | TokenKind::If

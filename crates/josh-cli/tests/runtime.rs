@@ -1876,6 +1876,18 @@ fn quoted_command_words_interpolate_in_either_quote_form() {
 }
 
 #[test]
+fn bare_command_words_interpolate_expressions() {
+    let mut engine = Engine::new(ProcessHost::default());
+    assert_eq!(
+        evaluated(
+            &mut engine,
+            r#"a = [10, 20]; captured = $(printf '%s|%s|%s' ${a[0]} pre${a[1]}post --x=${a[0] + a[1]}); (captured)"#
+        ),
+        string("10|pre20post|--x=30")
+    );
+}
+
+#[test]
 fn rest_parameters_collect_remaining_arguments() {
     let mut engine = Engine::new(ProcessHost::default());
     assert_eq!(
